@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Student Courses Platform
+
+A Next.js-based platform for students to access and view their enrolled courses. This platform integrates with Supabase for authentication and database management.
+
+## Features
+
+- **Student Authentication**: Secure sign-up and login functionality
+- **Course Dashboard**: View all enrolled courses in one place
+- **Course Access Control**: Students can only access courses they're enrolled in
+- **Course Content**: Rich markdown-based course content with multimedia support
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Content**: Markdown with react-markdown
+
+## Database Schema
+
+This project uses two main tables from the parent project:
+
+### courses Table
+- Course information including title, description, content (markdown)
+- Categories: automation, ai, productivity, business, other
+- Support for different levels: beginner, intermediate, advanced
+- Multilingual support (en, es)
+- Draft/Published status
+
+### course_signups Table
+- Student enrollment records
+- Links students (by email) to courses (by slug)
+- Tracks signup status and metadata
+- One signup per email per course constraint
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ installed
+- A Supabase account and project
+
+### Installation
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Set up environment variables:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+3. Edit .env.local with your Supabase credentials
+
+### Database Setup
+
+Run the migration files in your Supabase SQL editor in order:
+1. migrations/018_create_course_signups.sql
+2. migrations/020_create_courses.sql
+3. migrations/022_revert_course_signups_name_split.sql
+
+### Running the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- app/ - Next.js app directory with pages
+- contexts/ - React contexts (AuthContext)
+- hooks/ - Custom React hooks (useCourses)
+- lib/ - Utility functions (Supabase client)
+- types/ - TypeScript type definitions
+- migrations/ - Database migration files
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
