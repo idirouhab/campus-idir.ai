@@ -22,6 +22,9 @@ export function useCourseChecklist(courseId: string | undefined, courseSignupId:
     }
 
     async function fetchChecklist() {
+      // TypeScript guard - these are already checked above
+      if (!courseId || !courseSignupId) return;
+
       try {
         setLoading(true);
 

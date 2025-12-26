@@ -18,6 +18,10 @@ interface CourseAccessResponse {
 
 export async function getStudentCoursesAction(studentId: string | undefined): Promise<CoursesResponse> {
   try {
+    if (!studentId) {
+      return { success: false, error: 'Student ID is required' };
+    }
+
     const sql = getDb();
 
     console.log('[getStudentCourses] Fetching courses for student:', studentId);
@@ -90,6 +94,10 @@ export async function checkCourseAccessAction(
     courseSlug: string | undefined
 ): Promise<CourseAccessResponse> {
   try {
+    if (!studentId || !courseSlug) {
+      return { success: true, hasAccess: false };
+    }
+
     const sql = getDb();
 
     // Check if student has access to this course
@@ -123,6 +131,10 @@ export async function getCourseBySlugAction(courseSlug: string | undefined): Pro
     error?: string
 }> {
   try {
+    if (!courseSlug) {
+      return { success: false, error: 'Course slug is required' };
+    }
+
     const sql = getDb();
 
     const result = await sql`

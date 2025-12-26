@@ -299,27 +299,19 @@ export default function CoursePage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         {/* Course Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs px-2 py-1 rounded bg-emerald-50 text-[#10b981] font-bold uppercase">
-              {course.category}
-            </span>
-            {course.level && (
-              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 font-bold uppercase">
-                {course.level}
-              </span>
-            )}
-          </div>
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">{course.title}</h1>
-          <p className="text-sm text-gray-600">{course.description}</p>
+          {course.short_description && (
+            <p className="text-sm text-gray-600">{course.short_description}</p>
+          )}
         </div>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - Left Column (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Course Content */}
+            {/* Course Content - TODO: Render structured course_data */}
             <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
-              <MarkdownContent content={course.content} />
+              <p className="text-gray-600">Course content structure to be implemented.</p>
             </div>
           </div>
 
@@ -474,14 +466,6 @@ export default function CoursePage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 mb-3">{t('course.courseInfo')}</h3>
               <div className="space-y-2 text-sm">
-                {course.duration_hours && (
-                  <div className="flex items-center text-gray-600">
-                    <svg className="w-4 h-4 mr-2 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {course.duration_hours} {t('course.hours')}
-                  </div>
-                )}
                 {course.enrollment_count > 0 && (
                   <div className="flex items-center text-gray-600">
                     <svg className="w-4 h-4 mr-2 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -491,21 +475,6 @@ export default function CoursePage() {
                   </div>
                 )}
               </div>
-
-              {/* Prerequisites */}
-              {course.prerequisites && course.prerequisites.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">{t('course.prerequisites')}</h4>
-                  <ul className="space-y-1 text-xs text-gray-600">
-                    {course.prerequisites.map((prereq, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="text-[#10b981] mr-1">•</span>
-                        {prereq}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           </div>
         </div>

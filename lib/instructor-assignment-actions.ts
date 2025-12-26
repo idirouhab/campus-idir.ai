@@ -240,7 +240,7 @@ export async function getInstructorAssignmentsAction(instructorId: string): Prom
 
     return {
       success: true,
-      data: assignments as Array<CourseInstructor & { course_title: string }>,
+      data: assignments as unknown as Array<CourseInstructor & { course_title: string }>,
     };
   } catch (error: any) {
     console.error('Error fetching instructor assignments:', error);
@@ -275,7 +275,7 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
 
     return {
       success: true,
-      data: instructors as Array<Instructor & { instructor_role: CourseInstructorRole; display_order: number }>,
+      data: instructors as unknown as Array<Instructor & { instructor_role: CourseInstructorRole; display_order: number }>,
     };
   } catch (error: any) {
     console.error('Error fetching course instructors:', error);

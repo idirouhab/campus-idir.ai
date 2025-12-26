@@ -11,7 +11,8 @@ let sql: ReturnType<typeof postgres>;
 
 export function getDb() {
   if (!sql) {
-    sql = postgres(connectionString, {
+    // connectionString is guaranteed to be defined due to the check above
+    sql = postgres(connectionString!, {
       max: 10, // Maximum number of connections
       idle_timeout: 20,
       connect_timeout: 10,

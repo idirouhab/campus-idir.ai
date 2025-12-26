@@ -111,7 +111,7 @@ export async function createStudentChecklistAction(courseSignupId: string, check
         ${courseSignupId},
         ${checklistId},
         'pending',
-        ${sql.json(items_progress)}
+        ${sql.json(items_progress as any)}
       )
       RETURNING *
     `;
@@ -177,7 +177,7 @@ export async function updateChecklistItemAction(
     // Update in database
     const result = await sql`
       UPDATE student_checklists
-      SET items_progress = ${sql.json(updatedProgress)},
+      SET items_progress = ${sql.json(updatedProgress as any)},
           updated_at = NOW()
       WHERE id = ${studentChecklistId}
       RETURNING *

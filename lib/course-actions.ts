@@ -235,7 +235,7 @@ export async function getAllInstructorsAction(adminId: string): Promise<{
 
     return {
       success: true,
-      data: instructors as Instructor[],
+      data: instructors as unknown as Instructor[],
     };
   } catch (error: any) {
     console.error('Error fetching instructors:', error);
