@@ -7,7 +7,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { updateInstructorProfileAction, updateInstructorPasswordAction, verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
-import InstructorNavigation from '@/components/InstructorNavigation';
 import { Instructor } from '@/types/database';
 import Cookies from 'js-cookie';
 import imageCompression from 'browser-image-compression';
@@ -337,7 +336,6 @@ export default function InstructorProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <InstructorNavigation />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         {/* Page Title */}
         <div className="mb-6 md:mb-8 animate-fade-in-up">

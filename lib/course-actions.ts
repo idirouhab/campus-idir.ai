@@ -365,3 +365,51 @@ export async function createCourseAction(
     };
   }
 }
+
+/**
+ * Delete a course (admin only)
+ */
+export async function deleteCourseAction(
+  instructorId: string,
+  courseId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const sql = getDb();
+
+    // Verify admin permission
+    const instructors = await sql`
+      SELECT * FROM instructors WHERE id = ${instructorId}
+    `;
+
+    if (instructors.length === 0) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    const instructor = instructors[0] as Instructor;
+
+    // Only admins can delete courses
+    if (!canViewAllCourses(instructor)) {
+      return { success: false, error: 'Admin access required to delete courses' };
+    }
+
+    // Delete course (this will cascade to related tables if FK constraints are set properly)
+    // First delete course_instructors, then course_signups, then the course
+    await sql`DELETE FROM course_instructors WHERE course_id = ${courseId}`;
+    await sql`DELETE FROM course_signups WHERE course_id = ${courseId}`;
+    await sql`DELETE FROM course_checklists WHERE course_id = ${courseId}`;
+    await sql`DELETE FROM courses WHERE id = ${courseId}`;
+
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error('Error deleting course:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete course',
+    };
+  }
+}

@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import InstructorNavigation from '@/components/InstructorNavigation';
 import CourseBuilder from '@/components/courses/CourseBuilder';
 import { generateCourseSlug } from '@/lib/course-utils';
 import { createCourseAction, getAllInstructorsAction } from '@/lib/course-actions';
@@ -170,7 +169,6 @@ export default function NewCoursePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <InstructorNavigation />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         <div className="mb-6">
           <h1 className="text-3xl font-black text-gray-900 mb-2">Create New Course</h1>

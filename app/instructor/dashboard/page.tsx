@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
-import { getInstructorCoursesAction } from '@/lib/course-actions';
+import { getInstructorCoursesAction, deleteCourseAction } from '@/lib/course-actions';
 import { Instructor, Course } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
-import InstructorNavigation from '@/components/InstructorNavigation';
 import Cookies from 'js-cookie';
 
 interface CourseWithInstructors extends Course {
@@ -30,6 +29,7 @@ export default function InstructorDashboardPage() {
   const [courses, setCourses] = useState<CourseWithInstructors[]>([]);
   const [loading, setLoading] = useState(true);
   const [coursesLoading, setCoursesLoading] = useState(true);
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const permissions = useInstructorPermissions(instructor);
 
   useEffect(() => {
@@ -83,6 +83,31 @@ export default function InstructorDashboardPage() {
     fetchCourses();
   }, [instructor]);
 
+  // Handle course deletion
+  const handleDeleteCourse = async (courseId: string, courseTitle: string) => {
+    if (!instructor) return;
+
+    if (!confirm(`Are you sure you want to delete "${courseTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingCourseId(courseId);
+    try {
+      const result = await deleteCourseAction(instructor.id, courseId);
+      if (result.success) {
+        // Remove the course from the list
+        setCourses(courses.filter(course => course.id !== courseId));
+      } else {
+        alert(result.error || 'Failed to delete course');
+      }
+    } catch (error: any) {
+      console.error('Error deleting course:', error);
+      alert(error.message || 'Failed to delete course');
+    } finally {
+      setDeletingCourseId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -100,7 +125,6 @@ export default function InstructorDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <InstructorNavigation />
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         <div className="mb-6 md:mb-8 animate-fade-in-up">
@@ -155,68 +179,92 @@ export default function InstructorDashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
-                <Link
-                  key={course.id}
-                  href={`/course/${course.slug}`}
-                  className="block border border-gray-200 rounded-lg hover:border-[#10b981] transition-all overflow-hidden group"
-                >
-                  {course.cover_image && (
-                    <div className="aspect-video bg-gray-100 overflow-hidden">
-                      <img
-                        src={course.cover_image}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
-                    {course.short_description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{course.short_description}</p>
-                    )}
-
-                    {/* Instructors */}
-                    {course.instructors && course.instructors.length > 0 && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex -space-x-2">
-                          {course.instructors.slice(0, 3).map((inst) => (
-                            <div
-                              key={inst.id}
-                              className="w-6 h-6 rounded-full bg-emerald-50 border-2 border-white flex items-center justify-center"
-                              title={`${inst.first_name} ${inst.last_name}`}
-                            >
-                              {inst.picture_url ? (
-                                <img
-                                  src={inst.picture_url}
-                                  alt={inst.first_name}
-                                  className="w-full h-full rounded-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-xs font-semibold text-[#10b981]">
-                                  {inst.first_name[0]}{inst.last_name[0]}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {course.instructors.length} {course.instructors.length === 1 ? 'instructor' : 'instructors'}
-                        </span>
+                <div key={course.id} className="relative border border-gray-200 rounded-lg overflow-hidden group">
+                  <Link
+                    href={`/course/${course.slug}`}
+                    className="block hover:border-[#10b981] transition-all"
+                  >
+                    {course.cover_image && (
+                      <div className="aspect-video bg-gray-100 overflow-hidden">
+                        <img
+                          src={course.cover_image}
+                          alt={course.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
                     )}
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
+                      {course.short_description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{course.short_description}</p>
+                      )}
 
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span className={`px-2 py-1 rounded ${
-                        course.status === 'published'
-                          ? 'bg-emerald-50 text-[#10b981]'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {course.status}
-                      </span>
-                      <span>{course.language.toUpperCase()}</span>
+                      {/* Instructors */}
+                      {course.instructors && course.instructors.length > 0 && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex -space-x-2">
+                            {course.instructors.slice(0, 3).map((inst) => (
+                              <div
+                                key={inst.id}
+                                className="w-6 h-6 rounded-full bg-emerald-50 border-2 border-white flex items-center justify-center"
+                                title={`${inst.first_name} ${inst.last_name}`}
+                              >
+                                {inst.picture_url ? (
+                                  <img
+                                    src={inst.picture_url}
+                                    alt={inst.first_name}
+                                    className="w-full h-full rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-xs font-semibold text-[#10b981]">
+                                    {inst.first_name[0]}{inst.last_name[0]}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {course.instructors.length} {course.instructors.length === 1 ? 'instructor' : 'instructors'}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span className={`px-2 py-1 rounded ${
+                          course.status === 'published'
+                            ? 'bg-emerald-50 text-[#10b981]'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {course.status}
+                        </span>
+                        <span>{course.language.toUpperCase()}</span>
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+
+                  {/* Delete Button - Only for admins */}
+                  {permissions.canCreateCourses() && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteCourse(course.id, course.title);
+                      }}
+                      disabled={deletingCourseId === course.id}
+                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg z-10"
+                      title="Delete course"
+                    >
+                      {deletingCourseId === course.id ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}

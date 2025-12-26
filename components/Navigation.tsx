@@ -17,15 +17,11 @@ export default function Navigation() {
   const [isMobile, setIsMobile] = useState(false);
   const [isInstructor, setIsInstructor] = useState(false);
   const [instructorData, setInstructorData] = useState<Instructor | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { t } = useLanguage();
-
-  // Don't render on instructor dashboard pages (they have their own navigation)
-  if (pathname?.startsWith('/instructor/dashboard')) {
-    return null;
-  }
 
   // Check for instructor authentication and fetch full data
   useEffect(() => {
@@ -121,7 +117,24 @@ export default function Navigation() {
     };
   }, []);
 
-  const showBackground = isMobile || scrolled;
+  const showBackground = true; // Always show background for consistency
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const getRoleBadge = (instructor: Instructor) => {
+    if (instructor.role === 'admin') {
+      return {
+        text: 'Administrator',
+        className: 'bg-purple-50 text-purple-700 border-purple-200'
+      };
+    }
+    return {
+      text: 'Instructor',
+      className: 'bg-emerald-50 text-[#10b981] border-emerald-200'
+    };
+  };
 
   return (
     <>
@@ -181,110 +194,200 @@ export default function Navigation() {
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-2" role="menubar">
-              <LanguageSwitcher />
-              <div className="flex items-center space-x-1">
-                {isInstructor ? (
-                  <>
-                    <Link
-                      href="/instructor/dashboard"
-                      className={`px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide rounded ${
-                        pathname === '/instructor/dashboard'
-                          ? 'text-[#10b981] bg-emerald-50'
-                          : 'text-gray-700 hover:text-[#10b981] hover:bg-emerald-50'
-                      }`}
-                      role="menuitem"
+            {/* Desktop Navigation - Profile Dropdown */}
+            <div className="hidden md:flex items-center gap-2">
+              {isInstructor && instructorData ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all"
+                  >
+                    {/* Profile Picture or Initials */}
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
+                      {instructorData.picture_url ? (
+                        <img
+                          src={instructorData.picture_url}
+                          alt={instructorData.first_name}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-bold text-[#10b981]">
+                          {getInitials(instructorData.first_name, instructorData.last_name)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Name and Role */}
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-bold text-gray-900">
+                        {instructorData.first_name} {instructorData.last_name}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded border ${getRoleBadge(instructorData).className}`}>
+                        {getRoleBadge(instructorData).text}
+                      </span>
+                    </div>
+
+                    {/* Dropdown Arrow */}
+                    <svg
+                      className={`w-4 h-4 text-gray-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      {t('navigation.dashboard')}
-                    </Link>
-                    <Link
-                      href="/instructor/dashboard/profile"
-                      className={`px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide rounded ${
-                        pathname === '/instructor/dashboard/profile'
-                          ? 'text-[#10b981] bg-emerald-50'
-                          : 'text-gray-700 hover:text-[#10b981] hover:bg-emerald-50'
-                      }`}
-                      role="menuitem"
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {dropdownOpen && (
+                    <>
+                      {/* Backdrop */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setDropdownOpen(false)}
+                      />
+
+                      {/* Menu */}
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
+                        <Link
+                          href="/instructor/dashboard"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                          </svg>
+                          Dashboard
+                        </Link>
+                        {instructorData && canAssignInstructors(instructorData) && (
+                          <Link
+                            href="/instructor/dashboard/manage-instructors"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            Manage Instructors
+                          </Link>
+                        )}
+                        <Link
+                          href="/instructor/dashboard/profile"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          Update My Profile
+                        </Link>
+                        <button
+                          onClick={handleInstructorSignOut}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Log-out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all"
+                  >
+                    {/* Profile Picture or Initials */}
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
+                      <span className="text-xs font-bold text-[#10b981]">
+                        {getInitials(user.first_name || 'U', user.last_name || 'S')}
+                      </span>
+                    </div>
+
+                    {/* Name */}
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-bold text-gray-900">
+                        {user.first_name} {user.last_name}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
+                        Student
+                      </span>
+                    </div>
+
+                    {/* Dropdown Arrow */}
+                    <svg
+                      className={`w-4 h-4 text-gray-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      {t('profile.title')}
-                    </Link>
-                    {instructorData && canAssignInstructors(instructorData) && (
-                      <Link
-                        href="/instructor/dashboard/manage-instructors"
-                        className={`px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide rounded ${
-                          pathname === '/instructor/dashboard/manage-instructors'
-                            ? 'text-[#10b981] bg-emerald-50'
-                            : 'text-gray-700 hover:text-[#10b981] hover:bg-emerald-50'
-                        }`}
-                        role="menuitem"
-                      >
-                        Manage Instructors
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleInstructorSignOut}
-                      className="px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide text-gray-700 hover:text-red-600 hover:bg-red-50 rounded"
-                      role="menuitem"
-                    >
-                      {t('navigation.signOut')}
-                    </button>
-                  </>
-                ) : user ? (
-                  <>
-                    <Link
-                      href="/dashboard"
-                      className={`px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide rounded ${
-                        pathname === '/dashboard'
-                          ? 'text-[#10b981] bg-emerald-50'
-                          : 'text-gray-700 hover:text-[#10b981] hover:bg-emerald-50'
-                      }`}
-                      role="menuitem"
-                    >
-                      {t('navigation.myCourses')}
-                    </Link>
-                    <Link
-                      href="/dashboard/profile"
-                      className={`px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide rounded ${
-                        pathname === '/dashboard/profile'
-                          ? 'text-[#10b981] bg-emerald-50'
-                          : 'text-gray-700 hover:text-[#10b981] hover:bg-emerald-50'
-                      }`}
-                      role="menuitem"
-                    >
-                      {t('profile.title')}
-                    </Link>
-                    <button
-                      onClick={() => signOut()}
-                      className="px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide text-gray-700 hover:text-red-600 hover:bg-red-50 rounded"
-                      role="menuitem"
-                    >
-                      {t('navigation.signOut')}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className={`px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide rounded ${
-                        pathname === '/login'
-                          ? 'text-[#10b981] bg-emerald-50'
-                          : 'text-gray-700 hover:text-[#10b981] hover:bg-emerald-50'
-                      }`}
-                      role="menuitem"
-                    >
-                      {t('navigation.signIn')}
-                    </Link>
-                    <Link
-                      href="/signup"
-                      className="ml-2 px-4 py-2 text-sm font-bold transition-all uppercase tracking-wide bg-[#10b981] text-white rounded-lg hover:bg-[#059669]"
-                      role="menuitem"
-                    >
-                      {t('navigation.signUp')}
-                    </Link>
-                  </>
-                )}
-              </div>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {dropdownOpen && (
+                    <>
+                      {/* Backdrop */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setDropdownOpen(false)}
+                      />
+
+                      {/* Menu */}
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                          </svg>
+                          My Courses
+                        </Link>
+                        <Link
+                          href="/dashboard/profile"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          My Profile
+                        </Link>
+                        <button
+                          onClick={() => signOut()}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Log-out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-3 py-2 text-sm font-bold transition-all uppercase tracking-wide text-gray-700 hover:text-[#10b981] hover:bg-emerald-50 rounded"
+                  >
+                    {t('navigation.signIn')}
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="px-4 py-2 text-sm font-bold transition-all uppercase tracking-wide bg-[#10b981] text-white rounded-lg hover:bg-[#059669]"
+                  >
+                    {t('navigation.signUp')}
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Spacer for mobile to keep logo centered */}

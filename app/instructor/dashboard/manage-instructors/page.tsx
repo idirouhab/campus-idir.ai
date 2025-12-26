@@ -12,7 +12,6 @@ import {
 } from '@/lib/instructor-assignment-actions';
 import { Instructor, CourseInstructorRole } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
-import InstructorNavigation from '@/components/InstructorNavigation';
 import Cookies from 'js-cookie';
 
 interface Course {
@@ -210,7 +209,6 @@ export default function ManageInstructorsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <InstructorNavigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         {/* Page Title */}
         <div className="mb-6 md:mb-8 animate-fade-in-up">
