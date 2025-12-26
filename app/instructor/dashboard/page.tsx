@@ -115,9 +115,22 @@ export default function InstructorDashboardPage() {
         {/* Courses Section */}
         <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              {permissions.canViewAllCourses() ? 'All Courses' : 'My Courses'}
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                {permissions.canViewAllCourses() ? 'All Courses' : 'My Courses'}
+              </h2>
+              {permissions.canCreateCourses() && (
+                <Link
+                  href="/instructor/dashboard/courses/new"
+                  className="px-4 py-2 bg-[#10b981] text-white text-sm font-bold rounded-lg hover:bg-[#059669] transition-all uppercase tracking-wide flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Course
+                </Link>
+              )}
+            </div>
             <span className="text-sm text-gray-600">
               {courses.length} {courses.length === 1 ? 'course' : 'courses'}
             </span>

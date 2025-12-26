@@ -2,7 +2,7 @@
 
 import { getDb } from '@/lib/db';
 import { Course, Instructor } from '@/types/database';
-import { canViewAllCourses } from '@/lib/roles';
+import { canViewAllCourses, canCreateCourses } from '@/lib/roles';
 
 interface CourseWithInstructors extends Course {
   instructors?: Array<{
@@ -242,6 +242,126 @@ export async function getAllInstructorsAction(adminId: string): Promise<{
     return {
       success: false,
       error: error.message || 'Failed to fetch instructors',
+    };
+  }
+}
+
+/**
+ * Create a new course (admin only)
+ */
+export async function createCourseAction(
+  instructorId: string,
+  courseData: {
+    title: string;
+    slug: string;
+    short_description?: string;
+    course_data?: any;
+    cover_image?: string;
+    meta_title?: string;
+    meta_description?: string;
+    language: 'en' | 'es';
+    status: 'draft' | 'published';
+    published_at?: string;
+  },
+  instructors: Array<{
+    instructor_id: string;
+    display_order: number;
+    instructor_role: string;
+  }>
+): Promise<{
+  success: boolean;
+  data?: Course;
+  error?: string;
+}> {
+  try {
+    const sql = getDb();
+
+    // Verify admin permission
+    const adminQuery = await sql`
+      SELECT * FROM instructors WHERE id = ${instructorId}
+    `;
+
+    if (adminQuery.length === 0) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    const admin = adminQuery[0] as Instructor;
+
+    if (!canCreateCourses(admin)) {
+      return { success: false, error: 'Admin access required to create courses' };
+    }
+
+    // Check if slug already exists
+    const existingCourse = await sql`
+      SELECT id FROM courses WHERE slug = ${courseData.slug}
+    `;
+
+    if (existingCourse.length > 0) {
+      return { success: false, error: 'A course with this slug already exists' };
+    }
+
+    // Create course
+    const newCourses = await sql`
+      INSERT INTO courses (
+        slug,
+        title,
+        short_description,
+        course_data,
+        cover_image,
+        meta_title,
+        meta_description,
+        language,
+        status,
+        published_at,
+        enrollment_count,
+        view_count
+      ) VALUES (
+        ${courseData.slug},
+        ${courseData.title},
+        ${courseData.short_description || null},
+        ${courseData.course_data ? JSON.stringify(courseData.course_data) : null},
+        ${courseData.cover_image || null},
+        ${courseData.meta_title || null},
+        ${courseData.meta_description || null},
+        ${courseData.language},
+        ${courseData.status},
+        ${courseData.published_at || null},
+        0,
+        0
+      )
+      RETURNING *
+    `;
+
+    const newCourse = newCourses[0] as Course;
+
+    // Assign instructors
+    if (instructors && instructors.length > 0) {
+      for (const inst of instructors) {
+        await sql`
+          INSERT INTO course_instructors (
+            course_id,
+            instructor_id,
+            display_order,
+            instructor_role
+          ) VALUES (
+            ${newCourse.id},
+            ${inst.instructor_id},
+            ${inst.display_order},
+            ${inst.instructor_role}
+          )
+        `;
+      }
+    }
+
+    return {
+      success: true,
+      data: newCourse,
+    };
+  } catch (error: any) {
+    console.error('Error creating course:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create course',
     };
   }
 }
