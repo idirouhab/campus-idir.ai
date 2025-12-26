@@ -47,8 +47,17 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
       courses = await sql`
         SELECT
           c.*,
-          COALESCE(COUNT(DISTINCT cs.id), 0) as enrollment_count,
-          COALESCE(
+          COALESCE(enrollment_data.enrollment_count, 0) as enrollment_count,
+          COALESCE(instructor_data.instructors, '[]'::json) as instructors
+        FROM courses c
+        LEFT JOIN (
+          SELECT course_id, COUNT(DISTINCT id) as enrollment_count
+          FROM course_signups
+          GROUP BY course_id
+        ) enrollment_data ON c.id = enrollment_data.course_id
+        LEFT JOIN (
+          SELECT
+            ci.course_id,
             json_agg(
               json_build_object(
                 'id', i.id,
@@ -60,14 +69,11 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
                 'display_order', ci.display_order
               )
               ORDER BY ci.display_order
-            ) FILTER (WHERE i.id IS NOT NULL),
-            '[]'
-          ) as instructors
-        FROM courses c
-        LEFT JOIN course_instructors ci ON c.id = ci.course_id
-        LEFT JOIN instructors i ON ci.instructor_id = i.id
-        LEFT JOIN course_signups cs ON c.id = cs.course_id
-        GROUP BY c.id
+            ) as instructors
+          FROM course_instructors ci
+          JOIN instructors i ON ci.instructor_id = i.id
+          GROUP BY ci.course_id
+        ) instructor_data ON c.id = instructor_data.course_id
         ORDER BY c.created_at DESC
       `;
     } else {
@@ -75,8 +81,18 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
       courses = await sql`
         SELECT
           c.*,
-          COALESCE(COUNT(DISTINCT cs.id), 0) as enrollment_count,
-          COALESCE(
+          COALESCE(enrollment_data.enrollment_count, 0) as enrollment_count,
+          COALESCE(instructor_data.instructors, '[]'::json) as instructors
+        FROM courses c
+        INNER JOIN course_instructors my_ci ON c.id = my_ci.course_id AND my_ci.instructor_id = ${instructorId}
+        LEFT JOIN (
+          SELECT course_id, COUNT(DISTINCT id) as enrollment_count
+          FROM course_signups
+          GROUP BY course_id
+        ) enrollment_data ON c.id = enrollment_data.course_id
+        LEFT JOIN (
+          SELECT
+            ci.course_id,
             json_agg(
               json_build_object(
                 'id', i.id,
@@ -88,15 +104,11 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
                 'display_order', ci.display_order
               )
               ORDER BY ci.display_order
-            ) FILTER (WHERE i.id IS NOT NULL),
-            '[]'
-          ) as instructors
-        FROM courses c
-        INNER JOIN course_instructors ci ON c.id = ci.course_id
-        LEFT JOIN instructors i ON ci.instructor_id = i.id
-        LEFT JOIN course_signups cs ON c.id = cs.course_id
-        WHERE ci.instructor_id = ${instructorId}
-        GROUP BY c.id
+            ) as instructors
+          FROM course_instructors ci
+          JOIN instructors i ON ci.instructor_id = i.id
+          GROUP BY ci.course_id
+        ) instructor_data ON c.id = instructor_data.course_id
         ORDER BY c.created_at DESC
       `;
     }
