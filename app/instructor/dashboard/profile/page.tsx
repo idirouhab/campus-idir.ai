@@ -351,9 +351,9 @@ export default function InstructorProfilePage() {
             <p className="text-sm text-gray-600">Upload or change your profile picture</p>
           </div>
 
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Current/Preview Picture */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 mx-auto md:mx-0">
               <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
                 {picturePreview ? (
                   <img
@@ -407,12 +407,12 @@ export default function InstructorProfilePage() {
                 </div>
 
                 {picturePreview && !pictureCompressing && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
                       onClick={handlePictureUpload}
                       disabled={pictureUploading}
-                      className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                      className="w-full sm:w-auto px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
                     >
                       {pictureUploading ? 'Uploading...' : 'Upload Picture'}
                     </button>
@@ -424,7 +424,7 @@ export default function InstructorProfilePage() {
                         setPictureCompressing(false);
                       }}
                       disabled={pictureUploading}
-                      className="px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                      className="w-full sm:w-auto px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
                     >
                       Cancel
                     </button>

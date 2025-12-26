@@ -438,6 +438,55 @@ export default function Navigation() {
 
           {/* Menu Content */}
           <div className="flex-1 overflow-y-auto py-4">
+            {/* User Profile Section */}
+            {(isInstructor && instructorData) && (
+              <div className="px-3 pb-4 mb-4 border-b border-gray-200">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
+                    {instructorData.picture_url ? (
+                      <img
+                        src={instructorData.picture_url}
+                        alt={instructorData.first_name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-[#10b981]">
+                        {getInitials(instructorData.first_name, instructorData.last_name)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">
+                      {instructorData.first_name} {instructorData.last_name}
+                    </p>
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded border ${getRoleBadge(instructorData).className}`}>
+                      {getRoleBadge(instructorData).text}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {user && !isInstructor && (
+              <div className="px-3 pb-4 mb-4 border-b border-gray-200">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
+                    <span className="text-sm font-bold text-[#10b981]">
+                      {getInitials(user.first_name || 'U', user.last_name || 'S')}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">
+                      {user.first_name} {user.last_name}
+                    </p>
+                    <span className="inline-block text-xs px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
+                      Student
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1 px-3">
               {isInstructor ? (
                 <>
