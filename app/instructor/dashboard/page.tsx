@@ -229,7 +229,7 @@ export default function InstructorDashboardPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                         <span className={`px-2 py-1 rounded ${
                           course.status === 'published'
                             ? 'bg-emerald-50 text-[#10b981]'
@@ -241,6 +241,20 @@ export default function InstructorDashboardPage() {
                       </div>
                     </div>
                   </Link>
+                  {/* Action Buttons */}
+                  <div className="px-4 pb-4 pt-0 border-t border-gray-100">
+                    <Link
+                      href={`/instructor/dashboard/courses/${course.id}/students`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-bold rounded-lg text-[#10b981] bg-emerald-50 hover:bg-emerald-100 transition-all uppercase tracking-wide"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+
+                      View Students ({course.enrollment_count || 0})
+                    </Link>
+                  </div>
 
                   {/* Delete Button - Only for admins */}
                   {permissions.canCreateCourses() && (

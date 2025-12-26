@@ -47,6 +47,7 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
       courses = await sql`
         SELECT
           c.*,
+          COALESCE(COUNT(DISTINCT cs.id), 0) as enrollment_count,
           COALESCE(
             json_agg(
               json_build_object(
@@ -65,6 +66,7 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
         FROM courses c
         LEFT JOIN course_instructors ci ON c.id = ci.course_id
         LEFT JOIN instructors i ON ci.instructor_id = i.id
+        LEFT JOIN course_signups cs ON c.id = cs.course_id
         GROUP BY c.id
         ORDER BY c.created_at DESC
       `;
@@ -73,6 +75,7 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
       courses = await sql`
         SELECT
           c.*,
+          COALESCE(COUNT(DISTINCT cs.id), 0) as enrollment_count,
           COALESCE(
             json_agg(
               json_build_object(
@@ -91,6 +94,7 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
         FROM courses c
         INNER JOIN course_instructors ci ON c.id = ci.course_id
         LEFT JOIN instructors i ON ci.instructor_id = i.id
+        LEFT JOIN course_signups cs ON c.id = cs.course_id
         WHERE ci.instructor_id = ${instructorId}
         GROUP BY c.id
         ORDER BY c.created_at DESC
@@ -362,6 +366,94 @@ export async function createCourseAction(
     return {
       success: false,
       error: error.message || 'Failed to create course',
+    };
+  }
+}
+
+/**
+ * Get students enrolled in a course
+ */
+export async function getCourseStudentsAction(
+  instructorId: string,
+  courseId: string
+): Promise<{
+  success: boolean;
+  data?: Array<{
+    id: string;
+    student_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    signup_status: string;
+    language: string;
+    created_at: string;
+    completed_at?: string;
+  }>;
+  error?: string;
+}> {
+  try {
+    const sql = getDb();
+
+    // Verify instructor has access
+    const instructors = await sql`
+      SELECT * FROM instructors WHERE id = ${instructorId}
+    `;
+
+    if (instructors.length === 0) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    const instructor = instructors[0] as Instructor;
+
+    // Check access: admin can see all, regular instructor needs to be assigned
+    if (!canViewAllCourses(instructor)) {
+      const isAssigned = await sql`
+        SELECT 1 FROM course_instructors
+        WHERE course_id = ${courseId} AND instructor_id = ${instructorId}
+      `;
+
+      if (isAssigned.length === 0) {
+        return { success: false, error: 'Access denied to this course' };
+      }
+    }
+
+    // Get students enrolled in the course
+    const students = await sql`
+      SELECT
+        cs.id,
+        cs.student_id,
+        cs.signup_status,
+        cs.language,
+        cs.created_at,
+        cs.completed_at,
+        s.first_name,
+        s.last_name,
+        s.email
+      FROM course_signups cs
+      INNER JOIN students s ON cs.student_id = s.id
+      WHERE cs.course_id = ${courseId}
+      ORDER BY cs.created_at DESC
+    `;
+
+    return {
+      success: true,
+      data: students as unknown as Array<{
+        id: string;
+        student_id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        signup_status: string;
+        language: string;
+        created_at: string;
+        completed_at?: string;
+      }>,
+    };
+  } catch (error: any) {
+    console.error('Error fetching course students:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch students',
     };
   }
 }
