@@ -195,7 +195,8 @@ export default function Navigation() {
             </div>
 
             {/* Desktop Navigation - Profile Dropdown */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-4">
+              <LanguageSwitcher />
               {isInstructor && instructorData ? (
                 <div className="relative">
                   <button
