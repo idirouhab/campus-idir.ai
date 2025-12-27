@@ -113,6 +113,18 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
       `;
     }
 
+    // Parse course_data for all courses if it's a string
+    courses.forEach((course: any) => {
+      if (course.course_data && typeof course.course_data === 'string') {
+        try {
+          course.course_data = JSON.parse(course.course_data);
+        } catch (e) {
+          console.error('Error parsing course_data for course', course.id, ':', e);
+          course.course_data = null;
+        }
+      }
+    });
+
     return {
       success: true,
       data: courses as CourseWithInstructors[],
@@ -182,6 +194,16 @@ export async function getCourseByIdAction(
     }
 
     const course = courses[0] as CourseWithInstructors;
+
+    // Parse course_data if it's a string
+    if (course.course_data && typeof course.course_data === 'string') {
+      try {
+        course.course_data = JSON.parse(course.course_data);
+      } catch (e) {
+        console.error('Error parsing course_data:', e);
+        course.course_data = null;
+      }
+    }
 
     // Check access: admin can see all, regular instructor needs to be assigned
     if (!canViewAllCourses(instructor)) {
@@ -335,7 +357,7 @@ export async function createCourseAction(
         ${courseData.slug},
         ${courseData.title},
         ${courseData.short_description || null},
-        ${courseData.course_data ? JSON.stringify(courseData.course_data) : null},
+        ${courseData.course_data ? sql.json(courseData.course_data) : null},
         ${courseData.cover_image || null},
         ${courseData.meta_title || null},
         ${courseData.meta_description || null},
@@ -378,6 +400,136 @@ export async function createCourseAction(
     return {
       success: false,
       error: error.message || 'Failed to create course',
+    };
+  }
+}
+
+/**
+ * Update an existing course (admin only)
+ */
+export async function updateCourseAction(
+  instructorId: string,
+  courseId: string,
+  courseData: {
+    title: string;
+    slug: string;
+    short_description?: string;
+    course_data?: any;
+    cover_image?: string;
+    meta_title?: string;
+    meta_description?: string;
+    language: 'en' | 'es';
+    status: 'draft' | 'published';
+  },
+  instructors: Array<{
+    instructor_id: string;
+    display_order: number;
+    instructor_role: string;
+  }>
+): Promise<{
+  success: boolean;
+  data?: Course;
+  error?: string;
+}> {
+  try {
+    const sql = getDb();
+
+    // Verify admin permission
+    const adminQuery = await sql`
+      SELECT * FROM instructors WHERE id = ${instructorId}
+    `;
+
+    if (adminQuery.length === 0) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    const admin = adminQuery[0] as Instructor;
+
+    if (!canCreateCourses(admin)) {
+      return { success: false, error: 'Admin access required to edit courses' };
+    }
+
+    // Get current course (for published_at check)
+    const existingCourseQuery = await sql`
+      SELECT * FROM courses WHERE id = ${courseId}
+    `;
+
+    if (existingCourseQuery.length === 0) {
+      return { success: false, error: 'Course not found' };
+    }
+
+    const existingCourse = existingCourseQuery[0] as Course;
+
+    // Check if slug already exists (excluding current course)
+    const slugConflict = await sql`
+      SELECT id FROM courses
+      WHERE slug = ${courseData.slug} AND id != ${courseId}
+    `;
+
+    if (slugConflict.length > 0) {
+      return { success: false, error: 'A course with this slug already exists' };
+    }
+
+    // Handle published_at logic
+    let publishedAt = existingCourse.published_at;
+
+    // Only set published_at if transitioning from draft to published for the first time
+    if (existingCourse.status === 'draft' && courseData.status === 'published' && !publishedAt) {
+      publishedAt = new Date().toISOString();
+    }
+
+    // Update course
+    const updatedCourses = await sql`
+      UPDATE courses
+      SET
+        slug = ${courseData.slug},
+        title = ${courseData.title},
+        short_description = ${courseData.short_description || null},
+        course_data = ${courseData.course_data ? sql.json(courseData.course_data) : null},
+        cover_image = ${courseData.cover_image || null},
+        meta_title = ${courseData.meta_title || null},
+        meta_description = ${courseData.meta_description || null},
+        language = ${courseData.language},
+        status = ${courseData.status},
+        published_at = ${publishedAt},
+        updated_at = NOW()
+      WHERE id = ${courseId}
+      RETURNING *
+    `;
+
+    const updatedCourse = updatedCourses[0] as Course;
+
+    // Delete existing instructor assignments
+    await sql`DELETE FROM course_instructors WHERE course_id = ${courseId}`;
+
+    // Insert new instructor assignments
+    if (instructors && instructors.length > 0) {
+      for (const inst of instructors) {
+        await sql`
+          INSERT INTO course_instructors (
+            course_id,
+            instructor_id,
+            display_order,
+            instructor_role
+          ) VALUES (
+            ${courseId},
+            ${inst.instructor_id},
+            ${inst.display_order},
+            ${inst.instructor_role}
+          )
+        `;
+      }
+    }
+
+    return {
+      success: true,
+      data: updatedCourse,
+    };
+  } catch (error: any) {
+    console.error('Error updating course:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update course',
     };
   }
 }
