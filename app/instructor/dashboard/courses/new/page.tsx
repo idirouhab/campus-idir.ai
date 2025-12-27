@@ -9,6 +9,7 @@ import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { Instructor } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Cookies from 'js-cookie';
+import imageCompression from 'browser-image-compression';
 
 export default function NewCoursePage() {
   const router = useRouter();
@@ -36,6 +37,21 @@ export default function NewCoursePage() {
   });
 
   const [courseData, setCourseData] = useState<any>(null);
+
+  // Cover image upload state
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState('');
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverCompressing, setCoverCompressing] = useState(false);
+  const [coverUploadSuccess, setCoverUploadSuccess] = useState(false);
+
+  // Collapsible sections state
+  const [sectionsExpanded, setSectionsExpanded] = useState({
+    basic: true,
+    seo: false,
+    content: false,
+    instructors: false,
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -126,6 +142,112 @@ export default function NewCoursePage() {
     setCourseData(data);
   }, []);
 
+  const toggleSection = (section: keyof typeof sectionsExpanded) => {
+    setSectionsExpanded(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setCoverCompressing(false);
+
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+
+      // Validate file size (max 5MB before compression)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+
+      let processedFile = file;
+
+      // Compress if larger than 1MB
+      if (file.size > 1 * 1024 * 1024) {
+        setCoverCompressing(true);
+        console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: file.type,
+        };
+
+        try {
+          processedFile = await imageCompression(file, options);
+          console.log(`Compressed file size: ${(processedFile.size / 1024 / 1024).toFixed(2)} MB`);
+        } catch (compressionError) {
+          console.error('Compression error:', compressionError);
+          // Continue with original file if compression fails
+        }
+
+        setCoverCompressing(false);
+      }
+
+      setCoverFile(processedFile);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPreview(reader.result as string);
+      };
+      reader.readAsDataURL(processedFile);
+    } catch (error) {
+      console.error('Error processing image:', error);
+      setError('Failed to process image');
+      setCoverCompressing(false);
+    }
+  };
+
+  const handleCoverUpload = async () => {
+    if (!coverFile || !currentInstructor) return;
+
+    setCoverUploading(true);
+    setError(null);
+    setCoverUploadSuccess(false);
+
+    try {
+      // Create form data
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', coverFile);
+      uploadFormData.append('instructorId', currentInstructor.id);
+
+      // Upload to API route
+      const response = await fetch('/api/upload-course-cover', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload image');
+      }
+
+      // Update form data with the uploaded URL
+      setFormData(prev => ({ ...prev, cover_image: data.url }));
+      setCoverPreview('');
+      setCoverFile(null);
+      setCoverUploadSuccess(true);
+
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setCoverUploadSuccess(false);
+      }, 3000);
+    } catch (error: any) {
+      setError(error.message || 'Failed to upload image');
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
   const handleAddInstructor = (instructorId: string) => {
     if (selectedInstructors.find(i => i.instructor_id === instructorId)) {
       return;
@@ -177,10 +299,25 @@ export default function NewCoursePage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Basic Information</h2>
+          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
+            <button
+              type="button"
+              onClick={() => toggleSection('basic')}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
+              <svg
+                className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.basic ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-            <div className="space-y-4">
+            {sectionsExpanded.basic && (
+              <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                   Title *
@@ -226,27 +363,121 @@ export default function NewCoursePage() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Cover Image URL
+                  Cover Image
                 </label>
-                <input
-                  type="url"
-                  value={formData.cover_image}
-                  onChange={(e) => setFormData({ ...formData, cover_image: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
-                {formData.cover_image && (
-                  <div className="mt-3">
-                    <img
-                      src={formData.cover_image}
-                      alt="Cover preview"
-                      className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
+
+                <div className="space-y-3">
+                  {/* Success Message */}
+                  {coverUploadSuccess && (
+                    <div className="rounded-md bg-emerald-50 border border-[#10b981] p-3">
+                      <p className="text-sm text-[#10b981] font-semibold">Image uploaded successfully!</p>
+                    </div>
+                  )}
+
+                  {/* File Input */}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverChange}
+                    className="block w-full text-sm text-gray-900 border border-gray-200 rounded-lg cursor-pointer bg-gray-100 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={coverUploading || coverCompressing}
+                  />
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF up to 5MB. Images over 1MB will be automatically compressed.
+                  </p>
+
+                  {/* Compressing indicator */}
+                  {coverCompressing && (
+                    <p className="text-xs text-[#10b981] font-semibold flex items-center">
+                      <svg className="animate-spin h-3 w-3 mr-2" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Compressing image...
+                    </p>
+                  )}
+
+                  {/* Preview and Upload button */}
+                  {coverPreview && !coverCompressing && (
+                    <div className="space-y-3">
+                      <img
+                        src={coverPreview}
+                        alt="Cover preview"
+                        className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCoverUpload}
+                          disabled={coverUploading}
+                          className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                        >
+                          {coverUploading ? 'Uploading...' : 'Upload Image'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverPreview('');
+                            setCoverFile(null);
+                            setCoverCompressing(false);
+                          }}
+                          disabled={coverUploading}
+                          className="px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Current uploaded image */}
+                  {formData.cover_image && !coverPreview && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-600 font-semibold">Current Cover Image:</p>
+                      <img
+                        key={formData.cover_image}
+                        src={formData.cover_image}
+                        alt="Current cover"
+                        className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, cover_image: '' });
+                          setCoverUploadSuccess(false);
+                        }}
+                        className="text-xs text-red-600 hover:text-red-700 font-semibold"
+                      >
+                        Remove Image
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Manual URL input (alternative) */}
+                  <div className="pt-2">
+                    <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">
+                      Or Enter Image URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.cover_image}
+                      onChange={(e) => {
+                        setFormData({ ...formData, cover_image: e.target.value });
+                        setCoverUploadSuccess(false);
                       }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      placeholder="https://example.com/image.jpg"
                     />
+                    {formData.cover_image && (
+                      <p className="text-xs text-gray-500 mt-1 break-all">
+                        <span className="font-semibold">Current URL:</span> {formData.cover_image}
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -278,14 +509,30 @@ export default function NewCoursePage() {
                   </select>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* SEO */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">SEO (Optional)</h2>
+          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
+            <button
+              type="button"
+              onClick={() => toggleSection('seo')}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h2 className="text-xl font-bold text-gray-900">SEO (Optional)</h2>
+              <svg
+                className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.seo ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-            <div className="space-y-4">
+            {sectionsExpanded.seo && (
+              <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                   Meta Title
@@ -311,26 +558,67 @@ export default function NewCoursePage() {
                   placeholder="SEO description..."
                 />
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Course Content Builder */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Course Content Builder (Optional)</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              Use the visual builder below to create your course structure. Toggle sections on/off and add content dynamically.
-              All sections are optional - configure only what you need for your course.
-            </p>
+          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
+            <button
+              type="button"
+              onClick={() => toggleSection('content')}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-left">
+                <h2 className="text-xl font-bold text-gray-900">Course Content Builder (Optional)</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Use the visual builder below to create your course structure
+                </p>
+              </div>
+              <svg
+                className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ml-4 ${sectionsExpanded.content ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-            <CourseBuilder onDataChange={handleCourseDataChange} />
+            {sectionsExpanded.content && (
+              <div className="px-6 pb-6 border-t border-gray-100">
+                <div className="pt-6">
+                  <CourseBuilder onDataChange={handleCourseDataChange} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Instructors */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Assign Instructors (Optional)</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              You can assign one or multiple instructors to this course. Each instructor can have a different role.
-            </p>
+          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
+            <button
+              type="button"
+              onClick={() => toggleSection('instructors')}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-left">
+                <h2 className="text-xl font-bold text-gray-900">Assign Instructors (Optional)</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  You can assign one or multiple instructors to this course
+                </p>
+              </div>
+              <svg
+                className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ml-4 ${sectionsExpanded.instructors ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {sectionsExpanded.instructors && (
+              <div className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
 
             {/* Selected Instructors */}
             {selectedInstructors.length > 0 && (
@@ -413,6 +701,8 @@ export default function NewCoursePage() {
                   ))}
               </select>
             </div>
+            </div>
+            )}
           </div>
 
           {/* Error */}
@@ -434,8 +724,14 @@ export default function NewCoursePage() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-[#10b981] text-white font-bold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 uppercase tracking-wide"
+              className="px-6 py-3 bg-[#10b981] text-white font-bold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-2"
             >
+              {loading && (
+                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
               {loading ? 'Creating...' : 'Create Course'}
             </button>
           </div>
