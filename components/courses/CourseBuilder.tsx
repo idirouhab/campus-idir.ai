@@ -6,7 +6,10 @@ import {
   Rocket, Sparkles, Target, Zap, Code, Database,
   Clock, CheckCircle, Award, BookOpen, Users, TrendingUp,
   Lightbulb, Shield, Heart, Star, Cpu, Globe,
-  BarChart, MessageSquare, Settings, Search, LucideIcon
+  BarChart, MessageSquare, Settings, Search, LucideIcon,
+  Brain, BrainCircuit, Blocks, Puzzle, Wand2, Package,
+  Layers, Component, Layout, Grid, Briefcase, GraduationCap,
+  Trophy, Medal, Flame, ThumbsUp, HandMetal, Smile
 } from 'lucide-react';
 
 type CourseBuilderProps = {
@@ -47,28 +50,59 @@ TextareaField.displayName = 'TextareaField';
 
 // Available icons for benefits
 const AVAILABLE_ICONS: Record<string, LucideIcon> = {
+  // Action & Progress
   Rocket,
-  Sparkles,
   Target,
   Zap,
+  TrendingUp,
+  Trophy,
+  Medal,
+  Flame,
+  ThumbsUp,
+
+  // Learning & Knowledge
+  Brain,
+  BrainCircuit,
+  Lightbulb,
+  BookOpen,
+  GraduationCap,
+
+  // Technology & Code
   Code,
+  Cpu,
   Database,
-  Clock,
+  Globe,
+  Settings,
+
+  // No-Code & Visual
+  Blocks,
+  Puzzle,
+  Wand2,
+  Package,
+  Layers,
+  Component,
+  Layout,
+  Grid,
+
+  // People & Collaboration
+  Users,
+  Briefcase,
+  HandMetal,
+  Smile,
+
+  // Quality & Features
+  Sparkles,
   CheckCircle,
   Award,
-  BookOpen,
-  Users,
-  TrendingUp,
-  Lightbulb,
   Shield,
   Heart,
   Star,
-  Cpu,
-  Globe,
+
+  // Tools & Search
   BarChart,
   MessageSquare,
-  Settings,
   Search,
+  Clock,
 };
 
 // Icon Picker Component
