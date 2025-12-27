@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { instructorSignUpAction } from '@/lib/instructor-auth-actions';
+import Cookies from 'js-cookie';
 
 const COUNTRIES = {
   US: { en: 'United States', es: 'Estados Unidos' },
@@ -36,8 +37,22 @@ export default function InstructorSignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const { t, language } = useLanguage();
   const router = useRouter();
+
+  // Check if already authenticated
+  useEffect(() => {
+    const instructorId = Cookies.get('instructorId');
+    const userType = Cookies.get('userType');
+
+    if (instructorId && userType === 'instructor') {
+      // Already logged in, redirect to dashboard
+      router.push('/instructor/dashboard');
+    } else {
+      setCheckingAuth(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,6 +93,18 @@ export default function InstructorSignupPage() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (

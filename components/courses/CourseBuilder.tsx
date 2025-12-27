@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import {
+  ChevronDown, ChevronUp, Plus, Trash2, Eye, EyeOff,
+  Rocket, Sparkles, Target, Zap, Code, Database,
+  Clock, CheckCircle, Award, BookOpen, Users, TrendingUp,
+  Lightbulb, Shield, Heart, Star, Cpu, Globe,
+  BarChart, MessageSquare, Settings, Search, LucideIcon
+} from 'lucide-react';
 
 type CourseBuilderProps = {
   initialData?: any;
@@ -38,6 +44,85 @@ const TextareaField = memo(({ label, value, onChange, placeholder = '', rows = 3
   </div>
 ));
 TextareaField.displayName = 'TextareaField';
+
+// Available icons for benefits
+const AVAILABLE_ICONS: Record<string, LucideIcon> = {
+  Rocket,
+  Sparkles,
+  Target,
+  Zap,
+  Code,
+  Database,
+  Clock,
+  CheckCircle,
+  Award,
+  BookOpen,
+  Users,
+  TrendingUp,
+  Lightbulb,
+  Shield,
+  Heart,
+  Star,
+  Cpu,
+  Globe,
+  BarChart,
+  MessageSquare,
+  Settings,
+  Search,
+};
+
+// Icon Picker Component
+const IconPicker = memo(({ value, onChange }: { value: string; onChange: (icon: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const SelectedIcon = value && AVAILABLE_ICONS[value] ? AVAILABLE_ICONS[value] : Sparkles;
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">Icon</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent flex items-center gap-3 hover:bg-gray-200 transition-colors"
+        >
+          <SelectedIcon className="w-5 h-5 text-[#10b981]" />
+          <span className="text-sm">{value || 'Select an icon'}</span>
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-50 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-6 gap-2">
+              {Object.entries(AVAILABLE_ICONS).map(([name, Icon]) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => {
+                    onChange(name);
+                    setIsOpen(false);
+                  }}
+                  className={`p-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center ${
+                    value === name ? 'bg-[#10b981]/20 ring-2 ring-[#10b981]' : ''
+                  }`}
+                  title={name}
+                >
+                  <Icon className={`w-5 h-5 ${value === name ? 'text-[#10b981]' : 'text-gray-600'}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+IconPicker.displayName = 'IconPicker';
+
+// Export icon renderer for use in course display pages
+export const BenefitIcon = ({ iconName, className = 'w-6 h-6' }: { iconName: string; className?: string }) => {
+  const Icon = AVAILABLE_ICONS[iconName] || Sparkles;
+  return <Icon className={className} />;
+};
 
 export default function CourseBuilder({ initialData, onDataChange }: CourseBuilderProps) {
   // Section visibility toggles
@@ -343,15 +428,13 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
                   </button>
                 </div>
                 <div className="space-y-3">
-                  <InputField
-                    label="Icon (emoji)"
+                  <IconPicker
                     value={benefit.icon}
                     onChange={(val: string) => {
                       const updated = [...courseData.benefits];
                       updated[index] = { ...updated[index], icon: val };
                       updateCourseData('benefits', updated);
                     }}
-                    placeholder="🤖"
                   />
                   <InputField
                     label="Title"
