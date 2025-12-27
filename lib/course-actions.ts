@@ -471,7 +471,7 @@ export async function updateCourseAction(
     }
 
     // Handle published_at logic
-    let publishedAt = existingCourse.published_at;
+    let publishedAt = existingCourse.published_at || null;
 
     // Only set published_at if transitioning from draft to published for the first time
     if (existingCourse.status === 'draft' && courseData.status === 'published' && !publishedAt) {
@@ -491,7 +491,7 @@ export async function updateCourseAction(
         meta_description = ${courseData.meta_description || null},
         language = ${courseData.language},
         status = ${courseData.status},
-        published_at = ${publishedAt},
+        published_at = ${publishedAt || null},
         updated_at = NOW()
       WHERE id = ${courseId}
       RETURNING *
