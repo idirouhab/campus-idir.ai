@@ -3,6 +3,9 @@
 import { getDb } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { Instructor } from '@/types/database';
+import { generateAccessToken } from './jwt';
+import { setAuthCookie, removeAuthCookie } from './cookies';
+import { validatePassword } from './passwordValidation';
 
 const SALT_ROUNDS = 10;
 
@@ -10,6 +13,7 @@ interface InstructorAuthResponse {
   success: boolean;
   data?: Instructor;
   error?: string;
+  validationErrors?: string[];
 }
 
 export async function instructorSignUpAction(
@@ -28,6 +32,16 @@ export async function instructorSignUpAction(
       return { success: false, error: 'All fields are required' };
     }
 
+    // Server-side password validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return {
+        success: false,
+        error: 'Password does not meet requirements',
+        validationErrors: passwordValidation.errors,
+      };
+    }
+
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -37,7 +51,7 @@ export async function instructorSignUpAction(
     `;
 
     if (existingInstructor.length > 0) {
-      return { success: false, error: 'An account with this email already exists' };
+      return { success: false, error: 'This email is already registered' };
     }
 
     // Hash password
@@ -118,13 +132,11 @@ export async function instructorSignInAction(
 
     // Validate input
     if (!email || !password) {
-      console.log('[INSTRUCTOR_AUTH] Missing email or password');
       return { success: false, error: 'Email and password are required' };
     }
 
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
-    console.log('[INSTRUCTOR_AUTH] Attempting login for:', normalizedEmail);
 
     // Get instructor with password hash
     const result = await sql`
@@ -135,37 +147,42 @@ export async function instructorSignInAction(
       WHERE email = ${normalizedEmail}
     `;
 
-    console.log('[INSTRUCTOR_AUTH] Database query result:', {
-      found: result.length > 0,
-      hasPasswordHash: result.length > 0 ? !!result[0].password_hash : false
-    });
-
     if (result.length === 0) {
-      console.log('[INSTRUCTOR_AUTH] Instructor not found');
-      return { success: false, error: 'Invalid email or password' };
+      // Sanitized error - don't reveal if user exists
+      return { success: false, error: 'Invalid credentials' };
     }
 
     const instructor = result[0];
 
     if (!instructor.password_hash) {
-      console.log('[INSTRUCTOR_AUTH] No password hash found for instructor');
-      return { success: false, error: 'Invalid email or password' };
+      // Sanitized error
+      return { success: false, error: 'Invalid credentials' };
     }
 
     // Check if instructor is active
     if (!instructor.is_active) {
-      console.log('[INSTRUCTOR_AUTH] Instructor account is inactive');
-      return { success: false, error: 'Account is inactive. Please contact support.' };
+      // Sanitized error - don't reveal account status
+      return { success: false, error: 'Invalid credentials' };
     }
 
     // Verify password
-    console.log('[INSTRUCTOR_AUTH] Verifying password...');
     const isPasswordValid = await bcrypt.compare(password, instructor.password_hash);
-    console.log('[INSTRUCTOR_AUTH] Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
-      return { success: false, error: 'Invalid email or password' };
+      // Sanitized error - same message as above
+      return { success: false, error: 'Invalid credentials' };
     }
+
+    // Generate JWT token with role
+    const token = await generateAccessToken(
+      instructor.id,
+      'instructor',
+      instructor.email,
+      instructor.role
+    );
+
+    // Set secure httpOnly cookie
+    await setAuthCookie(token);
 
     // Update last login
     await sql`
@@ -173,8 +190,6 @@ export async function instructorSignInAction(
       SET last_login_at = NOW(), updated_at = NOW()
       WHERE id = ${instructor.id}
     `;
-
-    console.log('[INSTRUCTOR_AUTH] Login successful for:', instructor.email);
 
     // Return instructor data without password hash
     const instructorData: Instructor = {
@@ -202,7 +217,8 @@ export async function instructorSignInAction(
     return { success: true, data: instructorData };
   } catch (error: any) {
     console.error('[INSTRUCTOR_AUTH] Sign in error:', error);
-    return { success: false, error: error.message || 'Login failed' };
+    // Sanitized error message
+    return { success: false, error: 'Authentication failed' };
   }
 }
 
@@ -364,6 +380,15 @@ export async function updateInstructorPasswordAction(
       return { success: false, error: 'All fields are required' };
     }
 
+    // Server-side password validation for new password
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return {
+        success: false,
+        error: 'New password does not meet requirements',
+      };
+    }
+
     // Get instructor with password hash
     const result = await sql`
       SELECT password_hash
@@ -397,6 +422,17 @@ export async function updateInstructorPasswordAction(
     return { success: true };
   } catch (error: any) {
     console.error('[INSTRUCTOR_AUTH] Update password error:', error);
-    return { success: false, error: error.message || 'Failed to update password' };
+    return { success: false, error: 'Failed to update password' };
+  }
+}
+
+// Sign out action
+export async function instructorSignOutAction(): Promise<{ success: boolean }> {
+  try {
+    await removeAuthCookie();
+    return { success: true };
+  } catch (error) {
+    console.error('[INSTRUCTOR_AUTH] Sign out error:', error);
+    return { success: false };
   }
 }

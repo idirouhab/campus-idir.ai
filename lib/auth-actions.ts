@@ -3,6 +3,9 @@
 import { getDb } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { Student } from '@/types/database';
+import { generateAccessToken } from './jwt';
+import { setAuthCookie, removeAuthCookie } from './cookies';
+import { validatePassword } from './passwordValidation';
 
 const SALT_ROUNDS = 10;
 
@@ -10,6 +13,7 @@ interface AuthResponse {
   success: boolean;
   data?: Student;
   error?: string;
+  validationErrors?: string[];
 }
 
 export async function signUpAction(
@@ -26,6 +30,16 @@ export async function signUpAction(
       return { success: false, error: 'All fields are required' };
     }
 
+    // Server-side password validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return {
+        success: false,
+        error: 'Password does not meet requirements',
+        validationErrors: passwordValidation.errors,
+      };
+    }
+
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -35,7 +49,7 @@ export async function signUpAction(
     `;
 
     if (existingStudent.length > 0) {
-      return { success: false, error: 'An account with this email already exists' };
+      return { success: false, error: 'This email is already registered' };
     }
 
     // Hash password
@@ -80,13 +94,11 @@ export async function signInAction(
 
     // Validate input
     if (!email || !password) {
-      console.log('[AUTH] Missing email or password');
       return { success: false, error: 'Email and password are required' };
     }
 
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
-    console.log('[AUTH] Attempting login for:', normalizedEmail);
 
     // Get student with password hash
     const result = await sql`
@@ -95,31 +107,35 @@ export async function signInAction(
       WHERE email = ${normalizedEmail}
     `;
 
-    console.log('[AUTH] Database query result:', {
-      found: result.length > 0,
-      hasPasswordHash: result.length > 0 ? !!result[0].password_hash : false
-    });
-
     if (result.length === 0) {
-      console.log('[AUTH] Student not found');
-      return { success: false, error: 'Invalid email or password' };
+      // Sanitized error - don't reveal if user exists
+      return { success: false, error: 'Invalid credentials' };
     }
 
     const student = result[0];
 
     if (!student.password_hash) {
-      console.log('[AUTH] No password hash found for student');
-      return { success: false, error: 'Invalid email or password' };
+      // Sanitized error
+      return { success: false, error: 'Invalid credentials' };
     }
 
     // Verify password
-    console.log('[AUTH] Verifying password...');
     const isPasswordValid = await bcrypt.compare(password, student.password_hash);
-    console.log('[AUTH] Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
-      return { success: false, error: 'Invalid email or password' };
+      // Sanitized error - same message as above
+      return { success: false, error: 'Invalid credentials' };
     }
+
+    // Generate JWT token
+    const token = await generateAccessToken(
+      student.id,
+      'student',
+      student.email
+    );
+
+    // Set secure httpOnly cookie
+    await setAuthCookie(token);
 
     // Update last login
     await sql`
@@ -127,8 +143,6 @@ export async function signInAction(
       SET last_login_at = NOW(), updated_at = NOW()
       WHERE id = ${student.id}
     `;
-
-    console.log('[AUTH] Login successful for:', student.email);
 
     // Return student data without password hash
     const studentData: Student = {
@@ -145,7 +159,8 @@ export async function signInAction(
     return { success: true, data: studentData };
   } catch (error: any) {
     console.error('[AUTH] Sign in error:', error);
-    return { success: false, error: error.message || 'Login failed' };
+    // Sanitized error message
+    return { success: false, error: 'Authentication failed' };
   }
 }
 
@@ -256,6 +271,15 @@ export async function updateStudentPasswordAction(
       return { success: false, error: 'All fields are required' };
     }
 
+    // Server-side password validation for new password
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return {
+        success: false,
+        error: 'New password does not meet requirements',
+      };
+    }
+
     // Get student with password hash
     const result = await sql`
       SELECT password_hash
@@ -289,6 +313,17 @@ export async function updateStudentPasswordAction(
     return { success: true };
   } catch (error: any) {
     console.error('[AUTH] Update password error:', error);
-    return { success: false, error: error.message || 'Failed to update password' };
+    return { success: false, error: 'Failed to update password' };
+  }
+}
+
+// Sign out action
+export async function signOutAction(): Promise<{ success: boolean }> {
+  try {
+    await removeAuthCookie();
+    return { success: true };
+  } catch (error) {
+    console.error('[AUTH] Sign out error:', error);
+    return { success: false };
   }
 }
