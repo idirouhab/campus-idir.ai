@@ -3,12 +3,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCourse, useCheckCourseAccess } from '@/hooks/useCourses';
-import { useCourseChecklist } from '@/hooks/useChecklist';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import MarkdownContent from '@/components/MarkdownContent';
-import Checklist from '@/components/Checklist';
 import Cookies from 'js-cookie';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getCourseByIdAction, getAllInstructorsAction } from '@/lib/course-actions';
@@ -44,10 +42,6 @@ export default function CoursePage() {
   const { hasAccess, courseSignupId, loading: accessLoading } = useCheckCourseAccess(
     user?.id,
     slug
-  );
-  const { checklist, studentProgress, loading: checklistLoading, updateItem } = useCourseChecklist(
-    course?.id,
-    courseSignupId
   );
 
   // Check instructor authentication
@@ -88,7 +82,7 @@ export default function CoursePage() {
 
       // Check if instructor is assigned to this course
       try {
-        const result = await getCourseByIdAction(course.id, instructor.id);
+        const result = await getCourseByIdAction(course.id);
         setInstructorHasAccess(result.success);
       } catch (error) {
         console.error('Error checking instructor access:', error);
@@ -108,7 +102,7 @@ export default function CoursePage() {
 
       try {
         const [allInstructorsResult, courseInstructorsResult] = await Promise.all([
-          getAllInstructorsAction(instructor.id),
+          getAllInstructorsAction(),
           getCourseInstructorsAction(course.id),
         ]);
 
@@ -144,7 +138,6 @@ export default function CoursePage() {
 
     try {
       const result = await assignInstructorToCourseAction(
-        instructor.id,
         course.id,
         instructorId,
         'instructor'
@@ -180,7 +173,6 @@ export default function CoursePage() {
 
     try {
       const result = await removeInstructorFromCourseAction(
-        instructor.id,
         course.id,
         instructorId
       );
@@ -342,15 +334,6 @@ export default function CoursePage() {
 
           {/* Sidebar - Right Column (1/3) */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Checklist - Only for students */}
-            {isStudent && !checklistLoading && checklist && studentProgress && (
-              <Checklist
-                checklist={checklist}
-                progress={studentProgress}
-                onUpdateItem={updateItem}
-              />
-            )}
-
             {/* Instructor note */}
             {isInstructor && (
               <div className="bg-emerald-50 border border-[#10b981] rounded-lg p-4">

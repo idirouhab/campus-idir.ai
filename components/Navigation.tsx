@@ -6,60 +6,77 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
-import Cookies from 'js-cookie';
-import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
-import { Instructor } from '@/types/database';
 import { canAssignInstructors } from '@/lib/roles';
+import { Instructor } from '@/types/database';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isInstructor, setIsInstructor] = useState(false);
-  const [instructorData, setInstructorData] = useState<Instructor | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [instructorData, setInstructorData] = useState<Instructor | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { t } = useLanguage();
 
-  // Check for instructor authentication and fetch full data
+  // Only fetch instructor auth on instructor routes
   useEffect(() => {
+    const isInstructorRoute = pathname?.startsWith('/instructor');
+
+    if (!isInstructorRoute) {
+      setInstructorData(null);
+      return;
+    }
+
+    // Fetch instructor session
     const checkInstructorAuth = async () => {
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
 
-      if (instructorId && userType === 'instructor') {
-        setIsInstructor(true);
-
-        // Fetch full instructor data for permission checks
-        try {
-          const result = await verifyInstructorAction(instructorId);
-          if (result.success && result.data) {
-            setInstructorData(result.data);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.userType === 'instructor') {
+            const instructorUser: Instructor = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              role: data.user.role || 'instructor',
+              is_active: true,
+              email_verified: false,
+              preferred_language: 'en',
+              created_at: '',
+              updated_at: '',
+            };
+            setInstructorData(instructorUser);
           } else {
             setInstructorData(null);
           }
-        } catch (error) {
-          console.error('Error fetching instructor data:', error);
+        } else {
           setInstructorData(null);
         }
-      } else {
-        setIsInstructor(false);
+      } catch (err) {
+        console.error('[Navigation] Error checking instructor auth:', err);
         setInstructorData(null);
       }
     };
 
     checkInstructorAuth();
-    // Check periodically in case cookies change
-    const interval = setInterval(checkInstructorAuth, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [pathname]);
 
-  const handleInstructorSignOut = () => {
-    Cookies.remove('instructorId');
-    Cookies.remove('userType');
-    setIsInstructor(false);
+  const isInstructor = instructorData !== null;
+
+  const instructorSignOut = async () => {
+    const { instructorSignOutAction } = await import('@/lib/instructor-auth-actions');
+    await instructorSignOutAction();
+    setInstructorData(null);
+  };
+
+  const handleInstructorSignOut = async () => {
+    await instructorSignOut();
     router.push('/instructor/login');
   };
 

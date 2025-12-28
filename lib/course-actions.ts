@@ -3,6 +3,7 @@
 import { getDb } from '@/lib/db';
 import { Course, Instructor } from '@/types/database';
 import { canViewAllCourses, canCreateCourses } from '@/lib/roles';
+import { requireUserType, requireAdmin } from '@/lib/session';
 
 interface CourseWithInstructors extends Course {
   instructors?: Array<{
@@ -21,15 +22,19 @@ interface CourseWithInstructors extends Course {
  * - Admin: Gets all courses
  * - Regular instructor: Gets only their assigned courses
  */
-export async function getInstructorCoursesAction(instructorId: string): Promise<{
+export async function getInstructorCoursesAction(): Promise<{
   success: boolean;
   data?: CourseWithInstructors[];
   error?: string;
 }> {
   try {
+    // Verify session and get instructor
+    const session = await requireUserType('instructor');
+    const instructorId = session.id;
+
     const sql = getDb();
 
-    // First, get the instructor to check their role
+    // Get the instructor to check their role
     const instructors = await sql`
       SELECT * FROM instructors WHERE id = ${instructorId}
     `;
@@ -142,14 +147,17 @@ export async function getInstructorCoursesAction(instructorId: string): Promise<
  * Get a single course by ID with instructor check
  */
 export async function getCourseByIdAction(
-  courseId: string,
-  instructorId: string
+  courseId: string
 ): Promise<{
   success: boolean;
   data?: CourseWithInstructors;
   error?: string;
 }> {
   try {
+    // Verify session and get instructor
+    const session = await requireUserType('instructor');
+    const instructorId = session.id;
+
     const sql = getDb();
 
     // Get instructor to check role
@@ -233,28 +241,16 @@ export async function getCourseByIdAction(
 /**
  * Get all instructors (for admin to assign)
  */
-export async function getAllInstructorsAction(adminId: string): Promise<{
+export async function getAllInstructorsAction(): Promise<{
   success: boolean;
   data?: Instructor[];
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    const session = await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const admins = await sql`
-      SELECT * FROM instructors WHERE id = ${adminId}
-    `;
-
-    if (admins.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const admin = admins[0] as Instructor;
-
-    if (!canViewAllCourses(admin)) {
-      return { success: false, error: 'Admin access required' };
-    }
 
     // Get all instructors
     const instructors = await sql`
@@ -288,7 +284,6 @@ export async function getAllInstructorsAction(adminId: string): Promise<{
  * Create a new course (admin only)
  */
 export async function createCourseAction(
-  instructorId: string,
   courseData: {
     title: string;
     slug: string;
@@ -312,22 +307,10 @@ export async function createCourseAction(
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    const session = await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const adminQuery = await sql`
-      SELECT * FROM instructors WHERE id = ${instructorId}
-    `;
-
-    if (adminQuery.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const admin = adminQuery[0] as Instructor;
-
-    if (!canCreateCourses(admin)) {
-      return { success: false, error: 'Admin access required to create courses' };
-    }
 
     // Check if slug already exists
     const existingCourse = await sql`
@@ -408,7 +391,6 @@ export async function createCourseAction(
  * Update an existing course (admin only)
  */
 export async function updateCourseAction(
-  instructorId: string,
   courseId: string,
   courseData: {
     title: string;
@@ -432,22 +414,10 @@ export async function updateCourseAction(
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    const session = await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const adminQuery = await sql`
-      SELECT * FROM instructors WHERE id = ${instructorId}
-    `;
-
-    if (adminQuery.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const admin = adminQuery[0] as Instructor;
-
-    if (!canCreateCourses(admin)) {
-      return { success: false, error: 'Admin access required to edit courses' };
-    }
 
     // Get current course (for published_at check)
     const existingCourseQuery = await sql`
@@ -538,7 +508,6 @@ export async function updateCourseAction(
  * Get students enrolled in a course
  */
 export async function getCourseStudentsAction(
-  instructorId: string,
   courseId: string
 ): Promise<{
   success: boolean;
@@ -556,9 +525,13 @@ export async function getCourseStudentsAction(
   error?: string;
 }> {
   try {
+    // Verify session and get instructor
+    const session = await requireUserType('instructor');
+    const instructorId = session.id;
+
     const sql = getDb();
 
-    // Verify instructor has access
+    // Get instructor to check their role
     const instructors = await sql`
       SELECT * FROM instructors WHERE id = ${instructorId}
     `;
@@ -626,36 +599,21 @@ export async function getCourseStudentsAction(
  * Delete a course (admin only)
  */
 export async function deleteCourseAction(
-  instructorId: string,
   courseId: string
 ): Promise<{
   success: boolean;
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const instructors = await sql`
-      SELECT * FROM instructors WHERE id = ${instructorId}
-    `;
-
-    if (instructors.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const instructor = instructors[0] as Instructor;
-
-    // Only admins can delete courses
-    if (!canViewAllCourses(instructor)) {
-      return { success: false, error: 'Admin access required to delete courses' };
-    }
 
     // Delete course (this will cascade to related tables if FK constraints are set properly)
     // First delete course_instructors, then course_signups, then the course
     await sql`DELETE FROM course_instructors WHERE course_id = ${courseId}`;
     await sql`DELETE FROM course_signups WHERE course_id = ${courseId}`;
-    await sql`DELETE FROM course_checklists WHERE course_id = ${courseId}`;
     await sql`DELETE FROM courses WHERE id = ${courseId}`;
 
     return {

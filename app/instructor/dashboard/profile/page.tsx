@@ -4,11 +4,10 @@ import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { updateInstructorProfileAction, updateInstructorPasswordAction, verifyInstructorAction } from '@/lib/instructor-auth-actions';
+import { useInstructorAuth } from '@/hooks/useInstructorAuth';
+import { updateInstructorProfileAction, updateInstructorPasswordAction } from '@/lib/instructor-auth-actions';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
-import { Instructor } from '@/types/database';
-import Cookies from 'js-cookie';
 import imageCompression from 'browser-image-compression';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
 
@@ -33,8 +32,7 @@ const COUNTRIES = {
 export default function InstructorProfilePage() {
   const { t, language } = useLanguage();
   const router = useRouter();
-  const [instructor, setInstructor] = useState<Instructor | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { instructor, loading: authLoading, csrfToken, refreshInstructor } = useInstructorAuth();
   const permissions = useInstructorPermissions(instructor);
 
   // Profile form state
@@ -68,56 +66,39 @@ export default function InstructorProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  // Check authentication and redirect if needed
   useEffect(() => {
-    const checkAuth = async () => {
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
+    if (!authLoading && !instructor) {
+      router.push('/instructor/login');
+    }
+  }, [instructor, authLoading, router]);
 
-      if (!instructorId || userType !== 'instructor') {
-        router.push('/instructor/login');
-        return;
+  // Populate form when instructor data loads
+  useEffect(() => {
+    if (instructor) {
+      setFirstName(instructor.first_name);
+      setLastName(instructor.last_name);
+      setEmail(instructor.email);
+
+      // Format date properly for input type="date" (YYYY-MM-DD)
+      if (instructor.date_of_birth) {
+        const date = new Date(instructor.date_of_birth);
+        const formattedDate = date.toISOString().split('T')[0];
+        setDateOfBirth(formattedDate);
+      } else {
+        setDateOfBirth('');
       }
 
-      try {
-        const result = await verifyInstructorAction(instructorId);
-        if (result.success && result.data) {
-          setInstructor(result.data);
-          setFirstName(result.data.first_name);
-          setLastName(result.data.last_name);
-          setEmail(result.data.email);
-
-          // Format date properly for input type="date" (YYYY-MM-DD)
-          if (result.data.date_of_birth) {
-            const date = new Date(result.data.date_of_birth);
-            const formattedDate = date.toISOString().split('T')[0];
-            setDateOfBirth(formattedDate);
-          } else {
-            setDateOfBirth('');
-          }
-
-          setCountry(result.data.country || '');
-          setDescription(result.data.description || '');
-          setPreferredLanguage(result.data.preferred_language || 'en');
-          setLinkedinUrl(result.data.linkedin_url || '');
-          setWebsiteUrl(result.data.website_url || '');
-          setXUrl(result.data.x_url || '');
-          setYoutubeUrl(result.data.youtube_url || '');
-          setPictureUrl(result.data.picture_url || '');
-        } else {
-          Cookies.remove('instructorId');
-          Cookies.remove('userType');
-          router.push('/instructor/login');
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        router.push('/instructor/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+      setCountry(instructor.country || '');
+      setDescription(instructor.description || '');
+      setPreferredLanguage(instructor.preferred_language || 'en');
+      setLinkedinUrl(instructor.linkedin_url || '');
+      setWebsiteUrl(instructor.website_url || '');
+      setXUrl(instructor.x_url || '');
+      setYoutubeUrl(instructor.youtube_url || '');
+      setPictureUrl(instructor.picture_url || '');
+    }
+  }, [instructor]);
 
   const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -180,7 +161,7 @@ export default function InstructorProfilePage() {
   };
 
   const handlePictureUpload = async () => {
-    if (!pictureFile || !instructor) return;
+    if (!pictureFile || !instructor || !csrfToken) return;
 
     setPictureUploading(true);
     setProfileError('');
@@ -191,9 +172,12 @@ export default function InstructorProfilePage() {
       formData.append('file', pictureFile);
       formData.append('instructorId', instructor.id);
 
-      // Upload to API route
+      // Upload to API route with CSRF token
       const response = await fetch('/api/upload-profile-picture', {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
         body: formData,
       });
 
@@ -209,9 +193,8 @@ export default function InstructorProfilePage() {
       setPictureFile(null);
       setProfileSuccess(true);
 
-      // Update instructor data
-      const updatedInstructor = { ...instructor, picture_url: data.url };
-      setInstructor(updatedInstructor);
+      // Refresh instructor data from server
+      await refreshInstructor();
 
       setTimeout(() => {
         setProfileSuccess(false);
@@ -258,7 +241,7 @@ export default function InstructorProfilePage() {
       }
 
       setProfileSuccess(true);
-      setInstructor(result.data!);
+      await refreshInstructor();
 
       setTimeout(() => {
         setProfileSuccess(false);
@@ -319,7 +302,7 @@ export default function InstructorProfilePage() {
     }
   };
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

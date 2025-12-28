@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/supabase';
+import { requireUserType } from '@/lib/session';
+import { verifyCSRF } from '@/lib/api-helpers';
+import { validateImageUpload } from '@/lib/file-validation';
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Verify CSRF token
+    const isValidCSRF = await verifyCSRF(request);
+    if (!isValidCSRF) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      );
+    }
+
+    // 2. Verify authentication and get session
+    const session = await requireUserType('instructor');
+
+    // 3. Get form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const instructorId = formData.get('instructorId') as string;
@@ -22,18 +38,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    // 4. Verify ownership - user can only upload their own profile picture
+    if (session.id !== instructorId) {
       return NextResponse.json(
-        { error: 'File must be an image' },
-        { status: 400 }
+        { error: 'Forbidden' },
+        { status: 403 }
       );
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // 5. Validate file with enhanced security checks
+    const validation = await validateImageUpload(file, {
+      maxSizeBytes: 5 * 1024 * 1024, // 5MB
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+      maxWidth: 2000,
+      maxHeight: 2000,
+    });
+
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: 'File size must be less than 5MB' },
+        { error: validation.error },
         { status: 400 }
       );
     }
@@ -92,9 +115,10 @@ export async function POST(request: NextRequest) {
       url: publicUrl,
     });
   } catch (error: any) {
-    console.error('Upload error:', error);
+    console.error('[Upload Profile Picture] Error:', error);
+    // Sanitized error message
     return NextResponse.json(
-      { error: error.message || 'Failed to upload image' },
+      { error: 'Upload failed' },
       { status: 500 }
     );
   }

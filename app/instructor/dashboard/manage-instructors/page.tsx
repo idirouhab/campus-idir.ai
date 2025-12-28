@@ -83,8 +83,8 @@ export default function ManageInstructorsPage() {
 
       try {
         const [coursesResult, instructorsResult] = await Promise.all([
-          getInstructorCoursesAction(admin.id),
-          getAllInstructorsAction(admin.id),
+          getInstructorCoursesAction(),
+          getAllInstructorsAction(),
         ]);
 
         if (coursesResult.success && coursesResult.data) {
@@ -132,7 +132,6 @@ export default function ManageInstructorsPage() {
 
     try {
       const result = await assignInstructorToCourseAction(
-        admin.id,
         selectedCourse,
         instructorId,
         role
@@ -166,7 +165,6 @@ export default function ManageInstructorsPage() {
 
     try {
       const result = await removeInstructorFromCourseAction(
-        admin.id,
         selectedCourse,
         instructorId
       );

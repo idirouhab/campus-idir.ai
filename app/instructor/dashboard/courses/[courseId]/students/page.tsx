@@ -52,13 +52,13 @@ export default function CourseStudentsPage() {
         setInstructor(instructorResult.data);
 
         // Get course details
-        const courseResult = await getCourseByIdAction(courseId, instructorId);
+        const courseResult = await getCourseByIdAction(courseId);
         if (courseResult.success && courseResult.data) {
           setCourseName(courseResult.data.title);
         }
 
         // Get students
-        const studentsResult = await getCourseStudentsAction(instructorId, courseId);
+        const studentsResult = await getCourseStudentsAction(courseId);
         if (studentsResult.success && studentsResult.data) {
           setStudents(studentsResult.data);
         } else {

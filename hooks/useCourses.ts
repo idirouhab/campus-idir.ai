@@ -17,10 +17,10 @@ export function useStudentCourses(studentId: string | undefined) {
     async function fetchEnrolledCourses() {
       try {
         setLoading(true);
-        console.log('[useCourses] Fetching courses for studentId:', studentId);
+        console.log('[useCourses] Fetching courses from session');
 
-        // Call server action to get courses
-        const result = await getStudentCoursesAction(studentId);
+        // Call server action to get courses (uses session)
+        const result = await getStudentCoursesAction();
 
         console.log('[useCourses] Server action result:', result);
 
@@ -101,7 +101,7 @@ export function useCheckCourseAccess(studentId: string | undefined, courseSlug: 
       try {
         setLoading(true);
 
-        const result = await checkCourseAccessAction(studentId, courseSlug);
+        const result = await checkCourseAccessAction(courseSlug);
 
         if (result.success) {
           setHasAccess(result.hasAccess);

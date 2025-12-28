@@ -2,6 +2,7 @@
 
 import { getDb } from '@/lib/db';
 import { Course, CourseSignup, StudentCourseAccess } from '@/types/database';
+import { requireUserType } from '@/lib/session';
 
 interface CoursesResponse {
   success: boolean;
@@ -16,15 +17,13 @@ interface CourseAccessResponse {
   error?: string;
 }
 
-export async function getStudentCoursesAction(studentId: string | undefined): Promise<CoursesResponse> {
+export async function getStudentCoursesAction(): Promise<CoursesResponse> {
   try {
-    if (!studentId) {
-      return { success: false, error: 'Student ID is required' };
-    }
+    // Verify session and get student
+    const session = await requireUserType('student');
+    const studentId = session.id;
 
     const sql = getDb();
-
-    console.log('[getStudentCourses] Fetching courses for student:', studentId);
 
     // Query to get all courses the student is enrolled in
     const result = await sql`
@@ -90,13 +89,16 @@ export async function getStudentCoursesAction(studentId: string | undefined): Pr
 }
 
 export async function checkCourseAccessAction(
-    studentId: string | undefined,
     courseSlug: string | undefined
 ): Promise<CourseAccessResponse> {
   try {
-    if (!studentId || !courseSlug) {
+    if (!courseSlug) {
       return { success: true, hasAccess: false };
     }
+
+    // Verify session and get student
+    const session = await requireUserType('student');
+    const studentId = session.id;
 
     const sql = getDb();
 

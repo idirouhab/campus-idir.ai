@@ -1,43 +1,35 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { Student } from '@/types/database';
-import { signInAction, signUpAction, signOutAction } from '@/lib/auth-actions';
+import { useEffect, useState } from 'react';
+import { Instructor } from '@/types/database';
+import { instructorSignInAction, instructorSignUpAction, instructorSignOutAction } from '@/lib/instructor-auth-actions';
 
-interface AuthContextType {
-  user: Student | null;
+interface InstructorAuthReturn {
+  instructor: Instructor | null;
   loading: boolean;
   csrfToken: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, country: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshInstructor: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<Student | null>(null);
+export function useInstructorAuth(): InstructorAuthReturn {
+  const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [loading, setLoading] = useState(true);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
-  const pathname = usePathname();
 
   useEffect(() => {
-    // Skip student auth check on instructor routes (prevents duplicate API calls)
-    const isInstructorRoute = pathname?.startsWith('/instructor');
-    if (isInstructorRoute) {
-      setUser(null);
-      setCsrfToken(null);
-      setLoading(false);
-      return;
-    }
+    // Migration: Clear old cookie-based session
+    // Note: Can't directly access httpOnly cookies from JS, but clear any old non-httpOnly ones
+    // Users will need to log in again with the new system
+    console.log('[useInstructorAuth] Initializing with new session system');
 
-    // Migration: Clear old localStorage session
-    const oldStudent = localStorage.getItem('student');
-    if (oldStudent) {
-      console.log('[AuthContext] Clearing old localStorage session');
-      localStorage.removeItem('student');
+    // Clear old cookies if they exist
+    if (document.cookie.includes('instructorId=') || document.cookie.includes('userType=')) {
+      console.log('[useInstructorAuth] Clearing old cookie session');
+      document.cookie = 'instructorId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'userType=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }
 
     // Check if user is logged in via session API
@@ -48,47 +40,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!response.ok) {
-          setUser(null);
+          setInstructor(null);
           setCsrfToken(null);
           setLoading(false);
           return;
         }
 
         const data = await response.json();
-        console.log('[AuthContext] Session data:', data);
+        console.log('[useInstructorAuth] Session data:', data);
 
-        if (data.user && data.user.userType === 'student') {
-          // Session API returns SessionUser, convert to Student format
-          const studentUser: Student = {
+        if (data.user && data.user.userType === 'instructor') {
+          // Session API returns SessionUser, convert to Instructor format
+          const instructorUser: Instructor = {
             id: data.user.id,
             email: data.user.email,
             first_name: data.user.firstName,
             last_name: data.user.lastName,
+            role: data.user.role || 'instructor',
+            is_active: true,
             email_verified: false,
+            preferred_language: 'en',
             created_at: '',
             updated_at: '',
           };
-          setUser(studentUser);
+          setInstructor(instructorUser);
           setCsrfToken(data.csrfToken);
         } else {
-          setUser(null);
+          setInstructor(null);
           setCsrfToken(null);
         }
       } catch (err) {
-        console.error('[AuthContext] Error during auth check:', err);
-        setUser(null);
+        console.error('[useInstructorAuth] Error during auth check:', err);
+        setInstructor(null);
         setCsrfToken(null);
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [pathname]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       // Call server action for sign in (sets httpOnly cookie)
-      const result = await signInAction(email, password);
+      const result = await instructorSignInAction(email, password);
 
       if (!result.success) {
         return { error: { message: result.error || 'Invalid email or password' } };
@@ -101,17 +96,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.user && data.user.userType === 'student') {
-          const studentUser: Student = {
+        if (data.user && data.user.userType === 'instructor') {
+          const instructorUser: Instructor = {
             id: data.user.id,
             email: data.user.email,
             first_name: data.user.firstName,
             last_name: data.user.lastName,
+            role: data.user.role || 'instructor',
+            is_active: true,
             email_verified: false,
+            preferred_language: 'en',
             created_at: '',
             updated_at: '',
           };
-          setUser(studentUser);
+          setInstructor(instructorUser);
           setCsrfToken(data.csrfToken);
         }
       }
@@ -122,10 +120,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    dateOfBirth: string,
+    country: string
+  ) => {
     try {
       // Call server action for sign up
-      const result = await signUpAction(email, password, firstName, lastName);
+      const result = await instructorSignUpAction(email, password, firstName, lastName, dateOfBirth, country);
 
       if (!result.success) {
         return {
@@ -136,8 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Successfully created - in a production app, you'd send verification email here
-      // For now, we'll just return success
+      // Successfully created
       return { error: null };
     } catch (err: any) {
       return { error: { message: err.message || 'Signup failed' } };
@@ -147,16 +151,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       // Call server action to remove auth cookie
-      await signOutAction();
+      await instructorSignOutAction();
     } catch (err) {
-      console.error('[AuthContext] Error during sign out:', err);
+      console.error('[useInstructorAuth] Error during sign out:', err);
     }
     // Clear state regardless of server action result
-    setUser(null);
+    setInstructor(null);
     setCsrfToken(null);
   };
 
-  const refreshUser = async () => {
+  const refreshInstructor = async () => {
     try {
       const response = await fetch('/api/auth/session', {
         credentials: 'include',
@@ -164,50 +168,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.user && data.user.userType === 'student') {
-          const studentUser: Student = {
+        if (data.user && data.user.userType === 'instructor') {
+          const instructorUser: Instructor = {
             id: data.user.id,
             email: data.user.email,
             first_name: data.user.firstName,
             last_name: data.user.lastName,
+            role: data.user.role || 'instructor',
+            is_active: true,
             email_verified: false,
+            preferred_language: 'en',
             created_at: '',
             updated_at: '',
           };
-          setUser(studentUser);
+          setInstructor(instructorUser);
           setCsrfToken(data.csrfToken);
         } else {
-          setUser(null);
+          setInstructor(null);
           setCsrfToken(null);
         }
       } else {
-        setUser(null);
+        setInstructor(null);
         setCsrfToken(null);
       }
     } catch (err) {
-      console.error('[AuthContext] Error during refresh:', err);
-      setUser(null);
+      console.error('[useInstructorAuth] Error during refresh:', err);
+      setInstructor(null);
       setCsrfToken(null);
     }
   };
 
-  const value = {
-    user,
+  return {
+    instructor,
     loading,
     csrfToken,
     signIn,
     signUp,
     signOut,
-    refreshUser,
+    refreshInstructor,
   };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

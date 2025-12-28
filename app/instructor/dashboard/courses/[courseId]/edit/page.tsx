@@ -5,10 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import CourseBuilder from '@/components/courses/CourseBuilder';
 import { generateCourseSlug } from '@/lib/course-utils';
 import { updateCourseAction, getAllInstructorsAction, getCourseByIdAction } from '@/lib/course-actions';
-import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
+import { useInstructorAuth } from '@/hooks/useInstructorAuth';
 import { Instructor } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
-import Cookies from 'js-cookie';
 import imageCompression from 'browser-image-compression';
 
 export default function EditCoursePage() {
@@ -16,11 +15,10 @@ export default function EditCoursePage() {
   const params = useParams();
   const courseId = params?.courseId as string;
   const { t } = useLanguage();
+  const { instructor: currentInstructor, loading: authLoading, csrfToken } = useInstructorAuth();
   const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [currentInstructor, setCurrentInstructor] = useState<Instructor | null>(null);
   const [allInstructors, setAllInstructors] = useState<Instructor[]>([]);
   const [selectedInstructors, setSelectedInstructors] = useState<Array<{
     instructor_id: string;
@@ -57,39 +55,30 @@ export default function EditCoursePage() {
     instructors: false,
   });
 
+  // Check authentication and redirect if needed
   useEffect(() => {
-    const checkAuth = async () => {
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
+    if (!authLoading && !currentInstructor) {
+      router.push('/instructor/login');
+    }
+  }, [currentInstructor, authLoading, router]);
 
-      if (!instructorId || userType !== 'instructor') {
-        router.push('/instructor/login');
-        return;
-      }
-
-      try {
-        const result = await verifyInstructorAction(instructorId);
-        if (result.success && result.data) {
-          setCurrentInstructor(result.data);
-
-          // Fetch all instructors for assignment
-          const instructorsResult = await getAllInstructorsAction(instructorId);
+  // Fetch all instructors when authenticated
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      if (currentInstructor) {
+        try {
+          const instructorsResult = await getAllInstructorsAction();
           if (instructorsResult.success && instructorsResult.data) {
             setAllInstructors(instructorsResult.data);
           }
-        } else {
-          Cookies.remove('instructorId');
-          Cookies.remove('userType');
-          router.push('/instructor/login');
+        } catch (error) {
+          console.error('Error fetching instructors:', error);
         }
-      } catch (error) {
-        console.error('Auth error:', error);
-        router.push('/instructor/login');
       }
     };
 
-    checkAuth();
-  }, [router]);
+    fetchInstructors();
+  }, [currentInstructor]);
 
   // Fetch existing course data
   useEffect(() => {
@@ -97,7 +86,7 @@ export default function EditCoursePage() {
       if (!currentInstructor || !courseId) return;
 
       try {
-        const result = await getCourseByIdAction(courseId, currentInstructor.id);
+        const result = await getCourseByIdAction(courseId);
         if (result.success && result.data) {
           const course = result.data;
 
@@ -134,8 +123,6 @@ export default function EditCoursePage() {
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load course');
-      } finally {
-        setPageLoading(false);
       }
     };
 
@@ -162,7 +149,6 @@ export default function EditCoursePage() {
       } : courseData;
 
       const result = await updateCourseAction(
-        currentInstructor.id,
         courseId,
         {
           ...formData,
@@ -266,7 +252,7 @@ export default function EditCoursePage() {
   };
 
   const handleCoverUpload = async () => {
-    if (!coverFile || !currentInstructor) return;
+    if (!coverFile || !currentInstructor || !csrfToken) return;
 
     setCoverUploading(true);
     setError(null);
@@ -279,9 +265,12 @@ export default function EditCoursePage() {
       uploadFormData.append('instructorId', currentInstructor.id);
       uploadFormData.append('courseId', courseId);
 
-      // Upload to API route
+      // Upload to API route with CSRF token
       const response = await fetch('/api/upload-course-cover', {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
         body: uploadFormData,
       });
 
@@ -338,7 +327,7 @@ export default function EditCoursePage() {
     );
   };
 
-  if (pageLoading) {
+  if (authLoading || !currentInstructor) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

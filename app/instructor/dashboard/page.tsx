@@ -69,7 +69,7 @@ export default function InstructorDashboardPage() {
 
       setCoursesLoading(true);
       try {
-        const result = await getInstructorCoursesAction(instructor.id);
+        const result = await getInstructorCoursesAction();
         if (result.success && result.data) {
           setCourses(result.data);
         }
@@ -93,7 +93,7 @@ export default function InstructorDashboardPage() {
 
     setDeletingCourseId(courseId);
     try {
-      const result = await deleteCourseAction(instructor.id, courseId);
+      const result = await deleteCourseAction(courseId);
       if (result.success) {
         // Remove the course from the list
         setCourses(courses.filter(course => course.id !== courseId));

@@ -5,19 +5,17 @@ import { useRouter } from 'next/navigation';
 import CourseBuilder from '@/components/courses/CourseBuilder';
 import { generateCourseSlug } from '@/lib/course-utils';
 import { createCourseAction, getAllInstructorsAction } from '@/lib/course-actions';
-import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
+import { useInstructorAuth } from '@/hooks/useInstructorAuth';
 import { Instructor } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
-import Cookies from 'js-cookie';
 import imageCompression from 'browser-image-compression';
 
 export default function NewCoursePage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { instructor: currentInstructor, loading: authLoading, csrfToken } = useInstructorAuth();
   const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentInstructor, setCurrentInstructor] = useState<Instructor | null>(null);
   const [allInstructors, setAllInstructors] = useState<Instructor[]>([]);
   const [selectedInstructors, setSelectedInstructors] = useState<Array<{
     instructor_id: string;
@@ -53,41 +51,30 @@ export default function NewCoursePage() {
     instructors: false,
   });
 
+  // Check authentication and redirect if needed
   useEffect(() => {
-    const checkAuth = async () => {
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
+    if (!authLoading && !currentInstructor) {
+      router.push('/instructor/login');
+    }
+  }, [currentInstructor, authLoading, router]);
 
-      if (!instructorId || userType !== 'instructor') {
-        router.push('/instructor/login');
-        return;
-      }
-
-      try {
-        const result = await verifyInstructorAction(instructorId);
-        if (result.success && result.data) {
-          setCurrentInstructor(result.data);
-
-          // Fetch all instructors for assignment
-          const instructorsResult = await getAllInstructorsAction(instructorId);
+  // Fetch all instructors when authenticated
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      if (currentInstructor) {
+        try {
+          const instructorsResult = await getAllInstructorsAction();
           if (instructorsResult.success && instructorsResult.data) {
             setAllInstructors(instructorsResult.data);
           }
-        } else {
-          Cookies.remove('instructorId');
-          Cookies.remove('userType');
-          router.push('/instructor/login');
+        } catch (error) {
+          console.error('Error fetching instructors:', error);
         }
-      } catch (error) {
-        console.error('Auth error:', error);
-        router.push('/instructor/login');
-      } finally {
-        setPageLoading(false);
       }
     };
 
-    checkAuth();
-  }, [router]);
+    fetchInstructors();
+  }, [currentInstructor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +96,6 @@ export default function NewCoursePage() {
       } : courseData;
 
       const result = await createCourseAction(
-        currentInstructor.id,
         {
           ...formData,
           course_data: finalCourseData,
@@ -207,7 +193,7 @@ export default function NewCoursePage() {
   };
 
   const handleCoverUpload = async () => {
-    if (!coverFile || !currentInstructor) return;
+    if (!coverFile || !currentInstructor || !csrfToken) return;
 
     setCoverUploading(true);
     setError(null);
@@ -219,9 +205,12 @@ export default function NewCoursePage() {
       uploadFormData.append('file', coverFile);
       uploadFormData.append('instructorId', currentInstructor.id);
 
-      // Upload to API route
+      // Upload to API route with CSRF token
       const response = await fetch('/api/upload-course-cover', {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
         body: uploadFormData,
       });
 
@@ -278,7 +267,7 @@ export default function NewCoursePage() {
     );
   };
 
-  if (pageLoading) {
+  if (authLoading || !currentInstructor) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

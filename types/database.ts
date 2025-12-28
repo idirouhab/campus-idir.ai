@@ -71,44 +71,6 @@ export interface StudentCourseAccess {
   signup: CourseSignup;
 }
 
-export interface ChecklistItem {
-  id: string;
-  title: string;
-  description: string;
-  order: number;
-  type: 'task' | 'link' | 'info';
-}
-
-export interface ChecklistItemProgress {
-  item_id: string;
-  completed: boolean;
-  completed_at: string | null;
-  notes: string;
-}
-
-export interface CourseChecklist {
-  id: string;
-  course_id: string;
-  title: string;
-  description?: string;
-  items: ChecklistItem[];
-  is_required: boolean;
-  display_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface StudentChecklist {
-  id: string;
-  course_signup_id: string;
-  course_checklist_id: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  items_progress: ChecklistItemProgress[];
-  completed_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export type CourseInstructorRole = 'instructor' | 'lead_instructor' | 'teaching_assistant' | 'guest_instructor';
 
 export interface CourseInstructor {

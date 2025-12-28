@@ -3,12 +3,12 @@
 import { getDb } from '@/lib/db';
 import { Instructor, CourseInstructor, CourseInstructorRole } from '@/types/database';
 import { canAssignInstructors } from '@/lib/roles';
+import { requireAdmin, requireUserType } from '@/lib/session';
 
 /**
  * Assign an instructor to a course
  */
 export async function assignInstructorToCourseAction(
-  adminId: string,
   courseId: string,
   instructorId: string,
   role: CourseInstructorRole = 'instructor',
@@ -19,22 +19,10 @@ export async function assignInstructorToCourseAction(
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const admins = await sql`
-      SELECT * FROM instructors WHERE id = ${adminId}
-    `;
-
-    if (admins.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const admin = admins[0] as Instructor;
-
-    if (!canAssignInstructors(admin)) {
-      return { success: false, error: 'Admin access required to assign instructors' };
-    }
 
     // Check if course exists
     const courses = await sql`
@@ -102,7 +90,6 @@ export async function assignInstructorToCourseAction(
  * Remove an instructor from a course
  */
 export async function removeInstructorFromCourseAction(
-  adminId: string,
   courseId: string,
   instructorId: string
 ): Promise<{
@@ -110,22 +97,10 @@ export async function removeInstructorFromCourseAction(
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const admins = await sql`
-      SELECT * FROM instructors WHERE id = ${adminId}
-    `;
-
-    if (admins.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const admin = admins[0] as Instructor;
-
-    if (!canAssignInstructors(admin)) {
-      return { success: false, error: 'Admin access required to remove instructors' };
-    }
 
     // Remove assignment
     const result = await sql`
@@ -152,7 +127,6 @@ export async function removeInstructorFromCourseAction(
  * Update instructor role in a course
  */
 export async function updateCourseInstructorRoleAction(
-  adminId: string,
   courseId: string,
   instructorId: string,
   newRole: CourseInstructorRole,
@@ -163,22 +137,10 @@ export async function updateCourseInstructorRoleAction(
   error?: string;
 }> {
   try {
+    // Verify admin permission via session
+    await requireAdmin();
+
     const sql = getDb();
-
-    // Verify admin permission
-    const admins = await sql`
-      SELECT * FROM instructors WHERE id = ${adminId}
-    `;
-
-    if (admins.length === 0) {
-      return { success: false, error: 'Not authorized' };
-    }
-
-    const admin = admins[0] as Instructor;
-
-    if (!canAssignInstructors(admin)) {
-      return { success: false, error: 'Admin access required to update instructor roles' };
-    }
 
     // Update role and optionally display order
     const result = newDisplayOrder !== undefined
@@ -218,12 +180,16 @@ export async function updateCourseInstructorRoleAction(
 /**
  * Get all course assignments for an instructor
  */
-export async function getInstructorAssignmentsAction(instructorId: string): Promise<{
+export async function getInstructorAssignmentsAction(): Promise<{
   success: boolean;
   data?: Array<CourseInstructor & { course_title: string }>;
   error?: string;
 }> {
   try {
+    // Verify session and get instructor
+    const session = await requireUserType('instructor');
+    const instructorId = session.id;
+
     const sql = getDb();
 
     const assignments = await sql`

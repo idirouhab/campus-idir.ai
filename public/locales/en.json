@@ -102,17 +102,6 @@
     "strong": "strong",
     "required": "Required:"
   },
-  "checklist": {
-    "progress": "Progress",
-    "markComplete": "Mark as complete",
-    "markIncomplete": "Mark as incomplete",
-    "completedAt": "Completed on",
-    "status": {
-      "pending": "Not Started",
-      "in_progress": "In Progress",
-      "completed": "Completed"
-    }
-  },
   "auth": {
     "selectUserType": "Select User Type",
     "selectUserTypeDescription": "Choose the type of account you want to access",
