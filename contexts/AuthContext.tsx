@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   csrfToken: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -57,21 +57,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         console.log('[AuthContext] Session data:', data);
 
-        if (data.user && data.user.userType === 'student') {
-          // Session API returns SessionUser, convert to Student format
-          const studentUser: Student = {
-            id: data.user.id,
-            email: data.user.email,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            type: 'student',
-            is_active: true,
-            email_verified: false,
-            created_at: '',
-            updated_at: '',
-          };
-          setUser(studentUser);
-          setCsrfToken(data.csrfToken);
+        if (data.user) {
+          // Set user if they are a student OR if they're an instructor with student profile
+          // This allows dual-role users to access student content even when logged in as instructor
+          if (data.user.userType === 'student') {
+            // Session API returns SessionUser, convert to Student format
+            const studentUser: Student = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              birthday: data.user.birthday,
+              is_active: true,
+              email_verified: false,
+              created_at: '',
+              updated_at: '',
+            };
+            setUser(studentUser);
+            setCsrfToken(data.csrfToken);
+          } else if (data.user.userType === 'instructor' && data.user.hasStudentProfile) {
+            // Instructor with student profile can access student content
+            const studentUser: Student = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              birthday: data.user.birthday,
+              is_active: true,
+              email_verified: false,
+              created_at: '',
+              updated_at: '',
+            };
+            setUser(studentUser);
+            setCsrfToken(data.csrfToken);
+          } else {
+            setUser(null);
+            setCsrfToken(null);
+          }
         } else {
           setUser(null);
           setCsrfToken(null);
@@ -103,20 +125,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.user && data.user.userType === 'student') {
-          const studentUser: Student = {
-            id: data.user.id,
-            email: data.user.email,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            type: 'student',
-            is_active: true,
-            email_verified: false,
-            created_at: '',
-            updated_at: '',
-          };
-          setUser(studentUser);
-          setCsrfToken(data.csrfToken);
+        if (data.user) {
+          if (data.user.userType === 'student') {
+            const studentUser: Student = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              birthday: data.user.birthday,
+              is_active: true,
+              email_verified: false,
+              created_at: '',
+              updated_at: '',
+            };
+            setUser(studentUser);
+            setCsrfToken(data.csrfToken);
+          } else if (data.user.userType === 'instructor' && data.user.hasStudentProfile) {
+            const studentUser: Student = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              birthday: data.user.birthday,
+              is_active: true,
+              email_verified: false,
+              created_at: '',
+              updated_at: '',
+            };
+            setUser(studentUser);
+            setCsrfToken(data.csrfToken);
+          }
         }
       }
 
@@ -126,10 +164,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string) => {
     try {
       // Call server action for sign up
-      const result = await signUpAction(email, password, firstName, lastName);
+      const result = await signUpAction(email, password, firstName, lastName, dateOfBirth);
 
       if (!result.success) {
         return {
@@ -168,20 +206,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.user && data.user.userType === 'student') {
-          const studentUser: Student = {
-            id: data.user.id,
-            email: data.user.email,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            type: 'student',
-            is_active: true,
-            email_verified: false,
-            created_at: '',
-            updated_at: '',
-          };
-          setUser(studentUser);
-          setCsrfToken(data.csrfToken);
+        if (data.user) {
+          if (data.user.userType === 'student') {
+            const studentUser: Student = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              birthday: data.user.birthday,
+              is_active: true,
+              email_verified: false,
+              created_at: '',
+              updated_at: '',
+            };
+            setUser(studentUser);
+            setCsrfToken(data.csrfToken);
+          } else if (data.user.userType === 'instructor' && data.user.hasStudentProfile) {
+            const studentUser: Student = {
+              id: data.user.id,
+              email: data.user.email,
+              first_name: data.user.firstName,
+              last_name: data.user.lastName,
+              birthday: data.user.birthday,
+              is_active: true,
+              email_verified: false,
+              created_at: '',
+              updated_at: '',
+            };
+            setUser(studentUser);
+            setCsrfToken(data.csrfToken);
+          } else {
+            setUser(null);
+            setCsrfToken(null);
+          }
         } else {
           setUser(null);
           setCsrfToken(null);

@@ -20,13 +20,14 @@ export async function signUpAction(
   email: string,
   password: string,
   firstName: string,
-  lastName: string
+  lastName: string,
+  dateOfBirth: string
 ): Promise<AuthResponse> {
   try {
     const sql = getDb();
 
     // Validate input
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !firstName || !lastName || !dateOfBirth) {
       return { success: false, error: 'All fields are required' };
     }
 
@@ -45,47 +46,80 @@ export async function signUpAction(
 
     // Check if user already exists
     const existingUser = await sql`
-      SELECT id FROM users WHERE email = ${normalizedEmail}
+      SELECT id, password_hash FROM users WHERE email = ${normalizedEmail}
     `;
+
+    let userId: string;
+    let passwordHash: string;
 
     if (existingUser.length > 0) {
-      return { success: false, error: 'This email is already registered' };
+      // User exists - check if they already have a student profile
+      const user = existingUser[0];
+
+      const existingProfile = await sql`
+        SELECT user_id FROM student_profiles WHERE user_id = ${user.id}
+      `;
+
+      if (existingProfile.length > 0) {
+        return { success: false, error: 'You already have a student account. Please use the student login.' };
+      }
+
+      // Create student profile for existing user
+      userId = user.id;
+      passwordHash = user.password_hash;
+
+      // Create student profile
+      await sql`
+        INSERT INTO student_profiles (user_id, preferred_language)
+        VALUES (${userId}, 'en')
+      `;
+    } else {
+      // New user - create account
+      passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+      // Create new user
+      const result = await sql`
+        INSERT INTO users (email, password_hash, first_name, last_name, birthday, is_active, email_verified)
+        VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, ${dateOfBirth}, true, false)
+        RETURNING id, email, first_name, last_name, is_active, email_verified, created_at, updated_at, last_login_at
+      `;
+
+      if (result.length === 0) {
+        console.error('Signup error: No rows returned');
+        return { success: false, error: 'Failed to create account' };
+      }
+
+      userId = result[0].id;
+
+      // Create student profile with default preferred_language
+      await sql`
+        INSERT INTO student_profiles (user_id, preferred_language)
+        VALUES (${userId}, 'en')
+      `;
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-
-    // Create new user with type='student'
-    const result = await sql`
-      INSERT INTO users (email, password_hash, first_name, last_name, type, is_active, email_verified)
-      VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, 'student', true, false)
-      RETURNING id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at
+    // Fetch the user data to return
+    const userData = await sql`
+      SELECT id, email, first_name, last_name, birthday, is_active, email_verified, created_at, updated_at, last_login_at
+      FROM users
+      WHERE id = ${userId}
     `;
 
-    if (result.length === 0) {
-      console.error('Signup error: No rows returned');
-      return { success: false, error: 'Failed to create account' };
+    if (userData.length === 0) {
+      return { success: false, error: 'Failed to retrieve user data' };
     }
-
-    const userId = result[0].id;
-
-    // Create student profile with default preferred_language
-    await sql`
-      INSERT INTO student_profiles (user_id, preferred_language)
-      VALUES (${userId}, 'en')
-    `;
 
     const newStudent: Student = {
-      id: result[0].id,
-      email: result[0].email,
-      first_name: result[0].first_name,
-      last_name: result[0].last_name,
-      type: 'student',
-      is_active: result[0].is_active,
-      email_verified: result[0].email_verified,
-      created_at: result[0].created_at,
-      updated_at: result[0].updated_at,
-      last_login_at: result[0].last_login_at,
+      id: userData[0].id,
+      email: userData[0].email,
+      first_name: userData[0].first_name,
+      last_name: userData[0].last_name,
+      birthday: userData[0].birthday,
+      is_active: userData[0].is_active,
+      email_verified: userData[0].email_verified,
+      created_at: userData[0].created_at,
+      updated_at: userData[0].updated_at,
+      last_login_at: userData[0].last_login_at,
     };
 
     return { success: true, data: newStudent };
@@ -110,11 +144,14 @@ export async function signInAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Get user with type='student' and password hash
+    // Get user by email and check if they have a student profile
     const result = await sql`
-      SELECT id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at, password_hash
-      FROM users
-      WHERE email = ${normalizedEmail} AND type = 'student'
+      SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active, u.email_verified,
+             u.created_at, u.updated_at, u.last_login_at, u.password_hash,
+             sp.user_id as has_student_profile
+      FROM users u
+      LEFT JOIN student_profiles sp ON sp.user_id = u.id
+      WHERE u.email = ${normalizedEmail}
     `;
 
     if (result.length === 0) {
@@ -123,6 +160,12 @@ export async function signInAction(
     }
 
     const user = result[0];
+
+    // Check if user has a student profile
+    if (!user.has_student_profile) {
+      // User exists but doesn't have a student profile
+      return { success: false, error: 'Invalid credentials' };
+    }
 
     if (!user.is_active) {
       // Account is inactive
@@ -165,7 +208,7 @@ export async function signInAction(
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
-      type: 'student',
+      birthday: user.birthday,
       is_active: user.is_active,
       email_verified: user.email_verified,
       created_at: user.created_at,
@@ -186,10 +229,19 @@ export async function verifyStudentAction(studentId: string): Promise<AuthRespon
   try {
     const sql = getDb();
 
+    // Verify user has student profile
+    const profileCheck = await sql`
+      SELECT user_id FROM student_profiles WHERE user_id = ${studentId}
+    `;
+
+    if (profileCheck.length === 0) {
+      return { success: false, error: 'Student not found' };
+    }
+
     const result = await sql`
-      SELECT id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at
+      SELECT id, email, first_name, last_name, birthday, is_active, email_verified, created_at, updated_at, last_login_at
       FROM users
-      WHERE id = ${studentId} AND type = 'student'
+      WHERE id = ${studentId}
     `;
 
     if (result.length === 0) {
@@ -201,7 +253,7 @@ export async function verifyStudentAction(studentId: string): Promise<AuthRespon
       email: result[0].email,
       first_name: result[0].first_name,
       last_name: result[0].last_name,
-      type: 'student',
+      birthday: result[0].birthday,
       is_active: result[0].is_active,
       email_verified: result[0].email_verified,
       created_at: result[0].created_at,
@@ -221,13 +273,14 @@ export async function updateStudentProfileAction(
   studentId: string,
   firstName: string,
   lastName: string,
-  email: string
+  email: string,
+  dateOfBirth: string
 ): Promise<AuthResponse> {
   try {
     const sql = getDb();
 
     // Validate input
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !dateOfBirth) {
       return { success: false, error: 'All fields are required' };
     }
 
@@ -243,15 +296,25 @@ export async function updateStudentProfileAction(
       return { success: false, error: 'This email is already in use' };
     }
 
+    // Verify user has a student profile
+    const profileCheck = await sql`
+      SELECT user_id FROM student_profiles WHERE user_id = ${studentId}
+    `;
+
+    if (profileCheck.length === 0) {
+      return { success: false, error: 'Student profile not found' };
+    }
+
     // Update user profile
     const result = await sql`
       UPDATE users
       SET first_name = ${firstName},
           last_name = ${lastName},
           email = ${normalizedEmail},
+          birthday = ${dateOfBirth},
           updated_at = NOW()
-      WHERE id = ${studentId} AND type = 'student'
-      RETURNING id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at
+      WHERE id = ${studentId}
+      RETURNING id, email, first_name, last_name, birthday, is_active, email_verified, created_at, updated_at, last_login_at
     `;
 
     if (result.length === 0) {
@@ -263,7 +326,7 @@ export async function updateStudentProfileAction(
       email: result[0].email,
       first_name: result[0].first_name,
       last_name: result[0].last_name,
-      type: 'student',
+      birthday: result[0].birthday,
       is_active: result[0].is_active,
       email_verified: result[0].email_verified,
       created_at: result[0].created_at,
@@ -301,11 +364,20 @@ export async function updateStudentPasswordAction(
       };
     }
 
+    // Verify user has student profile
+    const profileCheck = await sql`
+      SELECT user_id FROM student_profiles WHERE user_id = ${studentId}
+    `;
+
+    if (profileCheck.length === 0) {
+      return { success: false, error: 'Student not found' };
+    }
+
     // Get user with password hash
     const result = await sql`
       SELECT password_hash
       FROM users
-      WHERE id = ${studentId} AND type = 'student'
+      WHERE id = ${studentId}
     `;
 
     if (result.length === 0) {
@@ -328,7 +400,7 @@ export async function updateStudentPasswordAction(
       UPDATE users
       SET password_hash = ${newPasswordHash},
           updated_at = NOW()
-      WHERE id = ${studentId} AND type = 'student'
+      WHERE id = ${studentId}
     `;
 
     return { success: true };

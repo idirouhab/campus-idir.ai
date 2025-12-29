@@ -35,7 +35,10 @@ export async function assignInstructorToCourseAction(
 
     // Check if instructor exists and is active
     const instructors = await sql`
-      SELECT id, is_active FROM users WHERE id = ${instructorId} AND type = 'instructor'
+      SELECT u.id, u.is_active
+      FROM users u
+      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId}
     `;
 
     if (instructors.length === 0) {
@@ -235,7 +238,6 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
         u.first_name,
         u.last_name,
         u.country,
-        u.type,
         u.is_active,
         u.email_verified,
         u.created_at,
@@ -256,8 +258,8 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
         ci.instructor_role,
         ci.display_order
       FROM course_instructors ci
-      INNER JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      INNER JOIN users u ON ci.instructor_id = u.id
+      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
       WHERE ci.course_id = ${courseId}
       ORDER BY ci.display_order ASC
     `;
@@ -270,7 +272,6 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
         first_name: row.first_name,
         last_name: row.last_name,
         country: row.country,
-        type: row.type,
         is_active: row.is_active,
         email_verified: row.email_verified,
         created_at: row.created_at,

@@ -36,10 +36,9 @@ export default function CoursePage() {
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState('');
   const [assignSuccess, setAssignSuccess] = useState('');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const { course, loading: courseLoading } = useCourse(slug);
-  const { hasAccess, courseSignupId, loading: accessLoading } = useCheckCourseAccess(
+  const { hasAccess, loading: accessLoading } = useCheckCourseAccess(
     user?.id,
     slug
   );

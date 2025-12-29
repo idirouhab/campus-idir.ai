@@ -38,8 +38,8 @@ export async function getInstructorCoursesAction(): Promise<{
     const instructors = await sql`
       SELECT u.*, ip.role, ip.preferred_language
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${instructorId} AND u.type = 'instructor'
+      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId}
     `;
 
     if (instructors.length === 0) {
@@ -79,7 +79,8 @@ export async function getInstructorCoursesAction(): Promise<{
               ORDER BY ci.display_order
             ) as instructors
           FROM course_instructors ci
-          JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+          JOIN users u ON ci.instructor_id = u.id
+          INNER JOIN instructor_profiles ip_check ON ip_check.user_id = u.id
           LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
           GROUP BY ci.course_id
         ) instructor_data ON c.id = instructor_data.course_id
@@ -115,7 +116,8 @@ export async function getInstructorCoursesAction(): Promise<{
               ORDER BY ci.display_order
             ) as instructors
           FROM course_instructors ci
-          JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+          JOIN users u ON ci.instructor_id = u.id
+          INNER JOIN instructor_profiles ip_check ON ip_check.user_id = u.id
           LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
           GROUP BY ci.course_id
         ) instructor_data ON c.id = instructor_data.course_id
@@ -169,8 +171,8 @@ export async function getCourseByIdAction(
     const instructors = await sql`
       SELECT u.*, ip.role, ip.preferred_language
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${instructorId} AND u.type = 'instructor'
+      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId}
     `;
 
     if (instructors.length === 0) {
@@ -200,7 +202,7 @@ export async function getCourseByIdAction(
         ) as instructors
       FROM courses c
       LEFT JOIN course_instructors ci ON c.id = ci.course_id
-      LEFT JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+      LEFT JOIN users u ON ci.instructor_id = u.id
       LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
       WHERE c.id = ${courseId}
       GROUP BY c.id
@@ -272,8 +274,8 @@ export async function getAllInstructorsAction(): Promise<{
         ip.role,
         u.is_active
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.type = 'instructor' AND u.is_active = true
+      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.is_active = true
       ORDER BY u.first_name, u.last_name
     `;
 
@@ -303,7 +305,7 @@ export async function getAllInstructorsWithStatsAction(): Promise<{
     country?: string;
     created_at: string;
     picture_url?: string;
-    birth_date?: string;
+    birthday?: string;
     course_count: number;
   }>;
   error?: string;
@@ -323,8 +325,8 @@ export async function getAllInstructorsWithStatsAction(): Promise<{
         u.last_name,
         u.country,
         u.created_at,
+        u.birthday,
         ip.picture_url,
-        ip.birth_date,
         COALESCE(course_data.course_count, 0) as course_count
       FROM users u
       LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
@@ -333,7 +335,7 @@ export async function getAllInstructorsWithStatsAction(): Promise<{
         FROM course_instructors
         GROUP BY instructor_id
       ) course_data ON u.id = course_data.instructor_id
-      WHERE u.type = 'instructor' AND u.is_active = true
+      WHERE ip.user_id IS NOT NULL AND u.is_active = true
       ORDER BY u.created_at DESC
     `;
 
@@ -347,7 +349,7 @@ export async function getAllInstructorsWithStatsAction(): Promise<{
         country?: string;
         created_at: string;
         picture_url?: string;
-        birth_date?: string;
+        birthday?: string;
         course_count: number;
       }>,
     };
@@ -613,7 +615,10 @@ export async function getCourseStudentsAction(
 
     // Get instructor to check their role
     const instructors = await sql`
-        SELECT * FROM users WHERE type='instructor' AND id = ${instructorId}
+        SELECT u.*, ip.role
+        FROM users u
+        INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+        WHERE u.id = ${instructorId}
     `;
 
     if (instructors.length === 0) {
@@ -704,6 +709,72 @@ export async function deleteCourseAction(
     return {
       success: false,
       error: error.message || 'Failed to delete course',
+    };
+  }
+}
+
+/**
+ * Update student status in a course
+ */
+export async function updateStudentStatusAction(
+  signupId: string,
+  newStatus: 'pending' | 'confirmed' | 'enrolled'
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Verify instructor permission via session
+    await requireUserType('instructor');
+
+    const sql = getDb();
+
+    // Update student status
+    await sql`
+      UPDATE course_signups
+      SET signup_status = ${newStatus},
+          updated_at = NOW()
+      WHERE id = ${signupId}
+    `;
+
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error('Error updating student status:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update student status',
+    };
+  }
+}
+
+/**
+ * Delete a student from a course
+ */
+export async function deleteStudentFromCourseAction(
+  signupId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Verify instructor permission via session
+    await requireUserType('instructor');
+
+    const sql = getDb();
+
+    // Delete student signup
+    await sql`DELETE FROM course_signups WHERE id = ${signupId}`;
+
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error('Error deleting student:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete student',
     };
   }
 }

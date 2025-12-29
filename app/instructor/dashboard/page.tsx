@@ -17,7 +17,7 @@ interface InstructorWithStats {
   country?: string;
   created_at: string;
   picture_url?: string;
-  birth_date?: string;
+  birthday?: string;
   course_count: number;
 }
 
@@ -45,11 +45,11 @@ export default function InstructorDashboardPage() {
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const permissions = useInstructorPermissions(instructor);
 
-  // Helper function to calculate age from birth_date
-  const calculateAge = (birthDate?: string): number | null => {
-    if (!birthDate) return null;
+  // Helper function to calculate age from birthday
+  const calculateAge = (birthday?: string): number | null => {
+    if (!birthday) return null;
     const today = new Date();
-    const birth = new Date(birthDate);
+    const birth = new Date(birthday);
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
@@ -247,7 +247,7 @@ export default function InstructorDashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {instructors.map((inst) => {
-                  const age = calculateAge(inst.birth_date);
+                  const age = calculateAge(inst.birthday);
                   return (
                     <div key={inst.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#10b981] transition-all">
                       <div className="flex items-start gap-4">

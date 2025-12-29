@@ -18,6 +18,7 @@ export default function StudentProfilePage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [profileError, setProfileError] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
@@ -41,6 +42,14 @@ export default function StudentProfilePage() {
       setFirstName(user.first_name);
       setLastName(user.last_name);
       setEmail(user.email);
+      // Format date properly for input type="date" (YYYY-MM-DD)
+      if (user.birthday) {
+        const dateObj = typeof user.birthday === 'string'
+          ? new Date(user.birthday)
+          : user.birthday;
+        const birthDate = dateObj.toISOString().split('T')[0];
+        setDateOfBirth(birthDate);
+      }
     }
   }, [user]);
 
@@ -49,7 +58,7 @@ export default function StudentProfilePage() {
     setProfileError('');
     setProfileSuccess(false);
 
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !dateOfBirth) {
       setProfileError('All fields are required');
       return;
     }
@@ -57,7 +66,7 @@ export default function StudentProfilePage() {
     setProfileLoading(true);
 
     try {
-      const result = await updateStudentProfileAction(user!.id, firstName, lastName, email);
+      const result = await updateStudentProfileAction(user!.id, firstName, lastName, email, dateOfBirth);
 
       if (!result.success) {
         setProfileError(result.error || 'Failed to update profile');
@@ -229,6 +238,22 @@ export default function StudentProfilePage() {
                 className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="date-of-birth" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                {t('profile.dateOfBirth')}
+              </label>
+              <input
+                id="date-of-birth"
+                name="dateOfBirth"
+                type="date"
+                required
+                max={new Date().toISOString().split('T')[0]}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
               />
             </div>
 

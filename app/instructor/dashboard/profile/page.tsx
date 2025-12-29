@@ -77,7 +77,7 @@ export default function InstructorProfilePage() {
     if (instructor) {
       console.log('[Profile Page] Instructor data:', {
         hasProfile: !!instructor.profile,
-        birth_date: instructor.profile?.birth_date,
+        birthday: instructor.birthday,
         fullProfile: instructor.profile,
       });
 
@@ -86,14 +86,13 @@ export default function InstructorProfilePage() {
       setEmail(instructor.email);
       // Format date properly for input type="date" (YYYY-MM-DD)
       let birthDate = '';
-      if (instructor.profile?.birth_date) {
+      if (instructor.birthday) {
         // Convert Date object or string to YYYY-MM-DD format
-        const dateObj = typeof instructor.profile.birth_date === 'string'
-          ? new Date(instructor.profile.birth_date)
-          : instructor.profile.birth_date;
+        const dateObj = typeof instructor.birthday === 'string'
+          ? new Date(instructor.birthday)
+          : instructor.birthday;
         birthDate = dateObj.toISOString().split('T')[0];
       }
-      console.log('[Profile Page] Setting birth_date to:', birthDate);
       setDateOfBirth(birthDate);
       setCountry(instructor.country || '');
       setDescription(instructor.profile?.description || '');

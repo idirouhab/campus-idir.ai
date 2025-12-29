@@ -38,12 +38,13 @@ export async function getStudentCoursesAction(): Promise<CoursesResponse> {
         cs.enrolled_at,
         cs.last_accessed_at,
         cs.progress_percentage,
-        cs.full_name,
-        cs.email,
-        cs.course_slug,
+        s.first_name,
+        s.email,
+        c.slug,
         c.*
       FROM course_signups cs
-      INNER JOIN courses c ON cs.course_id = c.id
+      INNER JOIN courses c ON c.id = cs.course_id
+      INNER JOIN users s ON cs.student_id = s.id
       WHERE cs.student_id = ${studentId}
         AND c.status = 'published'
       ORDER BY cs.created_at DESC
@@ -112,7 +113,7 @@ export async function checkCourseAccessAction(
     const result = await sql`
       SELECT cs.id
       FROM course_signups cs
-      INNER JOIN courses c ON cs.course_id = c.id
+      INNER JOIN courses c ON c.id = cs.course_id
       WHERE cs.student_id = ${studentId}
         AND c.slug = ${courseSlug}
       LIMIT 1

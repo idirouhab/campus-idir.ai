@@ -9,6 +9,8 @@ export interface SessionUser {
   role?: 'instructor' | 'admin';
   firstName: string;
   lastName: string;
+  birthday?: string;
+  hasStudentProfile?: boolean; // For dual-role users
 }
 
 /**
@@ -31,13 +33,15 @@ export async function getSession(): Promise<SessionUser | null> {
     const sql = getDb();
 
     if (payload.userType === 'student') {
+      // Check if user has a student profile (regardless of their primary type)
       const result = await sql`
-        SELECT u.id, u.email, u.first_name, u.last_name, u.is_active
+        SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active, sp.user_id as has_student_profile
         FROM users u
-        WHERE u.id = ${payload.userId} AND u.type = 'student'
+        LEFT JOIN student_profiles sp ON sp.user_id = u.id
+        WHERE u.id = ${payload.userId}
       `;
 
-      if (result.length === 0 || !result[0].is_active) {
+      if (result.length === 0 || !result[0].is_active || !result[0].has_student_profile) {
         return null;
       }
 
@@ -48,17 +52,22 @@ export async function getSession(): Promise<SessionUser | null> {
         userType: 'student',
         firstName: user.first_name,
         lastName: user.last_name,
+        birthday: user.birthday,
       };
     } else {
-      // Query user with instructor profile to get role
+      // Check if user has an instructor profile (regardless of their primary type)
+      // Also check if they have a student profile for dual-role support
       const result = await sql`
-        SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, ip.role
+        SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active,
+               ip.user_id as has_instructor_profile, ip.role,
+               sp.user_id as has_student_profile
         FROM users u
         LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
-        WHERE u.id = ${payload.userId} AND u.type = 'instructor'
+        LEFT JOIN student_profiles sp ON sp.user_id = u.id
+        WHERE u.id = ${payload.userId}
       `;
 
-      if (result.length === 0 || !result[0].is_active) {
+      if (result.length === 0 || !result[0].is_active || !result[0].has_instructor_profile) {
         return null;
       }
 
@@ -70,6 +79,8 @@ export async function getSession(): Promise<SessionUser | null> {
         role: user.role || 'instructor',
         firstName: user.first_name,
         lastName: user.last_name,
+        birthday: user.birthday,
+        hasStudentProfile: !!user.has_student_profile,
       };
     }
   } catch (error) {

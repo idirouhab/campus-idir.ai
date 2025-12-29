@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -42,7 +43,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, firstName, lastName);
+      const { error } = await signUp(email, password, firstName, lastName, dateOfBirth);
 
       if (error) {
         setError(error.message);
@@ -190,6 +191,21 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               <PasswordStrengthIndicator password={password} />
+            </div>
+            <div>
+              <label htmlFor="date-of-birth" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                Date of Birth
+              </label>
+              <input
+                id="date-of-birth"
+                name="dateOfBirth"
+                type="date"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+              />
             </div>
           </div>
 

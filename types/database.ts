@@ -1,15 +1,12 @@
 // Database types for courses platform
 
-// Unified user type
-export type UserType = 'student' | 'instructor' | null;
-
 export interface User {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
   country?: string;
-  type: UserType;
+  birthday?: string;
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
@@ -20,7 +17,6 @@ export interface User {
 // Student profile (separate table)
 export interface StudentProfile {
   user_id: string;
-  birth_year?: number;
   preferred_language: 'en' | 'es';
   created_at: string;
   updated_at: string;
@@ -43,17 +39,14 @@ export interface InstructorProfile {
   preferred_language: 'en' | 'es';
   created_at: string;
   updated_at: string;
-  birth_date: string;
 }
 
 // Combined types for convenience
 export interface Student extends User {
-  type: 'student';
   profile?: StudentProfile;
 }
 
 export interface Instructor extends User {
-  type: 'instructor';
   profile?: InstructorProfile;
 }
 
