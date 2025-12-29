@@ -5,10 +5,22 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
-import { getInstructorCoursesAction, deleteCourseAction } from '@/lib/course-actions';
+import { getInstructorCoursesAction, deleteCourseAction, getAllInstructorsWithStatsAction } from '@/lib/course-actions';
 import { Instructor, Course } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
 import Cookies from 'js-cookie';
+
+interface InstructorWithStats {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  country?: string;
+  created_at: string;
+  picture_url?: string;
+  birth_date?: string;
+  course_count: number;
+}
 
 interface CourseWithInstructors extends Course {
   instructors?: Array<{
@@ -27,35 +39,62 @@ export default function InstructorDashboardPage() {
   const router = useRouter();
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [courses, setCourses] = useState<CourseWithInstructors[]>([]);
+  const [instructors, setInstructors] = useState<InstructorWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [coursesLoading, setCoursesLoading] = useState(true);
+  const [instructorsLoading, setInstructorsLoading] = useState(true);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const permissions = useInstructorPermissions(instructor);
 
+  // Helper function to calculate age from birth_date
+  const calculateAge = (birthDate?: string): number | null => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('[Dashboard] Starting auth check...');
       const instructorId = Cookies.get('instructorId');
       const userType = Cookies.get('userType');
 
       if (!instructorId || userType !== 'instructor') {
+        console.log('[Dashboard] No instructor credentials, redirecting to login');
         router.push('/instructor/login');
         return;
       }
 
       try {
+        console.log('[Dashboard] Verifying instructor:', instructorId);
         const result = await verifyInstructorAction(instructorId);
         if (result.success && result.data) {
+          console.log('[Dashboard] Auth successful:', result.data);
           setInstructor(result.data);
         } else {
+          console.error('[Dashboard] Auth failed:', result.error);
           Cookies.remove('instructorId');
           Cookies.remove('userType');
           router.push('/instructor/login');
         }
       } catch (error) {
-        console.error('Auth error:', error);
+        console.error('[Dashboard] Auth error:', error);
         router.push('/instructor/login');
       } finally {
         setLoading(false);
+        console.log('[Dashboard] Auth check complete');
       }
     };
 
@@ -64,23 +103,60 @@ export default function InstructorDashboardPage() {
 
   // Fetch courses when instructor is loaded
   useEffect(() => {
-    const fetchCourses = async () => {
-      if (!instructor) return;
+    const fetchData = async () => {
+      if (!instructor) {
+        console.log('[Dashboard] No instructor loaded yet, skipping data fetch');
+        return;
+      }
 
+      console.log('[Dashboard] Starting data fetch for instructor:', instructor.id);
+
+      // Fetch courses
       setCoursesLoading(true);
       try {
-        const result = await getInstructorCoursesAction();
-        if (result.success && result.data) {
-          setCourses(result.data);
+        console.log('[Dashboard] Fetching courses...');
+        const coursesResult = await getInstructorCoursesAction();
+        if (coursesResult.success && coursesResult.data) {
+          console.log('[Dashboard] Courses fetched successfully:', coursesResult.data.length);
+          setCourses(coursesResult.data);
+        } else {
+          console.error('[Dashboard] Failed to fetch courses:', coursesResult.error);
         }
       } catch (error) {
-        console.error('Error fetching courses:', error);
+        console.error('[Dashboard] Error fetching courses:', error);
       } finally {
         setCoursesLoading(false);
+        console.log('[Dashboard] Courses loading complete');
+      }
+
+      // Fetch instructors only for admins
+      const isAdmin = permissions.canViewAllCourses();
+      console.log('[Dashboard] Is admin?', isAdmin);
+
+      if (isAdmin) {
+        setInstructorsLoading(true);
+        try {
+          console.log('[Dashboard] Fetching instructors...');
+          const instructorsResult = await getAllInstructorsWithStatsAction();
+          if (instructorsResult.success && instructorsResult.data) {
+            console.log('[Dashboard] Instructors fetched successfully:', instructorsResult.data.length);
+            setInstructors(instructorsResult.data);
+          } else {
+            console.error('[Dashboard] Failed to fetch instructors:', instructorsResult.error);
+          }
+        } catch (error) {
+          console.error('[Dashboard] Error fetching instructors:', error);
+        } finally {
+          setInstructorsLoading(false);
+          console.log('[Dashboard] Instructors loading complete');
+        }
+      } else {
+        setInstructorsLoading(false);
+        console.log('[Dashboard] Not admin, skipping instructors fetch');
       }
     };
 
-    fetchCourses();
+    fetchData();
   }, [instructor]);
 
   // Handle course deletion
@@ -135,6 +211,106 @@ export default function InstructorDashboardPage() {
             {t('dashboard.welcomeBack')}
           </p>
         </div>
+
+        {/* Instructors Section - Only visible to admins */}
+        {permissions.canViewAllCourses() && (
+          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">All Instructors</h2>
+              <span className="text-sm text-gray-600">
+                {instructors.length} {instructors.length === 1 ? 'instructor' : 'instructors'}
+              </span>
+            </div>
+
+            {instructorsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
+              </div>
+            ) : instructors.length === 0 ? (
+              <div className="text-center py-8">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <p className="text-gray-600 font-semibold">No instructors found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {instructors.map((inst) => {
+                  const age = calculateAge(inst.birth_date);
+                  return (
+                    <div key={inst.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#10b981] transition-all">
+                      <div className="flex items-start gap-4">
+                        {/* Profile Picture */}
+                        <div className="flex-shrink-0">
+                          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center overflow-hidden">
+                            {inst.picture_url ? (
+                              <img
+                                src={inst.picture_url}
+                                alt={`${inst.first_name} ${inst.last_name}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-lg font-bold text-[#10b981]">
+                                {inst.first_name[0]}{inst.last_name[0]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Instructor Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-gray-900 truncate">
+                            {inst.first_name} {inst.last_name}
+                          </h3>
+                          <p className="text-sm text-gray-600 truncate mb-2">{inst.email}</p>
+
+                          {/* Stats Grid */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                              <span className="text-sm font-semibold text-gray-700">
+                                {inst.course_count} {inst.course_count === 1 ? 'Course' : 'Courses'}
+                              </span>
+                            </div>
+
+                            {age !== null && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-sm text-gray-600">{age} years old</span>
+                              </div>
+                            )}
+
+                            {inst.country && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-sm text-gray-600">{inst.country}</span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-sm text-gray-600">
+                                Joined {formatDate(inst.created_at)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Courses Section */}
         <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-8">

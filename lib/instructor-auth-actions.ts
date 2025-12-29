@@ -259,12 +259,6 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
       return { success: false, error: 'Instructor account is inactive' };
     }
 
-    console.log('[verifyInstructorAction] User data:', {
-      profile_user_id: user.profile_user_id,
-      profile_birth_date: user.profile_birth_date,
-      role: user.role,
-    });
-
     const instructorData: Instructor = {
       id: user.id,
       email: user.email,

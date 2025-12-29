@@ -291,6 +291,76 @@ export async function getAllInstructorsAction(): Promise<{
 }
 
 /**
+ * Get all instructors with their course count and full profile information
+ */
+export async function getAllInstructorsWithStatsAction(): Promise<{
+  success: boolean;
+  data?: Array<{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    country?: string;
+    created_at: string;
+    picture_url?: string;
+    birth_date?: string;
+    course_count: number;
+  }>;
+  error?: string;
+}> {
+  try {
+    // Verify admin permission via session
+    const session = await requireAdmin();
+
+    const sql = getDb();
+
+    // Get all instructors with their course count
+    const instructors = await sql`
+      SELECT
+        u.id,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.country,
+        u.created_at,
+        ip.picture_url,
+        ip.birth_date,
+        COALESCE(course_data.course_count, 0) as course_count
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      LEFT JOIN (
+        SELECT instructor_id, COUNT(DISTINCT course_id) as course_count
+        FROM course_instructors
+        GROUP BY instructor_id
+      ) course_data ON u.id = course_data.instructor_id
+      WHERE u.type = 'instructor' AND u.is_active = true
+      ORDER BY u.created_at DESC
+    `;
+
+    return {
+      success: true,
+      data: instructors as unknown as Array<{
+        id: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        country?: string;
+        created_at: string;
+        picture_url?: string;
+        birth_date?: string;
+        course_count: number;
+      }>,
+    };
+  } catch (error: any) {
+    console.error('Error fetching instructors with stats:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch instructors',
+    };
+  }
+}
+
+/**
  * Create a new course (admin only)
  */
 export async function createCourseAction(
