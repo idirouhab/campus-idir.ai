@@ -43,23 +43,23 @@ export async function signUpAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if student already exists
-    const existingStudent = await sql`
-      SELECT id FROM students WHERE email = ${normalizedEmail}
+    // Check if user already exists
+    const existingUser = await sql`
+      SELECT id FROM users WHERE email = ${normalizedEmail}
     `;
 
-    if (existingStudent.length > 0) {
+    if (existingUser.length > 0) {
       return { success: false, error: 'This email is already registered' };
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create new student
+    // Create new user with type='student'
     const result = await sql`
-      INSERT INTO students (email, password_hash, first_name, last_name, email_verified)
-      VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, false)
-      RETURNING id, email, first_name, last_name, email_verified, created_at, updated_at, last_login_at
+      INSERT INTO users (email, password_hash, first_name, last_name, type, is_active, email_verified)
+      VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, 'student', true, false)
+      RETURNING id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at
     `;
 
     if (result.length === 0) {
@@ -67,11 +67,21 @@ export async function signUpAction(
       return { success: false, error: 'Failed to create account' };
     }
 
+    const userId = result[0].id;
+
+    // Create student profile with default preferred_language
+    await sql`
+      INSERT INTO student_profiles (user_id, preferred_language)
+      VALUES (${userId}, 'en')
+    `;
+
     const newStudent: Student = {
       id: result[0].id,
       email: result[0].email,
       first_name: result[0].first_name,
       last_name: result[0].last_name,
+      type: 'student',
+      is_active: result[0].is_active,
       email_verified: result[0].email_verified,
       created_at: result[0].created_at,
       updated_at: result[0].updated_at,
@@ -100,11 +110,11 @@ export async function signInAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Get student with password hash
+    // Get user with type='student' and password hash
     const result = await sql`
-      SELECT id, email, first_name, last_name, email_verified, created_at, updated_at, last_login_at, password_hash
-      FROM students
-      WHERE email = ${normalizedEmail}
+      SELECT id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at, password_hash
+      FROM users
+      WHERE email = ${normalizedEmail} AND type = 'student'
     `;
 
     if (result.length === 0) {
@@ -112,15 +122,20 @@ export async function signInAction(
       return { success: false, error: 'Invalid credentials' };
     }
 
-    const student = result[0];
+    const user = result[0];
 
-    if (!student.password_hash) {
+    if (!user.is_active) {
+      // Account is inactive
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    if (!user.password_hash) {
       // Sanitized error
       return { success: false, error: 'Invalid credentials' };
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, student.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
       // Sanitized error - same message as above
@@ -129,9 +144,9 @@ export async function signInAction(
 
     // Generate JWT token
     const token = await generateAccessToken(
-      student.id,
+      user.id,
       'student',
-      student.email
+      user.email
     );
 
     // Set secure httpOnly cookie
@@ -139,21 +154,23 @@ export async function signInAction(
 
     // Update last login
     await sql`
-      UPDATE students
+      UPDATE users
       SET last_login_at = NOW(), updated_at = NOW()
-      WHERE id = ${student.id}
+      WHERE id = ${user.id}
     `;
 
     // Return student data without password hash
     const studentData: Student = {
-      id: student.id,
-      email: student.email,
-      first_name: student.first_name,
-      last_name: student.last_name,
-      email_verified: student.email_verified,
-      created_at: student.created_at,
-      updated_at: student.updated_at,
-      last_login_at: student.last_login_at,
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      type: 'student',
+      is_active: user.is_active,
+      email_verified: user.email_verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_login_at: user.last_login_at,
     };
 
     return { success: true, data: studentData };
@@ -170,9 +187,9 @@ export async function verifyStudentAction(studentId: string): Promise<AuthRespon
     const sql = getDb();
 
     const result = await sql`
-      SELECT id, email, first_name, last_name, email_verified, created_at, updated_at, last_login_at
-      FROM students
-      WHERE id = ${studentId}
+      SELECT id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at
+      FROM users
+      WHERE id = ${studentId} AND type = 'student'
     `;
 
     if (result.length === 0) {
@@ -184,6 +201,8 @@ export async function verifyStudentAction(studentId: string): Promise<AuthRespon
       email: result[0].email,
       first_name: result[0].first_name,
       last_name: result[0].last_name,
+      type: 'student',
+      is_active: result[0].is_active,
       email_verified: result[0].email_verified,
       created_at: result[0].created_at,
       updated_at: result[0].updated_at,
@@ -215,24 +234,24 @@ export async function updateStudentProfileAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if email is taken by another student
-    const existingStudent = await sql`
-      SELECT id FROM students WHERE email = ${normalizedEmail} AND id != ${studentId}
+    // Check if email is taken by another user
+    const existingUser = await sql`
+      SELECT id FROM users WHERE email = ${normalizedEmail} AND id != ${studentId}
     `;
 
-    if (existingStudent.length > 0) {
+    if (existingUser.length > 0) {
       return { success: false, error: 'This email is already in use' };
     }
 
-    // Update student profile
+    // Update user profile
     const result = await sql`
-      UPDATE students
+      UPDATE users
       SET first_name = ${firstName},
           last_name = ${lastName},
           email = ${normalizedEmail},
           updated_at = NOW()
-      WHERE id = ${studentId}
-      RETURNING id, email, first_name, last_name, email_verified, created_at, updated_at, last_login_at
+      WHERE id = ${studentId} AND type = 'student'
+      RETURNING id, email, first_name, last_name, type, is_active, email_verified, created_at, updated_at, last_login_at
     `;
 
     if (result.length === 0) {
@@ -244,6 +263,8 @@ export async function updateStudentProfileAction(
       email: result[0].email,
       first_name: result[0].first_name,
       last_name: result[0].last_name,
+      type: 'student',
+      is_active: result[0].is_active,
       email_verified: result[0].email_verified,
       created_at: result[0].created_at,
       updated_at: result[0].updated_at,
@@ -280,21 +301,21 @@ export async function updateStudentPasswordAction(
       };
     }
 
-    // Get student with password hash
+    // Get user with password hash
     const result = await sql`
       SELECT password_hash
-      FROM students
-      WHERE id = ${studentId}
+      FROM users
+      WHERE id = ${studentId} AND type = 'student'
     `;
 
     if (result.length === 0) {
       return { success: false, error: 'Student not found' };
     }
 
-    const student = result[0];
+    const user = result[0];
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, student.password_hash);
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isPasswordValid) {
       return { success: false, error: 'Current password is incorrect' };
     }
@@ -304,10 +325,10 @@ export async function updateStudentPasswordAction(
 
     // Update password
     await sql`
-      UPDATE students
+      UPDATE users
       SET password_hash = ${newPasswordHash},
           updated_at = NOW()
-      WHERE id = ${studentId}
+      WHERE id = ${studentId} AND type = 'student'
     `;
 
     return { success: true };

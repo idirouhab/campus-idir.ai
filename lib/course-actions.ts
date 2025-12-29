@@ -36,7 +36,10 @@ export async function getInstructorCoursesAction(): Promise<{
 
     // Get the instructor to check their role
     const instructors = await sql`
-      SELECT * FROM instructors WHERE id = ${instructorId}
+      SELECT u.*, ip.role, ip.preferred_language
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId} AND u.type = 'instructor'
     `;
 
     if (instructors.length === 0) {
@@ -65,18 +68,19 @@ export async function getInstructorCoursesAction(): Promise<{
             ci.course_id,
             json_agg(
               json_build_object(
-                'id', i.id,
-                'first_name', i.first_name,
-                'last_name', i.last_name,
-                'email', i.email,
-                'picture_url', i.picture_url,
+                'id', u.id,
+                'first_name', u.first_name,
+                'last_name', u.last_name,
+                'email', u.email,
+                'picture_url', ip.picture_url,
                 'instructor_role', ci.instructor_role,
                 'display_order', ci.display_order
               )
               ORDER BY ci.display_order
             ) as instructors
           FROM course_instructors ci
-          JOIN instructors i ON ci.instructor_id = i.id
+          JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+          LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
           GROUP BY ci.course_id
         ) instructor_data ON c.id = instructor_data.course_id
         ORDER BY c.created_at DESC
@@ -100,18 +104,19 @@ export async function getInstructorCoursesAction(): Promise<{
             ci.course_id,
             json_agg(
               json_build_object(
-                'id', i.id,
-                'first_name', i.first_name,
-                'last_name', i.last_name,
-                'email', i.email,
-                'picture_url', i.picture_url,
+                'id', u.id,
+                'first_name', u.first_name,
+                'last_name', u.last_name,
+                'email', u.email,
+                'picture_url', ip.picture_url,
                 'instructor_role', ci.instructor_role,
                 'display_order', ci.display_order
               )
               ORDER BY ci.display_order
             ) as instructors
           FROM course_instructors ci
-          JOIN instructors i ON ci.instructor_id = i.id
+          JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+          LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
           GROUP BY ci.course_id
         ) instructor_data ON c.id = instructor_data.course_id
         ORDER BY c.created_at DESC
@@ -162,7 +167,10 @@ export async function getCourseByIdAction(
 
     // Get instructor to check role
     const instructors = await sql`
-      SELECT * FROM instructors WHERE id = ${instructorId}
+      SELECT u.*, ip.role, ip.preferred_language
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId} AND u.type = 'instructor'
     `;
 
     if (instructors.length === 0) {
@@ -178,21 +186,22 @@ export async function getCourseByIdAction(
         COALESCE(
           json_agg(
             json_build_object(
-              'id', i.id,
-              'first_name', i.first_name,
-              'last_name', i.last_name,
-              'email', i.email,
-              'picture_url', i.picture_url,
+              'id', u.id,
+              'first_name', u.first_name,
+              'last_name', u.last_name,
+              'email', u.email,
+              'picture_url', ip.picture_url,
               'instructor_role', ci.instructor_role,
               'display_order', ci.display_order
             )
             ORDER BY ci.display_order
-          ) FILTER (WHERE i.id IS NOT NULL),
+          ) FILTER (WHERE u.id IS NOT NULL),
           '[]'
         ) as instructors
       FROM courses c
       LEFT JOIN course_instructors ci ON c.id = ci.course_id
-      LEFT JOIN instructors i ON ci.instructor_id = i.id
+      LEFT JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
       WHERE c.id = ${courseId}
       GROUP BY c.id
     `;
@@ -255,16 +264,17 @@ export async function getAllInstructorsAction(): Promise<{
     // Get all instructors
     const instructors = await sql`
       SELECT
-        id,
-        email,
-        first_name,
-        last_name,
-        picture_url,
-        role,
-        is_active
-      FROM instructors
-      WHERE is_active = true
-      ORDER BY first_name, last_name
+        u.id,
+        u.email,
+        u.first_name,
+        u.last_name,
+        ip.picture_url,
+        ip.role,
+        u.is_active
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.type = 'instructor' AND u.is_active = true
+      ORDER BY u.first_name, u.last_name
     `;
 
     return {
@@ -533,7 +543,7 @@ export async function getCourseStudentsAction(
 
     // Get instructor to check their role
     const instructors = await sql`
-      SELECT * FROM instructors WHERE id = ${instructorId}
+        SELECT * FROM users WHERE type='instructor' AND id = ${instructorId}
     `;
 
     if (instructors.length === 0) {
@@ -567,7 +577,7 @@ export async function getCourseStudentsAction(
         s.last_name,
         s.email
       FROM course_signups cs
-      INNER JOIN students s ON cs.student_id = s.id
+      INNER JOIN users s ON cs.student_id = s.id
       WHERE cs.course_id = ${courseId}
       ORDER BY cs.created_at DESC
     `;

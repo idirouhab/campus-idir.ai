@@ -35,7 +35,7 @@ export async function assignInstructorToCourseAction(
 
     // Check if instructor exists and is active
     const instructors = await sql`
-      SELECT id, is_active FROM instructors WHERE id = ${instructorId}
+      SELECT id, is_active FROM users WHERE id = ${instructorId} AND type = 'instructor'
     `;
 
     if (instructors.length === 0) {
@@ -228,20 +228,82 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
   try {
     const sql = getDb();
 
-    const instructors = await sql`
+    const result = await sql`
       SELECT
-        i.*,
+        u.id,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.country,
+        u.type,
+        u.is_active,
+        u.email_verified,
+        u.created_at,
+        u.updated_at,
+        u.last_login_at,
+        ip.user_id as profile_user_id,
+        ip.title,
+        ip.description,
+        ip.picture_url,
+        ip.linkedin_url,
+        ip.x_url,
+        ip.youtube_url,
+        ip.website_url,
+        ip.role,
+        ip.preferred_language,
+        ip.created_at as profile_created_at,
+        ip.updated_at as profile_updated_at,
         ci.instructor_role,
         ci.display_order
       FROM course_instructors ci
-      INNER JOIN instructors i ON ci.instructor_id = i.id
+      INNER JOIN users u ON ci.instructor_id = u.id AND u.type = 'instructor'
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
       WHERE ci.course_id = ${courseId}
       ORDER BY ci.display_order ASC
     `;
 
+    // Transform to Instructor objects with profiles
+    const instructors = result.map(row => {
+      const instructor: any = {
+        id: row.id,
+        email: row.email,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        country: row.country,
+        type: row.type,
+        is_active: row.is_active,
+        email_verified: row.email_verified,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        last_login_at: row.last_login_at,
+        instructor_role: row.instructor_role,
+        display_order: row.display_order,
+      };
+
+      // Add profile if exists
+      if (row.profile_user_id) {
+        instructor.profile = {
+          user_id: row.profile_user_id,
+          title: row.title,
+          description: row.description,
+          picture_url: row.picture_url,
+          linkedin_url: row.linkedin_url,
+          x_url: row.x_url,
+          youtube_url: row.youtube_url,
+          website_url: row.website_url,
+          role: row.role,
+          preferred_language: row.preferred_language,
+          created_at: row.profile_created_at,
+          updated_at: row.profile_updated_at,
+        };
+      }
+
+      return instructor;
+    });
+
     return {
       success: true,
-      data: instructors as unknown as Array<Instructor & { instructor_role: CourseInstructorRole; display_order: number }>,
+      data: instructors as Array<Instructor & { instructor_role: CourseInstructorRole; display_order: number }>,
     };
   } catch (error: any) {
     console.error('Error fetching course instructors:', error);

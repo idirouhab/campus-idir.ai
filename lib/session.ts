@@ -27,47 +27,49 @@ export async function getSession(): Promise<SessionUser | null> {
       return null;
     }
 
-    // Fetch fresh user data from database
+    // Fetch fresh user data from unified users table
     const sql = getDb();
 
     if (payload.userType === 'student') {
       const result = await sql`
-        SELECT id, email, first_name, last_name
-        FROM students
-        WHERE id = ${payload.userId}
-      `;
-
-      if (result.length === 0) {
-        return null;
-      }
-
-      const student = result[0];
-      return {
-        id: student.id,
-        email: student.email,
-        userType: 'student',
-        firstName: student.first_name,
-        lastName: student.last_name,
-      };
-    } else {
-      const result = await sql`
-        SELECT id, email, first_name, last_name, role, is_active
-        FROM instructors
-        WHERE id = ${payload.userId}
+        SELECT u.id, u.email, u.first_name, u.last_name, u.is_active
+        FROM users u
+        WHERE u.id = ${payload.userId} AND u.type = 'student'
       `;
 
       if (result.length === 0 || !result[0].is_active) {
         return null;
       }
 
-      const instructor = result[0];
+      const user = result[0];
       return {
-        id: instructor.id,
-        email: instructor.email,
+        id: user.id,
+        email: user.email,
+        userType: 'student',
+        firstName: user.first_name,
+        lastName: user.last_name,
+      };
+    } else {
+      // Query user with instructor profile to get role
+      const result = await sql`
+        SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, ip.role
+        FROM users u
+        LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+        WHERE u.id = ${payload.userId} AND u.type = 'instructor'
+      `;
+
+      if (result.length === 0 || !result[0].is_active) {
+        return null;
+      }
+
+      const user = result[0];
+      return {
+        id: user.id,
+        email: user.email,
         userType: 'instructor',
-        role: instructor.role,
-        firstName: instructor.first_name,
-        lastName: instructor.last_name,
+        role: user.role || 'instructor',
+        firstName: user.first_name,
+        lastName: user.last_name,
       };
     }
   } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Instructor } from '@/types/database';
-import { instructorSignInAction, instructorSignUpAction, instructorSignOutAction } from '@/lib/instructor-auth-actions';
+import { instructorSignInAction, instructorSignUpAction, instructorSignOutAction, verifyInstructorAction } from '@/lib/instructor-auth-actions';
 
 interface InstructorAuthReturn {
   instructor: Instructor | null;
@@ -39,6 +39,8 @@ export function useInstructorAuth(): InstructorAuthReturn {
           credentials: 'include', // Include httpOnly cookies
         });
 
+
+
         if (!response.ok) {
           setInstructor(null);
           setCsrfToken(null);
@@ -47,24 +49,19 @@ export function useInstructorAuth(): InstructorAuthReturn {
         }
 
         const data = await response.json();
+
         console.log('[useInstructorAuth] Session data:', data);
 
         if (data.user && data.user.userType === 'instructor') {
-          // Session API returns SessionUser, convert to Instructor format
-          const instructorUser: Instructor = {
-            id: data.user.id,
-            email: data.user.email,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            role: data.user.role || 'instructor',
-            is_active: true,
-            email_verified: false,
-            preferred_language: 'en',
-            created_at: '',
-            updated_at: '',
-          };
-          setInstructor(instructorUser);
-          setCsrfToken(data.csrfToken);
+          // Fetch full instructor profile data
+          const instructorResult = await verifyInstructorAction(data.user.id);
+          if (instructorResult.success && instructorResult.data) {
+            setInstructor(instructorResult.data);
+            setCsrfToken(data.csrfToken);
+          } else {
+            setInstructor(null);
+            setCsrfToken(null);
+          }
         } else {
           setInstructor(null);
           setCsrfToken(null);
@@ -97,20 +94,13 @@ export function useInstructorAuth(): InstructorAuthReturn {
       if (response.ok) {
         const data = await response.json();
         if (data.user && data.user.userType === 'instructor') {
-          const instructorUser: Instructor = {
-            id: data.user.id,
-            email: data.user.email,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            role: data.user.role || 'instructor',
-            is_active: true,
-            email_verified: false,
-            preferred_language: 'en',
-            created_at: '',
-            updated_at: '',
-          };
-          setInstructor(instructorUser);
-          setCsrfToken(data.csrfToken);
+          // Fetch full instructor profile data
+          const instructorResult = await verifyInstructorAction(data.user.id);
+
+          if (instructorResult.success && instructorResult.data) {
+            setInstructor(instructorResult.data);
+            setCsrfToken(data.csrfToken);
+          }
         }
       }
 
@@ -169,20 +159,16 @@ export function useInstructorAuth(): InstructorAuthReturn {
       if (response.ok) {
         const data = await response.json();
         if (data.user && data.user.userType === 'instructor') {
-          const instructorUser: Instructor = {
-            id: data.user.id,
-            email: data.user.email,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            role: data.user.role || 'instructor',
-            is_active: true,
-            email_verified: false,
-            preferred_language: 'en',
-            created_at: '',
-            updated_at: '',
-          };
-          setInstructor(instructorUser);
-          setCsrfToken(data.csrfToken);
+          // Fetch full instructor profile data
+          const instructorResult = await verifyInstructorAction(data.user.id);
+
+          if (instructorResult.success && instructorResult.data) {
+            setInstructor(instructorResult.data);
+            setCsrfToken(data.csrfToken);
+          } else {
+            setInstructor(null);
+            setCsrfToken(null);
+          }
         } else {
           setInstructor(null);
           setCsrfToken(null);

@@ -8,6 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import { canAssignInstructors } from '@/lib/roles';
 import { Instructor } from '@/types/database';
+import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,19 +40,14 @@ export default function Navigation() {
         if (response.ok) {
           const data = await response.json();
           if (data.user && data.user.userType === 'instructor') {
-            const instructorUser: Instructor = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              role: data.user.role || 'instructor',
-              is_active: true,
-              email_verified: false,
-              preferred_language: 'en',
-              created_at: '',
-              updated_at: '',
-            };
-            setInstructorData(instructorUser);
+            // Fetch full instructor profile data
+            const instructorResult = await verifyInstructorAction(data.user.id);
+
+            if (instructorResult.success && instructorResult.data) {
+              setInstructorData(instructorResult.data);
+            } else {
+              setInstructorData(null);
+            }
           } else {
             setInstructorData(null);
           }
@@ -141,7 +137,7 @@ export default function Navigation() {
   };
 
   const getRoleBadge = (instructor: Instructor) => {
-    if (instructor.role === 'admin') {
+    if (instructor.profile?.role === 'admin') {
       return {
         text: 'Administrator',
         className: 'bg-purple-50 text-purple-700 border-purple-200'
@@ -222,9 +218,9 @@ export default function Navigation() {
                   >
                     {/* Profile Picture or Initials */}
                     <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
-                      {instructorData.picture_url ? (
+                      {instructorData.profile?.picture_url ? (
                         <img
-                          src={instructorData.picture_url}
+                          src={instructorData.profile?.picture_url}
                           alt={instructorData.first_name}
                           className="w-full h-full rounded-full object-cover"
                         />
@@ -461,9 +457,9 @@ export default function Navigation() {
               <div className="px-3 pb-4 mb-4 border-b border-gray-200">
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
-                    {instructorData.picture_url ? (
+                    {instructorData.profile?.picture_url ? (
                       <img
-                        src={instructorData.picture_url}
+                        src={instructorData.profile?.picture_url}
                         alt={instructorData.first_name}
                         className="w-full h-full rounded-full object-cover"
                       />

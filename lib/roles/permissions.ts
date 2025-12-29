@@ -13,7 +13,8 @@ import { Permission, roleHasPermission, roleHasAnyPermission, roleHasAllPermissi
  */
 export function hasPermission(instructor: Instructor | null | undefined, permission: Permission): boolean {
   if (!instructor) return false;
-  return roleHasPermission(instructor.role, permission);
+  const role = instructor.profile?.role || 'instructor';
+  return roleHasPermission(role, permission);
 }
 
 /**
@@ -24,7 +25,8 @@ export function hasAnyPermission(
   permissions: Permission[]
 ): boolean {
   if (!instructor) return false;
-  return roleHasAnyPermission(instructor.role, permissions);
+  const role = instructor.profile?.role || 'instructor';
+  return roleHasAnyPermission(role, permissions);
 }
 
 /**
@@ -35,7 +37,8 @@ export function hasAllPermissions(
   permissions: Permission[]
 ): boolean {
   if (!instructor) return false;
-  return roleHasAllPermissions(instructor.role, permissions);
+  const role = instructor.profile?.role || 'instructor';
+  return roleHasAllPermissions(role, permissions);
 }
 
 /**

@@ -30,14 +30,17 @@ export async function getStudentCoursesAction(): Promise<CoursesResponse> {
       SELECT
         cs.id as signup_id,
         cs.student_id,
-        cs.course_id,
         cs.signup_status,
         cs.language as signup_language,
         cs.created_at as signup_created_at,
         cs.updated_at as signup_updated_at,
         cs.completed_at,
-        cs.certificate_id,
-        cs.certificate_url,
+        cs.enrolled_at,
+        cs.last_accessed_at,
+        cs.progress_percentage,
+        cs.full_name,
+        cs.email,
+        cs.course_slug,
         c.*
       FROM course_signups cs
       INNER JOIN courses c ON cs.course_id = c.id
@@ -69,15 +72,18 @@ export async function getStudentCoursesAction(): Promise<CoursesResponse> {
       },
       signup: {
         id: row.signup_id,
+        full_name: row.full_name,
+        email: row.email,
+        course_slug: row.course_slug,
         student_id: row.student_id,
-        course_id: row.course_id,
         signup_status: row.signup_status,
         language: row.signup_language,
+        enrolled_at: row.enrolled_at,
+        completed_at: row.completed_at,
+        last_accessed_at: row.last_accessed_at,
+        progress_percentage: row.progress_percentage,
         created_at: row.signup_created_at,
         updated_at: row.signup_updated_at,
-        completed_at: row.completed_at,
-        certificate_id: row.certificate_id,
-        certificate_url: row.certificate_url,
       }
     }));
 

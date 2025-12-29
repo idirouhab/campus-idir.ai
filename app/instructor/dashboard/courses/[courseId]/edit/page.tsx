@@ -707,9 +707,9 @@ export default function EditCoursePage() {
                   return (
                     <div key={si.instructor_id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                       <div className="flex items-center gap-3">
-                        {instructor.picture_url ? (
+                        {instructor.profile?.picture_url ? (
                           <img
-                            src={instructor.picture_url}
+                            src={instructor.profile?.picture_url}
                             alt={`${instructor.first_name} ${instructor.last_name}`}
                             className="w-10 h-10 rounded-full object-cover"
                           />

@@ -1,38 +1,60 @@
 // Database types for courses platform
 
-export interface Student {
+// Unified user type
+export type UserType = 'student' | 'instructor' | null;
+
+export interface User {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
+  country?: string;
+  type: UserType;
+  is_active: boolean;
   email_verified: boolean;
   created_at: string;
   updated_at: string;
   last_login_at?: string;
 }
 
-export type InstructorRole = 'instructor' | 'admin';
-
-export interface Instructor {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  date_of_birth?: string;
-  country?: string;
-  description?: string;
-  picture_url?: string;
-  linkedin_url?: string;
-  website_url?: string;
-  x_url?: string;
-  youtube_url?: string;
-  role: InstructorRole;
-  is_active: boolean;
-  email_verified: boolean;
+// Student profile (separate table)
+export interface StudentProfile {
+  user_id: string;
+  birth_year?: number;
   preferred_language: 'en' | 'es';
   created_at: string;
   updated_at: string;
-  last_login_at?: string;
+}
+
+// Instructor roles
+export type InstructorRole = 'instructor' | 'admin';
+
+// Instructor profile (separate table)
+export interface InstructorProfile {
+  user_id: string;
+  title?: string;
+  description?: string;
+  picture_url?: string;
+  linkedin_url?: string;
+  x_url?: string;
+  youtube_url?: string;
+  website_url?: string;
+  role: InstructorRole;
+  preferred_language: 'en' | 'es';
+  created_at: string;
+  updated_at: string;
+  birth_date: string;
+}
+
+// Combined types for convenience
+export interface Student extends User {
+  type: 'student';
+  profile?: StudentProfile;
+}
+
+export interface Instructor extends User {
+  type: 'instructor';
+  profile?: InstructorProfile;
 }
 
 export interface Course {
@@ -55,15 +77,18 @@ export interface Course {
 
 export interface CourseSignup {
   id: string;
-  student_id?: string;
-  course_id: string;
-  signup_status: string;
+  full_name: string;
+  email: string;
+  course_slug: string;
+  student_id?: string; // References users.id (nullable)
+  signup_status: 'pending' | 'confirmed' | 'enrolled';
   language: 'en' | 'es';
+  enrolled_at?: string;
+  completed_at?: string;
+  last_accessed_at?: string;
+  progress_percentage: number; // 0-100
   created_at: string;
   updated_at: string;
-  completed_at?: string;
-  certificate_id?: string;
-  certificate_url?: string;
 }
 
 export interface StudentCourseAccess {

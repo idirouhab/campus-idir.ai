@@ -45,46 +45,41 @@ export async function instructorSignUpAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if instructor already exists
-    const existingInstructor = await sql`
-      SELECT id FROM instructors WHERE email = ${normalizedEmail}
+    // Check if user already exists
+    const existingUser = await sql`
+      SELECT id FROM users WHERE email = ${normalizedEmail}
     `;
 
-    if (existingInstructor.length > 0) {
+    if (existingUser.length > 0) {
       return { success: false, error: 'This email is already registered' };
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Log the date of birth for debugging
-    console.log('[INSTRUCTOR_SIGNUP] Date of birth received:', dateOfBirth);
-
-    // Create new instructor
+    // Create new user with type='instructor'
     const result = await sql`
-      INSERT INTO instructors (
+      INSERT INTO users (
         email,
         password_hash,
         first_name,
         last_name,
-        date_of_birth,
         country,
-        email_verified,
-        is_active
+        type,
+        is_active,
+        email_verified
       )
       VALUES (
         ${normalizedEmail},
         ${passwordHash},
         ${firstName},
         ${lastName},
-        ${dateOfBirth}::date,
         ${country.toUpperCase()},
-        false,
-        true
+        'instructor',
+        true,
+        false
       )
-      RETURNING id, email, first_name, last_name, date_of_birth, country, description, picture_url,
-                linkedin_url, website_url, x_url, youtube_url,
-                is_active, email_verified, preferred_language, role, created_at, updated_at, last_login_at
+      RETURNING id, email, first_name, last_name, country, type, is_active, email_verified, created_at, updated_at, last_login_at
     `;
 
     if (result.length === 0) {
@@ -92,28 +87,34 @@ export async function instructorSignUpAction(
       return { success: false, error: 'Failed to create account' };
     }
 
-    console.log('[INSTRUCTOR_SIGNUP] Date of birth stored:', result[0].date_of_birth);
+    const userId = result[0].id;
+
+    // Create instructor profile with default role, preferred_language, and birth_date
+    await sql`
+      INSERT INTO instructor_profiles (user_id, role, preferred_language, birth_date)
+      VALUES (${userId}, 'instructor', 'en', ${dateOfBirth})
+    `;
 
     const newInstructor: Instructor = {
       id: result[0].id,
       email: result[0].email,
       first_name: result[0].first_name,
       last_name: result[0].last_name,
-      date_of_birth: result[0].date_of_birth,
       country: result[0].country,
-      description: result[0].description,
-      picture_url: result[0].picture_url,
-      linkedin_url: result[0].linkedin_url,
-      website_url: result[0].website_url,
-      x_url: result[0].x_url,
-      youtube_url: result[0].youtube_url,
+      type: 'instructor',
       is_active: result[0].is_active,
       email_verified: result[0].email_verified,
-      preferred_language: result[0].preferred_language,
-      role: result[0].role,
       created_at: result[0].created_at,
       updated_at: result[0].updated_at,
       last_login_at: result[0].last_login_at,
+      profile: {
+        user_id: userId,
+        role: 'instructor',
+        preferred_language: 'en',
+        created_at: result[0].created_at,
+        updated_at: result[0].updated_at,
+        birth_date: dateOfBirth,
+      },
     };
 
     return { success: true, data: newInstructor };
@@ -138,13 +139,16 @@ export async function instructorSignInAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Get instructor with password hash
+    // Get user with type='instructor' and join with profile to get role
     const result = await sql`
-      SELECT id, email, first_name, last_name, date_of_birth, country, description, picture_url,
-             linkedin_url, website_url, x_url, youtube_url,
-             is_active, email_verified, preferred_language, role, created_at, updated_at, last_login_at, password_hash
-      FROM instructors
-      WHERE email = ${normalizedEmail}
+      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.type, u.is_active, u.email_verified,
+             u.created_at, u.updated_at, u.last_login_at, u.password_hash,
+             ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
+             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
+             ip.created_at as profile_created_at, ip.updated_at as profile_updated_at, ip.birth_date as profile_birth_date
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.email = ${normalizedEmail} AND u.type = 'instructor'
     `;
 
     if (result.length === 0) {
@@ -152,21 +156,21 @@ export async function instructorSignInAction(
       return { success: false, error: 'Invalid credentials' };
     }
 
-    const instructor = result[0];
+    const user = result[0];
 
-    if (!instructor.password_hash) {
+    if (!user.password_hash) {
       // Sanitized error
       return { success: false, error: 'Invalid credentials' };
     }
 
     // Check if instructor is active
-    if (!instructor.is_active) {
+    if (!user.is_active) {
       // Sanitized error - don't reveal account status
       return { success: false, error: 'Invalid credentials' };
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, instructor.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
       // Sanitized error - same message as above
@@ -175,10 +179,10 @@ export async function instructorSignInAction(
 
     // Generate JWT token with role
     const token = await generateAccessToken(
-      instructor.id,
+      user.id,
       'instructor',
-      instructor.email,
-      instructor.role
+      user.email,
+      user.role || 'instructor'
     );
 
     // Set secure httpOnly cookie
@@ -186,32 +190,39 @@ export async function instructorSignInAction(
 
     // Update last login
     await sql`
-      UPDATE instructors
+      UPDATE users
       SET last_login_at = NOW(), updated_at = NOW()
-      WHERE id = ${instructor.id}
+      WHERE id = ${user.id}
     `;
 
     // Return instructor data without password hash
     const instructorData: Instructor = {
-      id: instructor.id,
-      email: instructor.email,
-      first_name: instructor.first_name,
-      last_name: instructor.last_name,
-      date_of_birth: instructor.date_of_birth,
-      country: instructor.country,
-      description: instructor.description,
-      picture_url: instructor.picture_url,
-      linkedin_url: instructor.linkedin_url,
-      website_url: instructor.website_url,
-      x_url: instructor.x_url,
-      youtube_url: instructor.youtube_url,
-      is_active: instructor.is_active,
-      email_verified: instructor.email_verified,
-      preferred_language: instructor.preferred_language,
-      role: instructor.role,
-      created_at: instructor.created_at,
-      updated_at: instructor.updated_at,
-      last_login_at: instructor.last_login_at,
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      country: user.country,
+      type: 'instructor',
+      is_active: user.is_active,
+      email_verified: user.email_verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_login_at: user.last_login_at,
+      profile: user.profile_user_id ? {
+        user_id: user.profile_user_id,
+        title: user.title,
+        description: user.description,
+        picture_url: user.picture_url,
+        linkedin_url: user.linkedin_url,
+        x_url: user.x_url,
+        youtube_url: user.youtube_url,
+        website_url: user.website_url,
+        role: user.role || 'instructor',
+        preferred_language: user.preferred_language || 'en',
+        created_at: user.profile_created_at,
+        updated_at: user.profile_updated_at,
+        birth_date: user.profile_birth_date,
+      } : undefined,
     };
 
     return { success: true, data: instructorData };
@@ -228,43 +239,60 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
     const sql = getDb();
 
     const result = await sql`
-      SELECT id, email, first_name, last_name, date_of_birth, country, description, picture_url,
-             linkedin_url, website_url, x_url, youtube_url,
-             is_active, email_verified, preferred_language, role, created_at, updated_at, last_login_at
-      FROM instructors
-      WHERE id = ${instructorId}
+      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.type, u.is_active, u.email_verified,
+             u.created_at, u.updated_at, u.last_login_at,
+             ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
+             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
+             ip.created_at as profile_created_at, ip.updated_at as profile_updated_at, ip.birth_date as profile_birth_date
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId} AND u.type = 'instructor'
     `;
 
     if (result.length === 0) {
       return { success: false, error: 'Instructor not found' };
     }
 
-    if (!result[0].is_active) {
+    const user = result[0];
+
+    if (!user.is_active) {
       return { success: false, error: 'Instructor account is inactive' };
     }
 
-    const instructorData: Instructor = {
-      id: result[0].id,
-      email: result[0].email,
-      first_name: result[0].first_name,
-      last_name: result[0].last_name,
-      date_of_birth: result[0].date_of_birth,
-      country: result[0].country,
-      description: result[0].description,
-      picture_url: result[0].picture_url,
-      linkedin_url: result[0].linkedin_url,
-      website_url: result[0].website_url,
-      x_url: result[0].x_url,
-      youtube_url: result[0].youtube_url,
-      is_active: result[0].is_active,
-      email_verified: result[0].email_verified,
-      preferred_language: result[0].preferred_language,
-      role: result[0].role,
-      created_at: result[0].created_at,
-      updated_at: result[0].updated_at,
-      last_login_at: result[0].last_login_at,
-    };
+    console.log('[verifyInstructorAction] User data:', {
+      profile_user_id: user.profile_user_id,
+      profile_birth_date: user.profile_birth_date,
+      role: user.role,
+    });
 
+    const instructorData: Instructor = {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      country: user.country,
+      type: 'instructor',
+      is_active: user.is_active,
+      email_verified: user.email_verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_login_at: user.last_login_at,
+      profile: user.profile_user_id ? {
+        user_id: user.profile_user_id,
+        title: user.title,
+        description: user.description,
+        picture_url: user.picture_url,
+        linkedin_url: user.linkedin_url,
+        x_url: user.x_url,
+        youtube_url: user.youtube_url,
+        website_url: user.website_url,
+        role: user.role || 'instructor',
+        preferred_language: user.preferred_language || 'en',
+        created_at: user.profile_created_at,
+        updated_at: user.profile_updated_at,
+        birth_date: user.profile_birth_date,
+      } : undefined,
+    };
     return { success: true, data: instructorData };
   } catch (error: any) {
     console.error('[INSTRUCTOR_AUTH] Verify instructor error:', error);
@@ -298,65 +326,86 @@ export async function updateInstructorProfileAction(
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if email is taken by another instructor
-    const existingInstructor = await sql`
-      SELECT id FROM instructors WHERE email = ${normalizedEmail} AND id != ${instructorId}
+    // Check if email is taken by another user
+    const existingUser = await sql`
+      SELECT id FROM users WHERE email = ${normalizedEmail} AND id != ${instructorId}
     `;
 
-    if (existingInstructor.length > 0) {
+    if (existingUser.length > 0) {
       return { success: false, error: 'This email is already in use' };
     }
 
-    // Log the date of birth for debugging
-    console.log('[INSTRUCTOR_UPDATE] Date of birth received:', dateOfBirth);
-
-    // Update instructor profile
-    const result = await sql`
-      UPDATE instructors
+    // Update user table (basic fields)
+    const userResult = await sql`
+      UPDATE users
       SET first_name = ${firstName},
           last_name = ${lastName},
           email = ${normalizedEmail},
-          date_of_birth = ${dateOfBirth}::date,
           country = ${country.toUpperCase()},
-          description = ${description || null},
+          updated_at = NOW()
+      WHERE id = ${instructorId} AND type = 'instructor'
+      RETURNING id, email, first_name, last_name, country, type, is_active, email_verified, created_at, updated_at, last_login_at
+    `;
+
+    if (userResult.length === 0) {
+      return { success: false, error: 'Failed to update profile' };
+    }
+
+    // Update instructor profile table (profile-specific fields)
+    await sql`
+      UPDATE instructor_profiles
+      SET description = ${description || null},
           preferred_language = ${preferredLanguage || 'en'},
           linkedin_url = ${linkedinUrl || null},
           website_url = ${websiteUrl || null},
           x_url = ${xUrl || null},
           youtube_url = ${youtubeUrl || null},
+          birth_date = ${dateOfBirth},
           updated_at = NOW()
-      WHERE id = ${instructorId}
-      RETURNING id, email, first_name, last_name, date_of_birth, country, description, picture_url,
-                linkedin_url, website_url, x_url, youtube_url,
-                is_active, email_verified, preferred_language, role, created_at, updated_at, last_login_at
+      WHERE user_id = ${instructorId}
     `;
 
-    if (result.length === 0) {
-      return { success: false, error: 'Failed to update profile' };
-    }
+    // Fetch updated instructor with profile
+    const result = await sql`
+      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.type, u.is_active, u.email_verified,
+             u.created_at, u.updated_at, u.last_login_at,
+             ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
+             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
+             ip.created_at as profile_created_at, ip.updated_at as profile_updated_at, ip.birth_date as profile_birth_date
+      FROM users u
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${instructorId} AND u.type = 'instructor'
+    `;
 
-    console.log('[INSTRUCTOR_UPDATE] Date of birth updated:', result[0].date_of_birth);
+    const user = result[0];
 
     const updatedInstructor: Instructor = {
-      id: result[0].id,
-      email: result[0].email,
-      first_name: result[0].first_name,
-      last_name: result[0].last_name,
-      date_of_birth: result[0].date_of_birth,
-      country: result[0].country,
-      description: result[0].description,
-      picture_url: result[0].picture_url,
-      linkedin_url: result[0].linkedin_url,
-      website_url: result[0].website_url,
-      x_url: result[0].x_url,
-      youtube_url: result[0].youtube_url,
-      is_active: result[0].is_active,
-      email_verified: result[0].email_verified,
-      preferred_language: result[0].preferred_language,
-      role: result[0].role,
-      created_at: result[0].created_at,
-      updated_at: result[0].updated_at,
-      last_login_at: result[0].last_login_at,
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      country: user.country,
+      type: 'instructor',
+      is_active: user.is_active,
+      email_verified: user.email_verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_login_at: user.last_login_at,
+      profile: user.profile_user_id ? {
+        user_id: user.profile_user_id,
+        title: user.title,
+        description: user.description,
+        picture_url: user.picture_url,
+        linkedin_url: user.linkedin_url,
+        x_url: user.x_url,
+        youtube_url: user.youtube_url,
+        website_url: user.website_url,
+        role: user.role || 'instructor',
+        preferred_language: user.preferred_language || 'en',
+        created_at: user.profile_created_at,
+        updated_at: user.profile_updated_at,
+        birth_date: user.profile_birth_date,
+      } : undefined,
     };
 
     return { success: true, data: updatedInstructor };
@@ -389,21 +438,21 @@ export async function updateInstructorPasswordAction(
       };
     }
 
-    // Get instructor with password hash
+    // Get user with password hash
     const result = await sql`
       SELECT password_hash
-      FROM instructors
-      WHERE id = ${instructorId}
+      FROM users
+      WHERE id = ${instructorId} AND type = 'instructor'
     `;
 
     if (result.length === 0) {
       return { success: false, error: 'Instructor not found' };
     }
 
-    const instructor = result[0];
+    const user = result[0];
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, instructor.password_hash);
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isPasswordValid) {
       return { success: false, error: 'Current password is incorrect' };
     }
@@ -413,10 +462,10 @@ export async function updateInstructorPasswordAction(
 
     // Update password
     await sql`
-      UPDATE instructors
+      UPDATE users
       SET password_hash = ${newPasswordHash},
           updated_at = NOW()
-      WHERE id = ${instructorId}
+      WHERE id = ${instructorId} AND type = 'instructor'
     `;
 
     return { success: true };

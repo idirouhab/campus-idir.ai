@@ -33,7 +33,6 @@ export default function InstructorProfilePage() {
   const { t, language } = useLanguage();
   const router = useRouter();
   const { instructor, loading: authLoading, csrfToken, refreshInstructor } = useInstructorAuth();
-  const permissions = useInstructorPermissions(instructor);
 
   // Profile form state
   const [firstName, setFirstName] = useState('');
@@ -76,27 +75,34 @@ export default function InstructorProfilePage() {
   // Populate form when instructor data loads
   useEffect(() => {
     if (instructor) {
+      console.log('[Profile Page] Instructor data:', {
+        hasProfile: !!instructor.profile,
+        birth_date: instructor.profile?.birth_date,
+        fullProfile: instructor.profile,
+      });
+
       setFirstName(instructor.first_name);
       setLastName(instructor.last_name);
       setEmail(instructor.email);
-
       // Format date properly for input type="date" (YYYY-MM-DD)
-      if (instructor.date_of_birth) {
-        const date = new Date(instructor.date_of_birth);
-        const formattedDate = date.toISOString().split('T')[0];
-        setDateOfBirth(formattedDate);
-      } else {
-        setDateOfBirth('');
+      let birthDate = '';
+      if (instructor.profile?.birth_date) {
+        // Convert Date object or string to YYYY-MM-DD format
+        const dateObj = typeof instructor.profile.birth_date === 'string'
+          ? new Date(instructor.profile.birth_date)
+          : instructor.profile.birth_date;
+        birthDate = dateObj.toISOString().split('T')[0];
       }
-
+      console.log('[Profile Page] Setting birth_date to:', birthDate);
+      setDateOfBirth(birthDate);
       setCountry(instructor.country || '');
-      setDescription(instructor.description || '');
-      setPreferredLanguage(instructor.preferred_language || 'en');
-      setLinkedinUrl(instructor.linkedin_url || '');
-      setWebsiteUrl(instructor.website_url || '');
-      setXUrl(instructor.x_url || '');
-      setYoutubeUrl(instructor.youtube_url || '');
-      setPictureUrl(instructor.picture_url || '');
+      setDescription(instructor.profile?.description || '');
+      setPreferredLanguage(instructor.profile?.preferred_language || 'en');
+      setLinkedinUrl(instructor.profile?.linkedin_url || '');
+      setWebsiteUrl(instructor.profile?.website_url || '');
+      setXUrl(instructor.profile?.x_url || '');
+      setYoutubeUrl(instructor.profile?.youtube_url || '');
+      setPictureUrl(instructor.profile?.picture_url || '');
     }
   }, [instructor]);
 
@@ -420,7 +426,7 @@ export default function InstructorProfilePage() {
 
         {/* Profile Information Section */}
         <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 mb-6 animate-fade-in shadow-sm">
-          <div className="mb-6">
+            <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-1">{t('profile.personalInfo')}</h2>
             <p className="text-sm text-gray-600">{t('profile.personalInfoDescription')}</p>
           </div>

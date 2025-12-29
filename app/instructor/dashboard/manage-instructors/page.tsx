@@ -56,7 +56,7 @@ export default function ManageInstructorsPage() {
           setAdmin(result.data);
 
           // Check admin permission
-          if (result.data.role !== 'admin') {
+          if (result.data.profile?.role !== 'admin') {
             router.push('/instructor/dashboard');
             return;
           }
@@ -269,9 +269,9 @@ export default function ManageInstructorsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                          {instructor.picture_url ? (
+                          {instructor.profile?.picture_url ? (
                             <img
-                              src={instructor.picture_url}
+                              src={instructor.profile?.picture_url}
                               alt={instructor.first_name}
                               className="w-full h-full rounded-full object-cover"
                             />
@@ -323,9 +323,9 @@ export default function ManageInstructorsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          {instructor.picture_url ? (
+                          {instructor.profile?.picture_url ? (
                             <img
-                              src={instructor.picture_url}
+                              src={instructor.profile?.picture_url}
                               alt={instructor.first_name}
                               className="w-full h-full rounded-full object-cover"
                             />
@@ -341,7 +341,7 @@ export default function ManageInstructorsPage() {
                           </p>
                           <p className="text-sm text-gray-600">{instructor.email}</p>
                           <span className="text-xs text-gray-500">
-                            Account role: {instructor.role}
+                            Account role: {instructor.profile?.role}
                           </span>
                         </div>
                       </div>

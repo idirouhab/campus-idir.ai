@@ -384,9 +384,9 @@ export default function CoursePage() {
                         >
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                              {inst.picture_url ? (
+                              {inst.profile?.picture_url ? (
                                 <img
-                                  src={inst.picture_url}
+                                  src={inst.profile.picture_url}
                                   alt={inst.first_name}
                                   className="w-full h-full rounded-full object-cover"
                                 />
@@ -436,9 +436,9 @@ export default function CoursePage() {
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                {inst.picture_url ? (
+                                {inst.profile?.picture_url ? (
                                   <img
-                                    src={inst.picture_url}
+                                    src={inst.profile.picture_url}
                                     alt={inst.first_name}
                                     className="w-full h-full rounded-full object-cover"
                                   />
