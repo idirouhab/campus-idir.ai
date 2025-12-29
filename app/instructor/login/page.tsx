@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { instructorSignInAction } from '@/lib/instructor-auth-actions';
-import Cookies from 'js-cookie';
 
 export default function InstructorLoginPage() {
   const [email, setEmail] = useState('');
@@ -18,15 +17,28 @@ export default function InstructorLoginPage() {
 
   // Check if already authenticated
   useEffect(() => {
-    const instructorId = Cookies.get('instructorId');
-    const userType = Cookies.get('userType');
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
 
-    if (instructorId && userType === 'instructor') {
-      // Already logged in, redirect to dashboard
-      router.push('/instructor/dashboard');
-    } else {
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.userType === 'instructor') {
+            // Already logged in, redirect to dashboard
+            router.push('/instructor/dashboard');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+      }
+
       setCheckingAuth(false);
-    }
+    };
+
+    checkAuth();
   }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -43,11 +55,8 @@ export default function InstructorLoginPage() {
         return;
       }
 
-      // Store instructor session
-      Cookies.set('instructorId', result.data.id, { expires: 7 });
-      Cookies.set('userType', 'instructor', { expires: 7 });
-
-      // Redirect to instructor dashboard (to be created)
+      // Session is stored in httpOnly cookie by the server action
+      // Redirect to instructor dashboard
       router.push('/instructor/dashboard');
     } catch (err: any) {
       setError(err.message || 'An error occurred');

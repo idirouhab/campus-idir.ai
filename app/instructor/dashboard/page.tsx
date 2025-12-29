@@ -8,7 +8,6 @@ import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getInstructorCoursesAction, deleteCourseAction, getAllInstructorsWithStatsAction } from '@/lib/course-actions';
 import { Instructor, Course } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
-import Cookies from 'js-cookie';
 
 interface InstructorWithStats {
   id: string;
@@ -68,25 +67,37 @@ export default function InstructorDashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       console.log('[Dashboard] Starting auth check...');
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
-
-      if (!instructorId || userType !== 'instructor') {
-        console.log('[Dashboard] No instructor credentials, redirecting to login');
-        router.push('/instructor/login');
-        return;
-      }
 
       try {
-        console.log('[Dashboard] Verifying instructor:', instructorId);
-        const result = await verifyInstructorAction(instructorId);
-        if (result.success && result.data) {
-          console.log('[Dashboard] Auth successful:', result.data);
-          setInstructor(result.data);
+        // Check session using the same method as Navigation
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          console.log('[Dashboard] Session API failed, redirecting to login');
+          router.push('/instructor/login');
+          return;
+        }
+
+        const data = await response.json();
+        console.log('[Dashboard] Session data:', data);
+
+        if (!data.user || data.user.userType !== 'instructor') {
+          console.log('[Dashboard] Not an instructor session, redirecting to login');
+          router.push('/instructor/login');
+          return;
+        }
+
+        // Fetch full instructor profile data
+        console.log('[Dashboard] Fetching instructor profile for:', data.user.id);
+        const instructorResult = await verifyInstructorAction(data.user.id);
+
+        if (instructorResult.success && instructorResult.data) {
+          console.log('[Dashboard] Auth successful:', instructorResult.data);
+          setInstructor(instructorResult.data);
         } else {
-          console.error('[Dashboard] Auth failed:', result.error);
-          Cookies.remove('instructorId');
-          Cookies.remove('userType');
+          console.error('[Dashboard] Failed to fetch instructor profile:', instructorResult.error);
           router.push('/instructor/login');
         }
       } catch (error) {
