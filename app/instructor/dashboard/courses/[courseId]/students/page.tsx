@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getCourseStudentsAction, getCourseByIdAction } from '@/lib/course-actions';
 import { Instructor } from '@/types/database';
-import Cookies from 'js-cookie';
 
 interface Student {
   id: string;
@@ -33,17 +32,26 @@ export default function CourseStudentsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
-
-      if (!instructorId || userType !== 'instructor') {
-        router.push('/instructor/login');
-        return;
-      }
-
       try {
-        // Verify instructor
-        const instructorResult = await verifyInstructorAction(instructorId);
+        // Check session using the same method as dashboard
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          router.push('/instructor/login');
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.user || data.user.userType !== 'instructor') {
+          router.push('/instructor/login');
+          return;
+        }
+
+        // Fetch full instructor profile data
+        const instructorResult = await verifyInstructorAction(data.user.id);
         if (!instructorResult.success || !instructorResult.data) {
           router.push('/instructor/login');
           return;

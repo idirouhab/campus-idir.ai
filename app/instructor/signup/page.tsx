@@ -7,7 +7,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { instructorSignUpAction } from '@/lib/instructor-auth-actions';
-import Cookies from 'js-cookie';
 
 const COUNTRIES = {
   US: { en: 'United States', es: 'Estados Unidos' },
@@ -43,15 +42,28 @@ export default function InstructorSignupPage() {
 
   // Check if already authenticated
   useEffect(() => {
-    const instructorId = Cookies.get('instructorId');
-    const userType = Cookies.get('userType');
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
 
-    if (instructorId && userType === 'instructor') {
-      // Already logged in, redirect to dashboard
-      router.push('/instructor/dashboard');
-    } else {
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.userType === 'instructor') {
+            // Already logged in, redirect to dashboard
+            router.push('/instructor/dashboard');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+      }
+
       setCheckingAuth(false);
-    }
+    };
+
+    checkAuth();
   }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {

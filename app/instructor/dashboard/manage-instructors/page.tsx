@@ -12,7 +12,6 @@ import {
 } from '@/lib/instructor-assignment-actions';
 import { Instructor, CourseInstructorRole } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
-import Cookies from 'js-cookie';
 
 interface Course {
   id: string;
@@ -42,16 +41,26 @@ export default function ManageInstructorsPage() {
   // Auth check
   useEffect(() => {
     const checkAuth = async () => {
-      const instructorId = Cookies.get('instructorId');
-      const userType = Cookies.get('userType');
-
-      if (!instructorId || userType !== 'instructor') {
-        router.push('/instructor/login');
-        return;
-      }
-
       try {
-        const result = await verifyInstructorAction(instructorId);
+        // Check session using the same method as dashboard
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          router.push('/instructor/login');
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!data.user || data.user.userType !== 'instructor') {
+          router.push('/instructor/login');
+          return;
+        }
+
+        // Fetch full instructor profile data
+        const result = await verifyInstructorAction(data.user.id);
         if (result.success && result.data) {
           setAdmin(result.data);
 
@@ -61,8 +70,6 @@ export default function ManageInstructorsPage() {
             return;
           }
         } else {
-          Cookies.remove('instructorId');
-          Cookies.remove('userType');
           router.push('/instructor/login');
         }
       } catch (error) {
