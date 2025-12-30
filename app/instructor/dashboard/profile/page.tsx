@@ -43,7 +43,7 @@ export default function InstructorProfilePage() {
   const [country, setCountry] = useState('');
   const [description, setDescription] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState<'en' | 'es'>('en');
-  const [timezone, setTimezone] = useState('America/New_York');
+  const [timezone, setTimezone] = useState('Euope/Madrid');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [xUrl, setXUrl] = useState('');
@@ -99,7 +99,7 @@ export default function InstructorProfilePage() {
       setCountry(instructor.country || '');
       setDescription(instructor.profile?.description || '');
       setPreferredLanguage(instructor.profile?.preferred_language || 'en');
-      setTimezone(instructor.profile?.timezone || 'America/New_York');
+      setTimezone(instructor?.timezone || 'Euope/Madrid');
       setLinkedinUrl(instructor.profile?.linkedin_url || '');
       setWebsiteUrl(instructor.profile?.website_url || '');
       setXUrl(instructor.profile?.x_url || '');

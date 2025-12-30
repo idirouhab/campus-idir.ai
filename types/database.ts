@@ -7,6 +7,7 @@ export interface User {
   last_name: string;
   country?: string;
   birthday?: string;
+  timezone?: string;
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
@@ -37,7 +38,6 @@ export interface InstructorProfile {
   website_url?: string;
   role: InstructorRole;
   preferred_language: 'en' | 'es';
-  timezone?: string;
   created_at: string;
   updated_at: string;
 }

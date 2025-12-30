@@ -1,17 +1,24 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Student } from '@/types/database';
-import { signInAction, signUpAction, signOutAction } from '@/lib/auth-actions';
+import { unifiedSignInAction, signUpAction, signOutAction } from '@/lib/auth-actions';
+import { switchViewAction } from '@/lib/view-switch-actions';
 
 interface AuthContextType {
   user: Student | null;
   loading: boolean;
   csrfToken: string | null;
+  hasStudentProfile: boolean;
+  hasInstructorProfile: boolean;
+  isDualRole: boolean;
+  currentView: 'student' | 'instructor' | null;
+  instructorRole: 'instructor' | 'admin' | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, timezone?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  switchView: (view: 'student' | 'instructor') => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -21,17 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
-  const pathname = usePathname();
+  const [hasStudentProfile, setHasStudentProfile] = useState(false);
+  const [hasInstructorProfile, setHasInstructorProfile] = useState(false);
+  const [currentView, setCurrentView] = useState<'student' | 'instructor' | null>(null);
+  const [instructorRole, setInstructorRole] = useState<'instructor' | 'admin' | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    // Skip student auth check on instructor routes (prevents duplicate API calls)
-    const isInstructorRoute = pathname?.startsWith('/instructor');
-    if (isInstructorRoute) {
-      setUser(null);
-      setCsrfToken(null);
-      setLoading(false);
-      return;
-    }
 
     // Migration: Clear old localStorage session
     const oldStudent = localStorage.getItem('student');
@@ -50,6 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok) {
           setUser(null);
           setCsrfToken(null);
+          setHasStudentProfile(false);
+          setHasInstructorProfile(false);
+          setCurrentView(null);
+          setInstructorRole(null);
           setLoading(false);
           return;
         }
@@ -58,61 +65,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AuthContext] Session data:', data);
 
         if (data.user) {
-          // Set user if they are a student OR if they're an instructor with student profile
-          // This allows dual-role users to access student content even when logged in as instructor
-          if (data.user.userType === 'student') {
-            // Session API returns SessionUser, convert to Student format
-            const studentUser: Student = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              birthday: data.user.birthday,
-              is_active: true,
-              email_verified: false,
-              created_at: '',
-              updated_at: '',
-            };
-            setUser(studentUser);
-            setCsrfToken(data.csrfToken);
-          } else if (data.user.userType === 'instructor' && data.user.hasStudentProfile) {
-            // Instructor with student profile can access student content
-            const studentUser: Student = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              birthday: data.user.birthday,
-              is_active: true,
-              email_verified: false,
-              created_at: '',
-              updated_at: '',
-            };
-            setUser(studentUser);
-            setCsrfToken(data.csrfToken);
-          } else {
-            setUser(null);
-            setCsrfToken(null);
-          }
+          // Populate dual-role state
+          setHasStudentProfile(data.user.hasStudentProfile || false);
+          setHasInstructorProfile(data.user.hasInstructorProfile || false);
+          setCurrentView(data.user.currentView || null);
+          setInstructorRole(data.user.role || null);
+
+          // Convert SessionUser to Student format
+          const studentUser: Student = {
+            id: data.user.id,
+            email: data.user.email,
+            first_name: data.user.firstName,
+            last_name: data.user.lastName,
+            birthday: data.user.birthday,
+            is_active: true,
+            email_verified: false,
+            created_at: '',
+            updated_at: '',
+          };
+          setUser(studentUser);
+          setCsrfToken(data.csrfToken);
         } else {
           setUser(null);
           setCsrfToken(null);
+          setHasStudentProfile(false);
+          setHasInstructorProfile(false);
+          setCurrentView(null);
+          setInstructorRole(null);
         }
       } catch (err) {
         console.error('[AuthContext] Error during auth check:', err);
         setUser(null);
         setCsrfToken(null);
+        setHasStudentProfile(false);
+        setHasInstructorProfile(false);
+        setCurrentView(null);
+        setInstructorRole(null);
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [pathname]);
+  }, []); // Run once on mount
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Call server action for sign in (sets httpOnly cookie)
-      const result = await signInAction(email, password);
+      // Call unified server action for sign in (sets httpOnly cookie)
+      const result = await unifiedSignInAction(email, password);
 
       if (!result.success) {
         return { error: { message: result.error || 'Invalid email or password' } };
@@ -126,35 +125,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         if (data.user) {
-          if (data.user.userType === 'student') {
-            const studentUser: Student = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              birthday: data.user.birthday,
-              is_active: true,
-              email_verified: false,
-              created_at: '',
-              updated_at: '',
-            };
-            setUser(studentUser);
-            setCsrfToken(data.csrfToken);
-          } else if (data.user.userType === 'instructor' && data.user.hasStudentProfile) {
-            const studentUser: Student = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              birthday: data.user.birthday,
-              is_active: true,
-              email_verified: false,
-              created_at: '',
-              updated_at: '',
-            };
-            setUser(studentUser);
-            setCsrfToken(data.csrfToken);
-          }
+          // Populate dual-role state
+          setHasStudentProfile(data.user.hasStudentProfile || false);
+          setHasInstructorProfile(data.user.hasInstructorProfile || false);
+          setCurrentView(data.user.currentView || null);
+          setInstructorRole(data.user.role || null);
+
+          const studentUser: Student = {
+            id: data.user.id,
+            email: data.user.email,
+            first_name: data.user.firstName,
+            last_name: data.user.lastName,
+            birthday: data.user.birthday,
+            is_active: true,
+            email_verified: false,
+            created_at: '',
+            updated_at: '',
+          };
+          setUser(studentUser);
+          setCsrfToken(data.csrfToken);
         }
       }
 
@@ -164,10 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, timezone: string = 'Europe/Berlin') => {
     try {
       // Call server action for sign up
-      const result = await signUpAction(email, password, firstName, lastName, dateOfBirth);
+      const result = await signUpAction(email, password, firstName, lastName, dateOfBirth, timezone);
 
       if (!result.success) {
         return {
@@ -193,9 +182,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('[AuthContext] Error during sign out:', err);
     }
-    // Clear state regardless of server action result
+    // Clear all state regardless of server action result
     setUser(null);
     setCsrfToken(null);
+    setHasStudentProfile(false);
+    setHasInstructorProfile(false);
+    setCurrentView(null);
+    setInstructorRole(null);
   };
 
   const refreshUser = async () => {
@@ -207,50 +200,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         if (data.user) {
-          if (data.user.userType === 'student') {
-            const studentUser: Student = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              birthday: data.user.birthday,
-              is_active: true,
-              email_verified: false,
-              created_at: '',
-              updated_at: '',
-            };
-            setUser(studentUser);
-            setCsrfToken(data.csrfToken);
-          } else if (data.user.userType === 'instructor' && data.user.hasStudentProfile) {
-            const studentUser: Student = {
-              id: data.user.id,
-              email: data.user.email,
-              first_name: data.user.firstName,
-              last_name: data.user.lastName,
-              birthday: data.user.birthday,
-              is_active: true,
-              email_verified: false,
-              created_at: '',
-              updated_at: '',
-            };
-            setUser(studentUser);
-            setCsrfToken(data.csrfToken);
-          } else {
-            setUser(null);
-            setCsrfToken(null);
-          }
+          // Populate dual-role state
+          setHasStudentProfile(data.user.hasStudentProfile || false);
+          setHasInstructorProfile(data.user.hasInstructorProfile || false);
+          setCurrentView(data.user.currentView || null);
+          setInstructorRole(data.user.role || null);
+
+          const studentUser: Student = {
+            id: data.user.id,
+            email: data.user.email,
+            first_name: data.user.firstName,
+            last_name: data.user.lastName,
+            birthday: data.user.birthday,
+            is_active: true,
+            email_verified: false,
+            created_at: '',
+            updated_at: '',
+          };
+          setUser(studentUser);
+          setCsrfToken(data.csrfToken);
         } else {
           setUser(null);
           setCsrfToken(null);
+          setHasStudentProfile(false);
+          setHasInstructorProfile(false);
+          setCurrentView(null);
+          setInstructorRole(null);
         }
       } else {
         setUser(null);
         setCsrfToken(null);
+        setHasStudentProfile(false);
+        setHasInstructorProfile(false);
+        setCurrentView(null);
+        setInstructorRole(null);
       }
     } catch (err) {
       console.error('[AuthContext] Error during refresh:', err);
       setUser(null);
       setCsrfToken(null);
+      setHasStudentProfile(false);
+      setHasInstructorProfile(false);
+      setCurrentView(null);
+      setInstructorRole(null);
+    }
+  };
+
+  const switchView = async (view: 'student' | 'instructor') => {
+    try {
+      // Validate user can access this view
+      if (view === 'student' && !hasStudentProfile) {
+        throw new Error('You do not have a student profile');
+      }
+      if (view === 'instructor' && !hasInstructorProfile) {
+        throw new Error('You do not have an instructor profile');
+      }
+
+      // Call server action to update JWT with new currentView
+      const result = await switchViewAction(view);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to switch view');
+      }
+
+      // Refresh session to get updated state
+      await refreshUser();
+
+      // Navigate to appropriate dashboard
+      if (view === 'student') {
+        router.push('/dashboard');
+      } else {
+        router.push('/instructor/dashboard');
+      }
+    } catch (err: any) {
+      console.error('[AuthContext] Error switching view:', err);
+      throw err;
     }
   };
 
@@ -258,9 +282,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     csrfToken,
+    hasStudentProfile,
+    hasInstructorProfile,
+    isDualRole: hasStudentProfile && hasInstructorProfile,
+    currentView,
+    instructorRole,
     signIn,
     signUp,
     signOut,
+    switchView,
     refreshUser,
   };
 

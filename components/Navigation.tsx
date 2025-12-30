@@ -6,75 +6,28 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
-import { canAssignInstructors } from '@/lib/roles';
-import { Instructor } from '@/types/database';
-import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [instructorData, setInstructorData] = useState<Instructor | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    currentView,
+    hasStudentProfile,
+    hasInstructorProfile,
+    isDualRole,
+    instructorRole,
+    signOut,
+    switchView,
+  } = useAuth();
   const { t } = useLanguage();
 
-  // Only fetch instructor auth on instructor routes
-  useEffect(() => {
-    const isInstructorRoute = pathname?.startsWith('/instructor');
-
-    if (!isInstructorRoute) {
-      setInstructorData(null);
-      return;
-    }
-
-    // Fetch instructor session
-    const checkInstructorAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/session', {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user && data.user.userType === 'instructor') {
-            // Fetch full instructor profile data
-            const instructorResult = await verifyInstructorAction(data.user.id);
-
-            if (instructorResult.success && instructorResult.data) {
-              setInstructorData(instructorResult.data);
-            } else {
-              setInstructorData(null);
-            }
-          } else {
-            setInstructorData(null);
-          }
-        } else {
-          setInstructorData(null);
-        }
-      } catch (err) {
-        console.error('[Navigation] Error checking instructor auth:', err);
-        setInstructorData(null);
-      }
-    };
-
-    checkInstructorAuth();
-  }, [pathname]);
-
-  const isInstructor = instructorData !== null;
-
-  const instructorSignOut = async () => {
-    const { instructorSignOutAction } = await import('@/lib/instructor-auth-actions');
-    await instructorSignOutAction();
-    setInstructorData(null);
-  };
-
-  const handleInstructorSignOut = async () => {
-    await instructorSignOut();
-    router.push('/instructor/login');
-  };
+  // Determine if user is viewing as instructor
+  const isInstructor = currentView === 'instructor' && hasInstructorProfile;
 
   useEffect(() => {
     const checkMobile = () => {
@@ -136,17 +89,37 @@ export default function Navigation() {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const getRoleBadge = (instructor: Instructor) => {
-    if (instructor.profile?.role === 'admin') {
+  const getRoleBadge = () => {
+    if (currentView === 'instructor') {
+      if (instructorRole === 'admin') {
+        return {
+          text: 'Administrator',
+          className: 'bg-purple-50 text-purple-700 border-purple-200'
+        };
+      }
       return {
-        text: 'Administrator',
-        className: 'bg-purple-50 text-purple-700 border-purple-200'
+        text: 'Instructor',
+        className: 'bg-emerald-50 text-[#10b981] border-emerald-200'
       };
     }
     return {
-      text: 'Instructor',
-      className: 'bg-emerald-50 text-[#10b981] border-emerald-200'
+      text: 'Student',
+      className: 'bg-blue-50 text-blue-700 border-blue-200'
     };
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
+  const handleSwitchView = async (view: 'student' | 'instructor') => {
+    try {
+      await switchView(view);
+      setDropdownOpen(false);
+    } catch (error) {
+      console.error('Error switching view:', error);
+    }
   };
 
   return (
@@ -210,105 +183,34 @@ export default function Navigation() {
             {/* Desktop Navigation - Profile Dropdown */}
             <div className="hidden md:flex items-center gap-4">
               <LanguageSwitcher />
-              {isInstructor && instructorData ? (
-                <div className="relative">
+
+              {/* View Switcher for Dual-Role Users */}
+              {isDualRole && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                   <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all"
+                    onClick={() => handleSwitchView('student')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                      currentView === 'student'
+                        ? 'bg-[#10b981] text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
                   >
-                    {/* Profile Picture or Initials */}
-                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
-                      {instructorData.profile?.picture_url ? (
-                        <img
-                          src={instructorData.profile?.picture_url}
-                          alt={instructorData.first_name}
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs font-bold text-[#10b981]">
-                          {getInitials(instructorData.first_name, instructorData.last_name)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Name and Role */}
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-bold text-gray-900">
-                        {instructorData.first_name} {instructorData.last_name}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded border ${getRoleBadge(instructorData).className}`}>
-                        {getRoleBadge(instructorData).text}
-                      </span>
-                    </div>
-
-                    {/* Dropdown Arrow */}
-                    <svg
-                      className={`w-4 h-4 text-gray-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    Student
                   </button>
-
-                  {/* Dropdown Menu */}
-                  {dropdownOpen && (
-                    <>
-                      {/* Backdrop */}
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setDropdownOpen(false)}
-                      />
-
-                      {/* Menu */}
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                        <Link
-                          href="/instructor/dashboard"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                          </svg>
-                          Dashboard
-                        </Link>
-                        {instructorData && canAssignInstructors(instructorData) && (
-                          <Link
-                            href="/instructor/dashboard/manage-instructors"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            Manage Instructors
-                          </Link>
-                        )}
-                        <Link
-                          href="/instructor/dashboard/profile"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          Update My Profile
-                        </Link>
-                        <button
-                          onClick={handleInstructorSignOut}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          Log-out
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <button
+                    onClick={() => handleSwitchView('instructor')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                      currentView === 'instructor'
+                        ? 'bg-[#10b981] text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    Instructor
+                  </button>
                 </div>
-              ) : user ? (
+              )}
+
+              {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -321,13 +223,13 @@ export default function Navigation() {
                       </span>
                     </div>
 
-                    {/* Name */}
+                    {/* Name and Role */}
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-bold text-gray-900">
                         {user.first_name} {user.last_name}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
-                        Student
+                      <span className={`text-xs px-2 py-0.5 rounded border ${getRoleBadge().className}`}>
+                        {getRoleBadge().text}
                       </span>
                     </div>
 
@@ -353,28 +255,71 @@ export default function Navigation() {
 
                       {/* Menu */}
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                        <Link
-                          href="/dashboard"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                          </svg>
-                          My Courses
-                        </Link>
-                        <Link
-                          href="/dashboard/profile"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          My Profile
-                        </Link>
+                        {/* Navigation Items based on current view */}
+                        {isInstructor ? (
+                          <>
+                            <Link
+                              href="/instructor/dashboard"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                              Dashboard
+                            </Link>
+                            {instructorRole === 'admin' && (
+                              <Link
+                                href="/instructor/dashboard/manage-instructors"
+                                onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                Manage Instructors
+                              </Link>
+                            )}
+                            <Link
+                              href="/instructor/dashboard/profile"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              Update My Profile
+                            </Link>
+                          </>
+                        ) : (
+                          <>
+                            <Link
+                              href="/dashboard"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                              My Courses
+                            </Link>
+                            <Link
+                              href="/dashboard/profile"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              My Profile
+                            </Link>
+                          </>
+                        )}
+
+                        <div className="border-t border-gray-200 my-2"></div>
+
                         <button
-                          onClick={() => signOut()}
+                          onClick={handleSignOut}
                           className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,35 +398,7 @@ export default function Navigation() {
           {/* Menu Content */}
           <div className="flex-1 overflow-y-auto py-4">
             {/* User Profile Section */}
-            {(isInstructor && instructorData) && (
-              <div className="px-3 pb-4 mb-4 border-b border-gray-200">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
-                    {instructorData.profile?.picture_url ? (
-                      <img
-                        src={instructorData.profile?.picture_url}
-                        alt={instructorData.first_name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm font-bold text-[#10b981]">
-                        {getInitials(instructorData.first_name, instructorData.last_name)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate">
-                      {instructorData.first_name} {instructorData.last_name}
-                    </p>
-                    <span className={`inline-block text-xs px-2 py-0.5 rounded border ${getRoleBadge(instructorData).className}`}>
-                      {getRoleBadge(instructorData).text}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {user && !isInstructor && (
+            {user && (
               <div className="px-3 pb-4 mb-4 border-b border-gray-200">
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border-2 border-emerald-200">
@@ -493,11 +410,46 @@ export default function Navigation() {
                     <p className="text-sm font-bold text-gray-900 truncate">
                       {user.first_name} {user.last_name}
                     </p>
-                    <span className="inline-block text-xs px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
-                      Student
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded border ${getRoleBadge().className}`}>
+                      {getRoleBadge().text}
                     </span>
                   </div>
                 </div>
+
+                {/* View Switcher for Dual-Role Users - Mobile */}
+                {isDualRole && (
+                  <div className="mt-3 px-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-bold">Switch View</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          handleSwitchView('student');
+                          setIsOpen(false);
+                        }}
+                        className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${
+                          currentView === 'student'
+                            ? 'bg-[#10b981] text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Student
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleSwitchView('instructor');
+                          setIsOpen(false);
+                        }}
+                        className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${
+                          currentView === 'instructor'
+                            ? 'bg-[#10b981] text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Instructor
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -526,7 +478,7 @@ export default function Navigation() {
                   >
                     {t('profile.title')}
                   </Link>
-                  {instructorData && canAssignInstructors(instructorData) && (
+                  {instructorRole === 'admin' && (
                     <Link
                       href="/instructor/dashboard/manage-instructors"
                       className={`block px-4 py-3 text-sm font-bold transition-all uppercase tracking-wide rounded-lg ${
@@ -539,9 +491,10 @@ export default function Navigation() {
                       Manage Instructors
                     </Link>
                   )}
+
                   <button
                     onClick={() => {
-                      handleInstructorSignOut();
+                      handleSignOut();
                       setIsOpen(false);
                     }}
                     className="block w-full text-left px-4 py-3 text-sm font-bold transition-all uppercase tracking-wide rounded-lg text-gray-700 hover:text-red-600 hover:bg-red-50"
@@ -573,9 +526,10 @@ export default function Navigation() {
                   >
                     {t('profile.title')}
                   </Link>
+
                   <button
                     onClick={() => {
-                      signOut();
+                      handleSignOut();
                       setIsOpen(false);
                     }}
                     className="block w-full text-left px-4 py-3 text-sm font-bold transition-all uppercase tracking-wide rounded-lg text-gray-700 hover:text-red-600 hover:bg-red-50"

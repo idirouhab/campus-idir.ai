@@ -25,8 +25,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
   if (isStudentRoute) {
-    if (!payload || payload.userType !== 'student') {
-      return NextResponse.redirect(new URL('/student/login', request.url));
+    // Allow access if user has student profile (regardless of current userType)
+    if (!payload || !payload.hasStudentProfile) {
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
@@ -35,8 +36,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
   if (isInstructorRoute) {
-    if (!payload || payload.userType !== 'instructor') {
-      return NextResponse.redirect(new URL('/instructor/login', request.url));
+    // Allow access if user has instructor profile (regardless of current userType)
+    if (!payload || !payload.hasInstructorProfile) {
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
@@ -45,9 +47,12 @@ export async function middleware(request: NextRequest) {
     (route) => pathname === route
   );
   if (isPublicAuthRoute && payload) {
-    if (payload.userType === 'instructor') {
+    // Use currentView to determine redirect destination
+    const currentView = payload.currentView || payload.userType;
+
+    if (currentView === 'instructor' && payload.hasInstructorProfile) {
       return NextResponse.redirect(new URL('/instructor/dashboard', request.url));
-    } else {
+    } else if (payload.hasStudentProfile) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }

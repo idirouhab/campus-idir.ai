@@ -1,77 +1,131 @@
 'use client';
 
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-export default function LoginSelectionPage() {
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn, user, loading: authLoading, currentView, hasInstructorProfile } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
 
+  // Check if already authenticated and redirect based on their current view
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Middleware will handle the redirect based on JWT currentView
+      if (currentView === 'instructor' && hasInstructorProfile) {
+        router.push('/instructor/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [user, authLoading, currentView, hasInstructorProfile, router]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      // Let middleware redirect based on JWT
+      router.refresh();
+    }
+  };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl w-full animate-fade-in-up">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-3">
-            {t('auth.selectUserType')}
-          </h1>
-          <p className="text-gray-600">
-            {t('auth.selectUserTypeDescription')}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 animate-fade-in-up">
+        <div>
+          <h2 className="mt-6 text-center text-4xl font-black text-gray-900 uppercase tracking-tight">
+            {t('login.title')}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            {t('login.subtitle')}
           </p>
         </div>
+        <form className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 border border-red-500 p-4">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email-address" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                {t('login.emailLabel')}
+              </label>
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                placeholder={t('login.emailPlaceholder')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                {t('login.passwordLabel')}
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                placeholder={t('login.passwordPlaceholder')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Student Option */}
-          <Link
-            href="/student/login"
-            className="group bg-white border-2 border-gray-200 rounded-lg p-8 text-center hover:border-[#10b981] transition-all shadow-sm hover:shadow-md"
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-all">
-              <svg className="w-10 h-10 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              {t('home.studentPortal')}
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              {t('home.studentDescription')}
-            </p>
-            <div className="px-6 py-3 bg-[#10b981] text-white text-sm font-bold rounded-lg group-hover:bg-[#059669] transition-all uppercase tracking-wide inline-block">
-              {t('common.signIn')}
-            </div>
-          </Link>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] disabled:opacity-50 transition-all uppercase tracking-wide"
+            >
+              {loading ? t('login.signingIn') : t('login.signInButton')}
+            </button>
+          </div>
 
-          {/* Instructor Option */}
-          <Link
-            href="/instructor/login"
-            className="group bg-white border-2 border-gray-200 rounded-lg p-8 text-center hover:border-[#10b981] transition-all shadow-sm hover:shadow-md"
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-all">
-              <svg className="w-10 h-10 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              {t('home.instructorPortal')}
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              {t('home.instructorDescription')}
-            </p>
-            <div className="px-6 py-3 bg-[#10b981] text-white text-sm font-bold rounded-lg group-hover:bg-[#059669] transition-all uppercase tracking-wide inline-block">
-              {t('common.signIn')}
-            </div>
-          </Link>
-        </div>
-
-        <div className="text-center mt-8">
-          <p className="text-sm text-gray-600">
-            {t('auth.dontHaveAccount')}{' '}
-            <Link href="/signup" className="text-[#10b981] hover:text-[#059669] font-bold">
-              {t('common.signUp')}
+          <div className="text-center">
+            <Link
+              href="/signup"
+              className="font-bold text-[#10b981] hover:text-[#059669] transition-colors"
+            >
+              {t('login.noAccount')}
             </Link>
-          </p>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );

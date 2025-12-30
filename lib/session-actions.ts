@@ -13,11 +13,11 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
 
   const rows = await sql`
     SELECT
-      u.id, u.email, u.first_name, u.last_name, u.country, u.birthday,
+      u.id, u.email, u.first_name, u.last_name, u.country, u.birthday, u.timezone,
       u.is_active, u.email_verified, u.created_at, u.updated_at, u.last_login_at,
       ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
       ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url,
-      ip.role, ip.preferred_language, ip.timezone,
+      ip.role, ip.preferred_language,
       ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
     FROM users u
     INNER JOIN instructor_profiles ip ON ip.user_id = u.id
@@ -36,6 +36,7 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
     last_name: row.last_name,
     country: row.country || undefined,
     birthday: row.birthday || undefined,
+    timezone: row.timezone || undefined,
     is_active: row.is_active,
     email_verified: row.email_verified,
     created_at: row.created_at,
@@ -52,7 +53,6 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
       website_url: row.website_url || undefined,
       role: row.role,
       preferred_language: row.preferred_language,
-      timezone: row.timezone || undefined,
       created_at: row.profile_created_at,
       updated_at: row.profile_updated_at,
     },

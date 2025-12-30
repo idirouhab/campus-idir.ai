@@ -21,7 +21,8 @@ export async function signUpAction(
   password: string,
   firstName: string,
   lastName: string,
-  dateOfBirth: string
+  dateOfBirth: string,
+  timezone: string = 'Europe/Berlin'
 ): Promise<AuthResponse> {
   try {
     const sql = getDb();
@@ -68,6 +69,13 @@ export async function signUpAction(
       userId = user.id;
       passwordHash = user.password_hash;
 
+      // Update timezone for existing user
+      await sql`
+        UPDATE users
+        SET timezone = ${timezone}
+        WHERE id = ${userId}
+      `;
+
       // Create student profile
       await sql`
         INSERT INTO student_profiles (user_id, preferred_language)
@@ -79,9 +87,9 @@ export async function signUpAction(
 
       // Create new user
       const result = await sql`
-        INSERT INTO users (email, password_hash, first_name, last_name, birthday, is_active, email_verified)
-        VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, ${dateOfBirth}, true, false)
-        RETURNING id, email, first_name, last_name, is_active, email_verified, created_at, updated_at, last_login_at
+        INSERT INTO users (email, password_hash, first_name, last_name, birthday, timezone, is_active, email_verified)
+        VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, ${dateOfBirth}, ${timezone}, true, false)
+        RETURNING id, email, first_name, last_name, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       `;
 
       if (result.length === 0) {
@@ -100,7 +108,7 @@ export async function signUpAction(
 
     // Fetch the user data to return
     const userData = await sql`
-      SELECT id, email, first_name, last_name, birthday, is_active, email_verified, created_at, updated_at, last_login_at
+      SELECT id, email, first_name, last_name, birthday, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       FROM users
       WHERE id = ${userId}
     `;
@@ -115,6 +123,7 @@ export async function signUpAction(
       first_name: userData[0].first_name,
       last_name: userData[0].last_name,
       birthday: userData[0].birthday,
+      timezone: userData[0].timezone,
       is_active: userData[0].is_active,
       email_verified: userData[0].email_verified,
       created_at: userData[0].created_at,
@@ -220,6 +229,123 @@ export async function signInAction(
   } catch (error: any) {
     console.error('[AUTH] Sign in error:', error);
     // Sanitized error message
+    return { success: false, error: 'Authentication failed' };
+  }
+}
+
+/**
+ * Unified sign-in action that supports dual-role users
+ * Checks both student and instructor profiles and defaults to instructor view
+ */
+export async function unifiedSignInAction(
+  email: string,
+  password: string
+): Promise<AuthResponse> {
+  try {
+    const sql = getDb();
+
+    // Validate input
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' };
+    }
+
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Get user and check BOTH student and instructor profiles
+    const result = await sql`
+      SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active, u.email_verified,
+             u.created_at, u.updated_at, u.last_login_at, u.password_hash,
+             sp.user_id as has_student_profile,
+             ip.user_id as has_instructor_profile, ip.role
+      FROM users u
+      LEFT JOIN student_profiles sp ON sp.user_id = u.id
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.email = ${normalizedEmail}
+    `;
+
+    if (result.length === 0) {
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    const user = result[0];
+
+    // Check if user has at least one valid profile
+    const hasStudentProfile = !!user.has_student_profile;
+    const hasInstructorProfile = !!user.has_instructor_profile;
+
+    if (!hasStudentProfile && !hasInstructorProfile) {
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    if (!user.is_active) {
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    if (!user.password_hash) {
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+
+    if (!isPasswordValid) {
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    // Determine default userType and currentView
+    // Priority: Instructor > Student
+    let userType: 'student' | 'instructor';
+    let currentView: 'student' | 'instructor';
+    let role: 'instructor' | 'admin' | undefined;
+
+    if (hasInstructorProfile) {
+      userType = 'instructor';
+      currentView = 'instructor';
+      role = user.role || 'instructor';
+    } else {
+      userType = 'student';
+      currentView = 'student';
+    }
+
+    // Generate JWT token with dual-role support
+    const token = await generateAccessToken(
+      user.id,
+      userType,
+      user.email,
+      role,
+      hasStudentProfile,
+      hasInstructorProfile,
+      currentView
+    );
+
+    // Set secure httpOnly cookie
+    await setAuthCookie(token);
+
+    // Update last login
+    await sql`
+      UPDATE users
+      SET last_login_at = NOW(), updated_at = NOW()
+      WHERE id = ${user.id}
+    `;
+
+    // Return user data
+    const userData: Student = {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      birthday: user.birthday,
+      is_active: user.is_active,
+      email_verified: user.email_verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_login_at: user.last_login_at,
+    };
+
+    return { success: true, data: userData };
+  } catch (error: any) {
+    console.error('[AUTH] Unified sign in error:', error);
     return { success: false, error: 'Authentication failed' };
   }
 }

@@ -1,77 +1,254 @@
 'use client';
 
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { validatePassword } from '@/lib/passwordValidation';
+import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
+import { COMMON_TIMEZONES } from '@/lib/timezone-utils';
 
-export default function SignupSelectionPage() {
+export default function SignupPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [timezone, setTimezone] = useState('Euope/Madrid');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const { signUp, user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
 
+  // Check if already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Already logged in, redirect to dashboard
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(t('signup.passwordError'));
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await signUp(email, password, firstName, lastName, dateOfBirth, timezone);
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      } else {
+        // Account created successfully, redirect to login
+        setSuccess(true);
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during signup');
+      setLoading(false);
+    }
+  };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="rounded-lg bg-emerald-50 border border-[#10b981] p-6 text-center animate-scale-in shadow-sm">
+            <div className="w-16 h-16 bg-[#10b981] rounded-lg flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <p className="text-lg font-bold text-[#10b981] uppercase tracking-wide mb-2">
+              {t('signup.accountCreated')}
+            </p>
+            <p className="text-sm text-gray-600">
+              {t('signup.accountCreatedMessage')}
+            </p>
+            <p className="text-xs text-gray-500 mt-4">
+              {t('signup.redirecting')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl w-full animate-fade-in-up">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-3">
-            {t('auth.createAccountAs')}
-          </h1>
-          <p className="text-gray-600">
-            {t('auth.selectUserTypeDescription')}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 animate-fade-in-up">
+        <div>
+          <h2 className="mt-6 text-center text-4xl font-black text-gray-900 uppercase tracking-tight">
+            {t('signup.title')}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            {t('signup.subtitle')}
           </p>
         </div>
+        <form className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 border border-red-500 p-4">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="first-name" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                  {t('signup.firstNameLabel')}
+                </label>
+                <input
+                  id="first-name"
+                  name="firstName"
+                  type="text"
+                  required
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                  placeholder={t('signup.firstNamePlaceholder')}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="last-name" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                  {t('signup.lastNameLabel')}
+                </label>
+                <input
+                  id="last-name"
+                  name="lastName"
+                  type="text"
+                  required
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                  placeholder={t('signup.lastNamePlaceholder')}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="email-address" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                {t('signup.emailLabel')}
+              </label>
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                placeholder={t('signup.emailPlaceholder')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                {t('signup.passwordLabel')}
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                placeholder={t('signup.passwordPlaceholder')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <PasswordStrengthIndicator password={password} />
+            </div>
+            <div>
+              <label htmlFor="date-of-birth" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                Date of Birth
+              </label>
+              <input
+                id="date-of-birth"
+                name="dateOfBirth"
+                type="date"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div>
+              <label htmlFor="timezone" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                Timezone
+              </label>
+              <select
+                id="timezone"
+                name="timezone"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+              >
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Student Option */}
-          <Link
-            href="/student/signup"
-            className="group bg-white border-2 border-gray-200 rounded-lg p-8 text-center hover:border-[#10b981] transition-all shadow-sm hover:shadow-md"
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-all">
-              <svg className="w-10 h-10 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              {t('home.studentPortal')}
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              {t('home.studentDescription')}
-            </p>
-            <div className="px-6 py-3 bg-[#10b981] text-white text-sm font-bold rounded-lg group-hover:bg-[#059669] transition-all uppercase tracking-wide inline-block">
-              {t('common.signUp')}
-            </div>
-          </Link>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] disabled:opacity-50 transition-all uppercase tracking-wide"
+            >
+              {loading ? t('signup.creatingAccount') : t('signup.signUpButton')}
+            </button>
+          </div>
 
-          {/* Instructor Option */}
-          <Link
-            href="/instructor/signup"
-            className="group bg-white border-2 border-gray-200 rounded-lg p-8 text-center hover:border-[#10b981] transition-all shadow-sm hover:shadow-md"
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-all">
-              <svg className="w-10 h-10 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              {t('home.instructorPortal')}
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              {t('home.instructorDescription')}
-            </p>
-            <div className="px-6 py-3 bg-[#10b981] text-white text-sm font-bold rounded-lg group-hover:bg-[#059669] transition-all uppercase tracking-wide inline-block">
-              {t('common.signUp')}
-            </div>
-          </Link>
-        </div>
-
-        <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">
-            {t('auth.alreadyHaveAccount')}{' '}
-            <Link href="/login" className="text-[#10b981] hover:text-[#059669] font-bold">
-              {t('common.signIn')}
+          <div className="text-center">
+            <Link
+              href="/login"
+              className="font-bold text-[#10b981] hover:text-[#059669] transition-colors"
+            >
+              {t('signup.haveAccount')}
             </Link>
-          </p>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );

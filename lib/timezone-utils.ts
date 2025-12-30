@@ -93,18 +93,18 @@ export function formatDuration(minutes: number): string {
 }
 
 /**
- * Get instructor's timezone from profile
+ * Get instructor's timezone from user profile
  * @param instructor Instructor object
  * @returns IANA timezone string
  */
 export function getInstructorTimezone(instructor: Instructor): string {
-  // Check if instructor has timezone in their profile
-  if (instructor.profile?.timezone) {
-    return instructor.profile.timezone;
+  // Check if instructor has timezone set in their user profile
+  if (instructor.timezone) {
+    return instructor.timezone;
   }
 
-  // Fallback to America/New_York (EST/EDT)
-  return 'America/New_York';
+  // Fallback to Europe/Berlin (CET/CEST)
+  return 'Europe/Berlin';
 }
 
 /**

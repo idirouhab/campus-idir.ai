@@ -10,7 +10,9 @@ export interface SessionUser {
   firstName: string;
   lastName: string;
   birthday?: string;
-  hasStudentProfile?: boolean; // For dual-role users
+  hasStudentProfile: boolean; // Can access student views
+  hasInstructorProfile: boolean; // Can access instructor views
+  currentView: 'student' | 'instructor'; // Current active view
 }
 
 /**
@@ -32,57 +34,48 @@ export async function getSession(): Promise<SessionUser | null> {
     // Fetch fresh user data from unified users table
     const sql = getDb();
 
-    if (payload.userType === 'student') {
-      // Check if user has a student profile (regardless of their primary type)
-      const result = await sql`
-        SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active, sp.user_id as has_student_profile
-        FROM users u
-        LEFT JOIN student_profiles sp ON sp.user_id = u.id
-        WHERE u.id = ${payload.userId}
-      `;
+    // Always check BOTH profile tables for dual-role support
+    const result = await sql`
+      SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active,
+             sp.user_id as has_student_profile,
+             ip.user_id as has_instructor_profile, ip.role
+      FROM users u
+      LEFT JOIN student_profiles sp ON sp.user_id = u.id
+      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      WHERE u.id = ${payload.userId}
+    `;
 
-      if (result.length === 0 || !result[0].is_active || !result[0].has_student_profile) {
-        return null;
-      }
-
-      const user = result[0];
-      return {
-        id: user.id,
-        email: user.email,
-        userType: 'student',
-        firstName: user.first_name,
-        lastName: user.last_name,
-        birthday: user.birthday,
-      };
-    } else {
-      // Check if user has an instructor profile (regardless of their primary type)
-      // Also check if they have a student profile for dual-role support
-      const result = await sql`
-        SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active,
-               ip.user_id as has_instructor_profile, ip.role,
-               sp.user_id as has_student_profile
-        FROM users u
-        LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
-        LEFT JOIN student_profiles sp ON sp.user_id = u.id
-        WHERE u.id = ${payload.userId}
-      `;
-
-      if (result.length === 0 || !result[0].is_active || !result[0].has_instructor_profile) {
-        return null;
-      }
-
-      const user = result[0];
-      return {
-        id: user.id,
-        email: user.email,
-        userType: 'instructor',
-        role: user.role || 'instructor',
-        firstName: user.first_name,
-        lastName: user.last_name,
-        birthday: user.birthday,
-        hasStudentProfile: !!user.has_student_profile,
-      };
+    if (result.length === 0 || !result[0].is_active) {
+      return null;
     }
+
+    const user = result[0];
+    const hasStudentProfile = !!user.has_student_profile;
+    const hasInstructorProfile = !!user.has_instructor_profile;
+
+    // Backwards compatibility: Handle old JWT tokens without new fields
+    const currentView = payload.currentView || payload.userType;
+
+    // Validate user has access based on their userType
+    if (payload.userType === 'student' && !hasStudentProfile) {
+      return null;
+    }
+    if (payload.userType === 'instructor' && !hasInstructorProfile) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      userType: payload.userType,
+      role: user.role || (hasInstructorProfile ? 'instructor' : undefined),
+      firstName: user.first_name,
+      lastName: user.last_name,
+      birthday: user.birthday,
+      hasStudentProfile,
+      hasInstructorProfile,
+      currentView,
+    };
   } catch (error) {
     console.error('[Session] Error getting session:', error);
     return null;

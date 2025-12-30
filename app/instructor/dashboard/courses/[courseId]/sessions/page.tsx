@@ -243,7 +243,7 @@ export default function ManageCourseSessionsPage() {
           sessions={sessions}
           onChange={setSessions}
           courseId={courseId}
-          defaultTimezone={currentInstructor?.profile?.timezone || 'America/New_York'}
+          defaultTimezone={currentInstructor?.timezone || 'Euope/Madrid'}
           csrfToken={csrfToken || undefined}
         />
       </div>

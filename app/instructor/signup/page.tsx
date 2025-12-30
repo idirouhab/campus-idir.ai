@@ -34,7 +34,7 @@ export default function InstructorSignupPage() {
   const [password, setPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [country, setCountry] = useState('');
-  const [timezone, setTimezone] = useState('America/New_York');
+  const [timezone, setTimezone] = useState('Euope/Madrid');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

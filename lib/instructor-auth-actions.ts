@@ -23,7 +23,7 @@ export async function instructorSignUpAction(
   lastName: string,
   dateOfBirth: string,
   country: string,
-  timezone: string = 'America/New_York'
+  timezone: string = 'Europe/Berlin'
 ): Promise<InstructorAuthResponse> {
   try {
     const sql = getDb();
@@ -70,26 +70,28 @@ export async function instructorSignUpAction(
       userId = user.id;
       passwordHash = user.password_hash;
 
-      // Update the user's country and birthday if not set
+      // Update the user's country, birthday, and timezone if not set
       if (!user.country) {
         await sql`
           UPDATE users
           SET country = ${country.toUpperCase()},
-              birthday = ${dateOfBirth}
+              birthday = ${dateOfBirth},
+              timezone = ${timezone}
           WHERE id = ${userId}
         `;
       } else {
         await sql`
           UPDATE users
-          SET birthday = ${dateOfBirth}
+          SET birthday = ${dateOfBirth},
+              timezone = ${timezone}
           WHERE id = ${userId}
         `;
       }
 
-      // Create instructor profile (without birthday as it's now in users table)
+      // Create instructor profile (without birthday and timezone as they're now in users table)
       await sql`
-        INSERT INTO instructor_profiles (user_id, role, preferred_language, timezone)
-        VALUES (${userId}, 'instructor', 'en', ${timezone})
+        INSERT INTO instructor_profiles (user_id, role, preferred_language)
+        VALUES (${userId}, 'instructor', 'en')
       `;
     } else {
       // New user - create account
@@ -104,6 +106,7 @@ export async function instructorSignUpAction(
           last_name,
           country,
           birthday,
+          timezone,
           is_active,
           email_verified
         )
@@ -114,10 +117,11 @@ export async function instructorSignUpAction(
           ${lastName},
           ${country.toUpperCase()},
           ${dateOfBirth},
+          ${timezone},
           true,
           false
         )
-        RETURNING id, email, first_name, last_name, country, is_active, email_verified, created_at, updated_at, last_login_at
+        RETURNING id, email, first_name, last_name, country, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       `;
 
       if (result.length === 0) {
@@ -127,16 +131,16 @@ export async function instructorSignUpAction(
 
       userId = result[0].id;
 
-      // Create instructor profile (without birthday as it's now in users table)
+      // Create instructor profile (without birthday and timezone as they're now in users table)
       await sql`
-        INSERT INTO instructor_profiles (user_id, role, preferred_language, timezone)
-        VALUES (${userId}, 'instructor', 'en', ${timezone})
+        INSERT INTO instructor_profiles (user_id, role, preferred_language)
+        VALUES (${userId}, 'instructor', 'en')
       `;
     }
 
     // Fetch the user data to return
     const userData = await sql`
-      SELECT id, email, first_name, last_name, country, birthday, is_active, email_verified, created_at, updated_at, last_login_at
+      SELECT id, email, first_name, last_name, country, birthday, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       FROM users
       WHERE id = ${userId}
     `;
@@ -152,6 +156,7 @@ export async function instructorSignUpAction(
       last_name: userData[0].last_name,
       country: userData[0].country,
       birthday: userData[0].birthday,
+      timezone: userData[0].timezone,
       is_active: userData[0].is_active,
       email_verified: userData[0].email_verified,
       created_at: userData[0].created_at,
@@ -190,10 +195,10 @@ export async function instructorSignInAction(
 
     // Get user by email and join with instructor profile
     const result = await sql`
-      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.is_active, u.email_verified,
+      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.timezone, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.password_hash, u.birthday,
              ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language, ip.timezone,
+             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
              ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
       FROM users u
       LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
@@ -258,6 +263,7 @@ export async function instructorSignInAction(
       last_name: user.last_name,
       country: user.country,
       birthday: user.birthday,
+      timezone: user.timezone,
       is_active: user.is_active,
       email_verified: user.email_verified,
       created_at: user.created_at,
@@ -274,7 +280,6 @@ export async function instructorSignInAction(
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
-        timezone: user.timezone,
         created_at: user.profile_created_at,
         updated_at: user.profile_updated_at,
       } : undefined,
@@ -294,7 +299,7 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
     const sql = getDb();
 
     const result = await sql`
-      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.is_active, u.email_verified,
+      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.timezone, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.birthday,
              ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
              ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
@@ -321,6 +326,7 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
       last_name: user.last_name,
       country: user.country,
       birthday: user.birthday,
+      timezone: user.timezone,
       is_active: user.is_active,
       email_verified: user.email_verified,
       created_at: user.created_at,
@@ -337,7 +343,6 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
-        timezone: user.timezone,
         created_at: user.profile_created_at,
         updated_at: user.profile_updated_at,
       } : undefined,
@@ -385,7 +390,7 @@ export async function updateInstructorProfileAction(
       return { success: false, error: 'This email is already in use' };
     }
 
-    // Update user table (basic fields including birthday)
+    // Update user table (basic fields including birthday and timezone)
     const userResult = await sql`
       UPDATE users
       SET first_name = ${firstName},
@@ -393,21 +398,21 @@ export async function updateInstructorProfileAction(
           email = ${normalizedEmail},
           country = ${country.toUpperCase()},
           birthday = ${dateOfBirth},
+          timezone = ${timezone || 'Europe/Berlin'},
           updated_at = NOW()
       WHERE id = ${instructorId}
-      RETURNING id, email, first_name, last_name, country, type, is_active, email_verified, created_at, updated_at, last_login_at
+      RETURNING id, email, first_name, last_name, country, timezone, is_active, email_verified, created_at, updated_at, last_login_at
     `;
 
     if (userResult.length === 0) {
       return { success: false, error: 'Failed to update profile' };
     }
 
-    // Update instructor profile table (profile-specific fields, without birthday)
+    // Update instructor profile table (profile-specific fields, without birthday and timezone)
     await sql`
       UPDATE instructor_profiles
       SET description = ${description || null},
           preferred_language = ${preferredLanguage || 'en'},
-          timezone = ${timezone || 'America/New_York'},
           linkedin_url = ${linkedinUrl || null},
           website_url = ${websiteUrl || null},
           x_url = ${xUrl || null},
@@ -418,7 +423,7 @@ export async function updateInstructorProfileAction(
 
     // Fetch updated instructor with profile
     const result = await sql`
-      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.is_active, u.email_verified,
+      SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.timezone, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.birthday,
              ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
              ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
@@ -437,6 +442,7 @@ export async function updateInstructorProfileAction(
       last_name: user.last_name,
       country: user.country,
       birthday: user.birthday,
+      timezone: user.timezone,
       is_active: user.is_active,
       email_verified: user.email_verified,
       created_at: user.created_at,
@@ -453,7 +459,6 @@ export async function updateInstructorProfileAction(
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
-        timezone: user.timezone,
         created_at: user.profile_created_at,
         updated_at: user.profile_updated_at,
       } : undefined,

@@ -13,6 +13,9 @@ export interface JWTPayload {
   userType: 'student' | 'instructor';
   role?: 'instructor' | 'admin'; // Only for instructors
   email: string;
+  hasStudentProfile?: boolean; // Can access student views
+  hasInstructorProfile?: boolean; // Can access instructor views
+  currentView?: 'student' | 'instructor'; // Current active view
   iat: number;
   exp: number;
   type: 'access';
@@ -25,13 +28,19 @@ export async function generateAccessToken(
   userId: string,
   userType: 'student' | 'instructor',
   email: string,
-  role?: 'instructor' | 'admin'
+  role?: 'instructor' | 'admin',
+  hasStudentProfile?: boolean,
+  hasInstructorProfile?: boolean,
+  currentView?: 'student' | 'instructor'
 ): Promise<string> {
   const token = await new SignJWT({
     userId,
     userType,
     email,
     role: userType === 'instructor' ? role : undefined,
+    hasStudentProfile,
+    hasInstructorProfile,
+    currentView: currentView || userType,
     type: 'access',
   })
     .setProtectedHeader({ alg: JWT_ALGORITHM })
