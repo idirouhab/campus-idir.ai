@@ -340,10 +340,36 @@ export default function EditCoursePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         <div className="mb-6">
           <h1 className="text-3xl font-black text-gray-900 mb-2">Edit Course</h1>
-          <p className="text-gray-600">Update course details and content</p>
+          <p className="text-gray-600 mb-4">Update course details and content</p>
+
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                type="button"
+                className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
+              >
+                Edit Course
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/materials`)}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Materials
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/students`)}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Students
+              </button>
+            </nav>
+          </div>
         </div>
 
         {/* Success Message - Fixed Position */}

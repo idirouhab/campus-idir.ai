@@ -100,3 +100,18 @@ export interface CourseInstructor {
   created_at: string;
   updated_at: string;
 }
+
+export interface CourseMaterial {
+  id: string;
+  course_id: string;
+  uploaded_by: string;
+  original_filename: string;
+  display_filename: string;
+  file_url: string;
+  file_type: 'pdf' | 'docx' | 'pptx' | 'doc' | 'ppt';
+  file_size_bytes: number;
+  mime_type: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}

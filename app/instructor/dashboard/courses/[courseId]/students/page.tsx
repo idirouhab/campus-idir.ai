@@ -231,7 +231,7 @@ export default function CourseStudentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <Link
@@ -243,9 +243,36 @@ export default function CourseStudentsPage() {
             </svg>
             Back to Dashboard
           </Link>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-4">
             Students Enrolled in <span className="text-[#10b981]">{courseName}</span>
           </h1>
+
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 mb-4">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                type="button"
+                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/edit`)}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Edit Course
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/materials`)}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Materials
+              </button>
+              <button
+                type="button"
+                className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
+              >
+                Students
+              </button>
+            </nav>
+          </div>
+
           <p className="text-sm md:text-base text-gray-600 mt-2">
             {filteredAndSortedStudents.length} of {students.length} {students.length === 1 ? 'student' : 'students'}
           </p>

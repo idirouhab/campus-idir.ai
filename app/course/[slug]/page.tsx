@@ -10,7 +10,7 @@ import MarkdownContent from '@/components/MarkdownContent';
 import Cookies from 'js-cookie';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getCourseByIdAction, getAllInstructorsAction } from '@/lib/course-actions';
-import { Instructor } from '@/types/database';
+import { Instructor, CourseMaterial } from '@/types/database';
 import { canViewAllCourses } from '@/lib/roles';
 import {
   assignInstructorToCourseAction,
@@ -36,6 +36,10 @@ export default function CoursePage() {
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState('');
   const [assignSuccess, setAssignSuccess] = useState('');
+
+  // Course materials state (for students)
+  const [materials, setMaterials] = useState<CourseMaterial[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
 
   const { course, loading: courseLoading } = useCourse(slug);
   const { hasAccess, loading: accessLoading } = useCheckCourseAccess(
@@ -119,6 +123,32 @@ export default function CoursePage() {
 
     fetchInstructors();
   }, [instructor, course]);
+
+  // Fetch course materials for students
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      if (!user || !course || !hasAccess) {
+        return;
+      }
+
+      setMaterialsLoading(true);
+      try {
+        const response = await fetch(`/api/courses/${course.id}/materials/public`);
+        const data = await response.json();
+        console.log(data);
+
+        if (data.success) {
+          setMaterials(data.materials || []);
+        }
+      } catch (error) {
+        console.error('Error fetching course materials:', error);
+      } finally {
+        setMaterialsLoading(false);
+      }
+    };
+
+    fetchMaterials();
+  }, [user, course, hasAccess]);
 
   // Redirect to login only if neither student nor instructor is authenticated
   useEffect(() => {
@@ -325,10 +355,135 @@ export default function CoursePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - Left Column (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Course Content - TODO: Render structured course_data */}
+            {/* Course Overview */}
             <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
-              <p className="text-gray-600">Course content structure to be implemented.</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Course Overview</h2>
+              {course.course_data?.long_description ? (
+                <div className="prose prose-sm max-w-none">
+                  <MarkdownContent content={course.course_data.long_description} />
+                </div>
+              ) : course.short_description ? (
+                <p className="text-gray-600">{course.short_description}</p>
+              ) : (
+                <p className="text-gray-500 italic">No course description available.</p>
+              )}
             </div>
+
+            {/* Course Materials Section - Only for Students */}
+            {isStudent && (
+              <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <svg className="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <h2 className="text-xl font-bold text-gray-900">Course Materials</h2>
+                </div>
+
+                {materialsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto"></div>
+                    <p className="text-sm text-gray-500 mt-4">Loading materials...</p>
+                  </div>
+                ) : materials.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <svg className="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="text-lg font-medium mb-2">No materials available yet</p>
+                    <p className="text-sm">Your instructor hasn't uploaded any course materials yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {materials.map((material) => {
+                      const getFileIcon = () => {
+                        switch (material.file_type.toLowerCase()) {
+                          case 'pdf':
+                            return (
+                              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            );
+                          case 'doc':
+                          case 'docx':
+                            return (
+                              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            );
+                          case 'ppt':
+                          case 'pptx':
+                            return (
+                              <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            );
+                          default:
+                            return (
+                              <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            );
+                        }
+                      };
+
+                      const formatFileSize = (bytes: number) => {
+                        if (bytes < 1024) return `${bytes} B`;
+                        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+                      };
+
+                      return (
+                        <div
+                          key={material.id}
+                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                        >
+                          {/* File Icon */}
+                          <div className="flex-shrink-0">
+                            {getFileIcon()}
+                          </div>
+
+                          {/* File Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {material.display_filename}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatFileSize(material.file_size_bytes)} • {material.file_type.toUpperCase()}
+                            </p>
+                          </div>
+
+                          {/* Download Button */}
+                          <a
+                            href={material.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-[#10b981] text-white text-sm font-bold rounded-lg hover:bg-[#059669] transition-colors flex items-center gap-2 flex-shrink-0"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Course Content Structure - TODO: Implement lessons/modules */}
+            {isStudent && (
+              <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <svg className="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <h2 className="text-xl font-bold text-gray-900">Course Curriculum</h2>
+                </div>
+                <p className="text-gray-600">Detailed course curriculum and lessons will be available here.</p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar - Right Column (1/3) */}

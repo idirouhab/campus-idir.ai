@@ -11,6 +11,7 @@ export interface FileValidationOptions {
 export interface FileValidationResult {
   valid: boolean;
   error?: string;
+  documentType?: string;
 }
 
 /**
@@ -121,4 +122,64 @@ async function getImageDimensions(
   // In production, consider using sharp library for robust dimension detection
   console.warn('[File Validation] Could not determine image dimensions');
   return { width: 0, height: 0 };
+}
+
+/**
+ * Validate document upload (PDF, DOCX, PPTX) with security checks
+ */
+export async function validateDocumentUpload(
+  file: File,
+  options: FileValidationOptions
+): Promise<FileValidationResult> {
+  // Check file size
+  if (file.size > options.maxSizeBytes) {
+    return {
+      valid: false,
+      error: `File size exceeds ${options.maxSizeBytes / (1024 * 1024)}MB limit`,
+    };
+  }
+
+  // Read file buffer for magic byte check
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileType = await fileTypeFromBuffer(buffer);
+
+  if (!fileType) {
+    return {
+      valid: false,
+      error: 'Unable to determine file type',
+    };
+  }
+
+  // Define allowed MIME types for documents
+  const allowedMimeTypes = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+    'application/msword', // DOC
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // PPTX
+    'application/vnd.ms-powerpoint', // PPT
+  ];
+
+  // Check magic bytes (MIME type)
+  if (!allowedMimeTypes.includes(fileType.mime)) {
+    return {
+      valid: false,
+      error: 'Invalid file type. Only PDF, DOCX, and PPTX files are allowed.',
+    };
+  }
+
+  // Map MIME to file type
+  const fileTypeMap: Record<string, string> = {
+    'application/pdf': 'pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/vnd.ms-powerpoint': 'ppt',
+  };
+
+  const documentType = fileTypeMap[fileType.mime];
+
+  return {
+    valid: true,
+    documentType,
+  };
 }
