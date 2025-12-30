@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import enTranslations from '@/public/locales/en.json';
+import esTranslations from '@/public/locales/es.json';
 
 type Language = 'en' | 'es';
 
@@ -11,6 +13,12 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+// Translations map
+const translationsMap: Record<Language, Record<string, any>> = {
+  en: enTranslations,
+  es: esTranslations,
+};
 
 // Detect browser language
 const detectBrowserLanguage = (): Language => {
@@ -35,28 +43,17 @@ const detectBrowserLanguage = (): Language => {
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
-  const [translations, setTranslations] = useState<Record<string, any>>({});
+  // Detect initial language from browser/localStorage
+  const initialLanguage = typeof window !== 'undefined' ? detectBrowserLanguage() : 'en';
 
-  // Initialize language on mount
+  const [language, setLanguageState] = useState<Language>(initialLanguage);
+  const [translations, setTranslations] = useState<Record<string, any>>(
+    translationsMap[initialLanguage]
+  );
+
+  // Update translations when language changes
   useEffect(() => {
-    const detectedLanguage = detectBrowserLanguage();
-    setLanguageState(detectedLanguage);
-  }, []);
-
-  // Load translations when language changes
-  useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        const response = await fetch(`/locales/${language}.json`);
-        const data = await response.json();
-        setTranslations(data);
-      } catch (error) {
-        console.error(`Failed to load translations for ${language}:`, error);
-      }
-    };
-
-    loadTranslations();
+    setTranslations(translationsMap[language]);
   }, [language]);
 
   const setLanguage = (lang: Language) => {
