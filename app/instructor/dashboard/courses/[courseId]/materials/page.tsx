@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useInstructorAuth } from '@/hooks/useInstructorAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CourseMaterial } from '@/types/database';
 import MaterialItem from '@/components/courses/MaterialItem';
 import { getCourseByIdAction } from '@/lib/course-actions';
@@ -13,6 +14,7 @@ export default function ManageCourseMaterialsPage() {
   const params = useParams();
   const courseId = params?.courseId as string;
   const { instructor: currentInstructor, loading: authLoading, csrfToken } = useInstructorAuth();
+  const { t } = useLanguage();
 
   const [courseName, setCourseName] = useState('');
   const [materials, setMaterials] = useState<CourseMaterial[]>([]);
@@ -85,14 +87,14 @@ export default function ManageCourseMaterialsPage() {
       ];
 
       if (!allowedTypes.includes(file.type)) {
-        setError(`Invalid file type: ${file.name}. Only PDF, DOCX, and PPTX are allowed.`);
+        setError(`${t('instructor.materials.invalidFileType')} ${file.name}. ${t('instructor.materials.fileTypes')}`);
         setTimeout(() => setError(null), 5000);
         continue;
       }
 
       // Validate file size
       if (file.size > 10 * 1024 * 1024) {
-        setError(`File too large: ${file.name}. Maximum size is 10MB.`);
+        setError(`${t('instructor.materials.fileTooLarge')} ${file.name}. ${t('instructor.materials.fileTypes')}`);
         setTimeout(() => setError(null), 5000);
         continue;
       }
@@ -117,15 +119,15 @@ export default function ManageCourseMaterialsPage() {
 
         if (data.success) {
           setMaterials(prev => [...prev, data.material]);
-          setSuccess(`Uploaded: ${file.name}`);
+          setSuccess(`${t('instructor.materials.uploadSuccess')} ${file.name}`);
           setTimeout(() => setSuccess(null), 3000);
         } else {
-          setError(data.error || 'Upload failed');
+          setError(data.error || t('instructor.materials.uploadError'));
           setTimeout(() => setError(null), 5000);
         }
       } catch (error) {
         console.error('Upload error:', error);
-        setError(`Failed to upload: ${file.name}`);
+        setError(`${t('instructor.materials.uploadError')} ${file.name}`);
         setTimeout(() => setError(null), 5000);
       } finally {
         setUploadingFiles(prev => {
@@ -173,21 +175,21 @@ export default function ManageCourseMaterialsPage() {
 
       if (data.success) {
         setMaterials(prev => prev.map(m => m.id === materialId ? data.material : m));
-        setSuccess('File renamed');
+        setSuccess(t('instructor.materials.renameSuccess'));
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(data.error || 'Rename failed');
+        setError(data.error || t('instructor.materials.renameError'));
         setTimeout(() => setError(null), 5000);
       }
     } catch (error) {
       console.error('Rename error:', error);
-      setError('Failed to rename file');
+      setError(t('instructor.materials.renameError'));
       setTimeout(() => setError(null), 5000);
     }
   };
 
   const handleMaterialDelete = async (materialId: string) => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    if (!confirm(t('instructor.sessions.deleteConfirm'))) return;
 
     try {
       const response = await fetch(`/api/materials/${materialId}`, {
@@ -201,15 +203,15 @@ export default function ManageCourseMaterialsPage() {
 
       if (data.success) {
         setMaterials(prev => prev.filter(m => m.id !== materialId));
-        setSuccess('File deleted');
+        setSuccess(t('instructor.materials.deleteSuccess'));
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(data.error || 'Delete failed');
+        setError(data.error || t('instructor.materials.deleteError'));
         setTimeout(() => setError(null), 5000);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      setError('Failed to delete file');
+      setError(t('instructor.materials.deleteError'));
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -219,7 +221,7 @@ export default function ManageCourseMaterialsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -237,9 +239,9 @@ export default function ManageCourseMaterialsPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Dashboard
+            {t('instructor.common.backToDashboard')}
           </Link>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Manage Course Materials</h1>
+          <h1 className="text-3xl font-black text-gray-900 mb-2">{t('instructor.materials.title')}</h1>
           <p className="text-gray-600 mb-4">{courseName}</p>
 
           {/* Tab Navigation */}
@@ -249,24 +251,24 @@ export default function ManageCourseMaterialsPage() {
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/edit`)}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Edit Course
+                {t('instructor.editCourse.tabs.editCourse')}
               </button>
               <button
                 className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
               >
-                Materials
+                {t('instructor.editCourse.tabs.materials')}
               </button>
               <button
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/sessions`)}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Sessions
+                {t('instructor.editCourse.tabs.sessions')}
               </button>
               <button
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/students`)}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Students
+                {t('instructor.editCourse.tabs.students')}
               </button>
             </nav>
           </div>
@@ -292,7 +294,7 @@ export default function ManageCourseMaterialsPage() {
 
         {/* Upload Area */}
         <div className="bg-white border border-gray-200 rounded-lg p-8 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Upload Course Materials</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('instructor.materials.uploadMaterials')}</h2>
           <div
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
               dragActive
@@ -321,9 +323,9 @@ export default function ManageCourseMaterialsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
               <p className="text-lg text-gray-700 mb-2">
-                <span className="font-semibold text-[#10b981]">Click to upload</span> or drag and drop
+                <span className="font-semibold text-[#10b981]">{t('instructor.materials.clickToUpload')}</span> {t('instructor.materials.dragAndDrop')}
               </p>
-              <p className="text-sm text-gray-500">PDF, DOCX, PPTX (max 10MB per file)</p>
+              <p className="text-sm text-gray-500">{t('instructor.materials.fileTypes')}</p>
             </label>
           </div>
 
@@ -333,7 +335,7 @@ export default function ManageCourseMaterialsPage() {
               {Array.from(uploadingFiles).map(filename => (
                 <div key={filename} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
                   <div className="animate-spin w-5 h-5 border-2 border-[#10b981] border-t-transparent rounded-full"></div>
-                  <span className="text-sm text-gray-700">Uploading {filename}...</span>
+                  <span className="text-sm text-gray-700">{t('instructor.materials.uploading')} {filename}...</span>
                 </div>
               ))}
             </div>
@@ -342,20 +344,20 @@ export default function ManageCourseMaterialsPage() {
 
         {/* Materials List */}
         <div className="bg-white border border-gray-200 rounded-lg p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Uploaded Materials</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('instructor.materials.uploadedMaterials')}</h2>
 
           {materialsLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto"></div>
-              <p className="text-sm text-gray-500 mt-4">Loading materials...</p>
+              <p className="text-sm text-gray-500 mt-4">{t('instructor.materials.loadingMaterials')}</p>
             </div>
           ) : materials.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <svg className="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-lg font-medium mb-2">No materials uploaded yet</p>
-              <p className="text-sm">Upload PDF, DOCX, or PPTX files to get started</p>
+              <p className="text-lg font-medium mb-2">{t('instructor.materials.noMaterials')}</p>
+              <p className="text-sm">{t('instructor.materials.noMaterialsMessage')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -378,7 +380,7 @@ export default function ManageCourseMaterialsPage() {
             onClick={() => router.push('/instructor/dashboard')}
             className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-colors"
           >
-            Back to Dashboard
+            {t('instructor.common.backToDashboard')}
           </button>
         </div>
       </main>

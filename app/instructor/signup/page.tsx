@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { instructorSignUpAction } from '@/lib/instructor-auth-actions';
+import { COMMON_TIMEZONES } from '@/lib/timezone-utils';
 
 const COUNTRIES = {
   US: { en: 'United States', es: 'Estados Unidos' },
@@ -33,6 +34,7 @@ export default function InstructorSignupPage() {
   const [password, setPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [country, setCountry] = useState('');
+  const [timezone, setTimezone] = useState('America/New_York');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -86,7 +88,8 @@ export default function InstructorSignupPage() {
         firstName,
         lastName,
         dateOfBirth,
-        country
+        country,
+        timezone
       );
 
       if (!result.success) {
@@ -258,6 +261,26 @@ export default function InstructorSignupPage() {
                 {Object.entries(COUNTRIES).map(([code, names]) => (
                   <option key={code} value={code}>
                     {names[language as 'en' | 'es']}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="timezone" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                Timezone
+              </label>
+              <select
+                id="timezone"
+                name="timezone"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+              >
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
                   </option>
                 ))}
               </select>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useInstructorAuth } from '@/hooks/useInstructorAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CourseSession } from '@/types/database';
 import SessionBuilder from '@/components/courses/SessionBuilder';
 import {
@@ -21,6 +22,7 @@ export default function ManageCourseSessionsPage() {
   const params = useParams();
   const courseId = params?.courseId as string;
   const { instructor: currentInstructor, loading: authLoading, csrfToken } = useInstructorAuth();
+  const { t } = useLanguage();
 
   const [courseName, setCourseName] = useState('');
   const [sessions, setSessions] = useState<CourseSession[]>([]);
@@ -58,7 +60,7 @@ export default function ManageCourseSessionsPage() {
         }
       } catch (err: any) {
         console.error('Error fetching data:', err);
-        setError('Failed to load course data');
+        setError(t('instructor.sessions.errorMessage'));
       } finally {
         setLoading(false);
       }
@@ -152,11 +154,11 @@ export default function ManageCourseSessionsPage() {
         setOriginalSessions(JSON.parse(JSON.stringify(sessionsResult.data)));
       }
 
-      setSuccess('Sessions saved successfully!');
+      setSuccess(t('instructor.sessions.successMessage'));
       setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {
       console.error('Error saving sessions:', err);
-      setError(err.message || 'Failed to save sessions');
+      setError(err.message || t('instructor.sessions.errorMessage'));
     } finally {
       setSaving(false);
     }
@@ -181,11 +183,11 @@ export default function ManageCourseSessionsPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Dashboard
+            {t('instructor.common.backToDashboard')}
           </Link>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Manage Sessions</h1>
+          <h1 className="text-3xl font-black text-gray-900 mb-2">{t('instructor.sessions.title')}</h1>
           <p className="text-gray-600 mb-4">
-            Configure scheduled sessions for <span className="font-semibold text-[#10b981]">{courseName || 'this course'}</span>
+            {t('instructor.sessions.sessionsFor')} <span className="font-semibold text-[#10b981]">{courseName || t('course.notFound')}</span>
           </p>
 
           {/* Tab Navigation */}
@@ -196,27 +198,27 @@ export default function ManageCourseSessionsPage() {
               onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/edit`)}
               className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
             >
-              Edit Course
+              {t('instructor.editCourse.tabs.editCourse')}
             </button>
             <button
               type="button"
               onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/materials`)}
               className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
             >
-              Materials
+              {t('instructor.editCourse.tabs.materials')}
             </button>
             <button
               type="button"
               className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
             >
-              Sessions
+              {t('instructor.editCourse.tabs.sessions')}
             </button>
             <button
               type="button"
               onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/students`)}
               className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
             >
-              Students
+              {t('instructor.editCourse.tabs.students')}
             </button>
           </nav>
         </div>
@@ -242,7 +244,7 @@ export default function ManageCourseSessionsPage() {
           onChange={setSessions}
           courseId={courseId}
           defaultTimezone={currentInstructor?.profile?.timezone || 'America/New_York'}
-          csrfToken={csrfToken}
+          csrfToken={csrfToken || undefined}
         />
       </div>
 
@@ -253,7 +255,7 @@ export default function ManageCourseSessionsPage() {
           onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/edit`)}
           className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
         >
-          Cancel
+          {t('instructor.common.cancel')}
         </button>
 
         <button
@@ -265,12 +267,12 @@ export default function ManageCourseSessionsPage() {
           {saving ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-              Saving...
+              {t('instructor.sessions.saving')}
             </>
           ) : (
             <>
               <Save size={20} />
-              Save Sessions
+              {t('instructor.sessions.saveSession')}
             </>
           )}
         </button>

@@ -211,7 +211,7 @@ export default function CoursePage() {
       );
 
       if (result.success) {
-        setAssignSuccess('Instructor assigned successfully!');
+        setAssignSuccess(t('course.instructorAssignedSuccess'));
 
         // Refresh course instructors
         const refreshResult = await getCourseInstructorsAction(course.id);
@@ -221,10 +221,10 @@ export default function CoursePage() {
 
         setTimeout(() => setAssignSuccess(''), 3000);
       } else {
-        setAssignError(result.error || 'Failed to assign instructor');
+        setAssignError(result.error || t('course.instructorAssignedError'));
       }
     } catch (error: any) {
-      setAssignError(error.message || 'An error occurred');
+      setAssignError(error.message || t('course.errorOccurred'));
     } finally {
       setAssignLoading(false);
     }
@@ -232,7 +232,7 @@ export default function CoursePage() {
 
   const handleRemoveInstructor = async (instructorId: string) => {
     if (!instructor || !course) return;
-    if (!confirm('Are you sure you want to remove this instructor from the course?')) return;
+    if (!confirm(t('course.confirmRemoveInstructor'))) return;
 
     setAssignLoading(true);
     setAssignError('');
@@ -245,7 +245,7 @@ export default function CoursePage() {
       );
 
       if (result.success) {
-        setAssignSuccess('Instructor removed successfully!');
+        setAssignSuccess(t('course.instructorRemovedSuccess'));
 
         // Refresh course instructors
         const refreshResult = await getCourseInstructorsAction(course.id);
@@ -255,10 +255,10 @@ export default function CoursePage() {
 
         setTimeout(() => setAssignSuccess(''), 3000);
       } else {
-        setAssignError(result.error || 'Failed to remove instructor');
+        setAssignError(result.error || t('course.instructorRemovedError'));
       }
     } catch (error: any) {
-      setAssignError(error.message || 'An error occurred');
+      setAssignError(error.message || t('course.errorOccurred'));
     } finally {
       setAssignLoading(false);
     }
@@ -326,7 +326,7 @@ export default function CoursePage() {
           </h2>
           <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6">
             {isInstructor
-              ? 'You need to be assigned to this course to view it.'
+              ? t('course.instructorAccessDenied')
               : t('course.accessDeniedMessage')}
           </p>
           <Link
@@ -364,7 +364,7 @@ export default function CoursePage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Dashboard
+          {t('course.backToDashboard')}
         </Link>
 
         {/* Course Header */}
@@ -384,7 +384,7 @@ export default function CoursePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 <span className="text-sm font-bold text-blue-900 uppercase tracking-wide">
-                  Admin Access
+                  {t('course.adminAccess')}
                 </span>
               </div>
               <Link
@@ -394,7 +394,7 @@ export default function CoursePage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Edit Course
+                {t('course.editCourse')}
               </Link>
             </div>
           </div>
@@ -406,7 +406,7 @@ export default function CoursePage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Course Overview */}
             <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Course Overview</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('course.courseOverview')}</h2>
               {course.course_data?.long_description ? (
                 <div className="prose prose-sm max-w-none">
                   <MarkdownContent content={course.course_data.long_description} />
@@ -414,7 +414,7 @@ export default function CoursePage() {
               ) : course.short_description ? (
                 <p className="text-gray-600">{course.short_description}</p>
               ) : (
-                <p className="text-gray-500 italic">No course description available.</p>
+                <p className="text-gray-500 italic">{t('course.noDescription')}</p>
               )}
             </div>
 
@@ -425,13 +425,13 @@ export default function CoursePage() {
                   <svg className="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <h2 className="text-xl font-bold text-gray-900">General Course Materials</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{t('course.generalMaterials')}</h2>
                 </div>
 
                 {materialsLoading ? (
                   <div className="text-center py-12">
                     <div className="animate-spin w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-4">Loading materials...</p>
+                    <p className="text-sm text-gray-500 mt-4">{t('course.loadingMaterials')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -503,7 +503,7 @@ export default function CoursePage() {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
-                            Download
+                            {t('course.download')}
                           </a>
                         </div>
                       );
@@ -520,13 +520,13 @@ export default function CoursePage() {
                   <svg className="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <h2 className="text-xl font-bold text-gray-900">Course Sessions</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{t('course.courseSessions')}</h2>
                 </div>
 
                 {sessionsLoading ? (
                   <div className="text-center py-12">
                     <div className="animate-spin w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-4">Loading sessions...</p>
+                    <p className="text-sm text-gray-500 mt-4">{t('course.loadingSessions')}</p>
                   </div>
                 ) : (
                   <SessionsList sessions={sessions} courseId={course.id} />
@@ -542,9 +542,9 @@ export default function CoursePage() {
               <div className="bg-emerald-50 border border-[#10b981] rounded-lg p-4">
                 <p className="text-sm text-gray-700">
                   <span className="font-bold text-[#10b981]">
-                    {canViewAllCourses(instructor) ? 'Admin View:' : 'Instructor View:'}
+                    {canViewAllCourses(instructor) ? t('course.adminView') : t('course.instructorView')}
                   </span>{' '}
-                  You are viewing this course as {canViewAllCourses(instructor) ? 'an admin' : 'an instructor'}.
+                  {canViewAllCourses(instructor) ? t('course.viewingAsAdmin') : t('course.viewingAsInstructor')}
                 </p>
               </div>
             )}
@@ -553,7 +553,7 @@ export default function CoursePage() {
             {isInstructor && canViewAllCourses(instructor) && (
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <div className="p-4 border-b border-gray-200">
-                  <h3 className="text-sm font-bold text-gray-900">Manage Instructors</h3>
+                  <h3 className="text-sm font-bold text-gray-900">{t('course.manageInstructors')}</h3>
                 </div>
 
                 {/* Messages */}
@@ -572,11 +572,11 @@ export default function CoursePage() {
                 {/* Assigned Instructors */}
                 <div className="p-4">
                   <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">
-                    Assigned ({courseInstructors.length})
+                    {t('course.assigned')} ({courseInstructors.length})
                   </h4>
                   {courseInstructors.length === 0 ? (
                     <p className="text-xs text-gray-500 text-center py-4">
-                      No instructors assigned yet.
+                      {t('course.noInstructorsAssigned')}
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -611,7 +611,7 @@ export default function CoursePage() {
                             disabled={assignLoading}
                             className="px-2 py-1 text-xs font-semibold rounded text-red-600 border border-red-200 hover:bg-red-50 transition-all disabled:opacity-50 flex-shrink-0"
                           >
-                            Remove
+                            {t('course.remove')}
                           </button>
                         </div>
                       ))}
@@ -622,11 +622,11 @@ export default function CoursePage() {
                 {/* Available Instructors */}
                 <div className="p-4 pt-0">
                   <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">
-                    Add Instructor
+                    {t('course.addInstructor')}
                   </h4>
                   {allInstructors.filter(i => !courseInstructors.find(ci => ci.id === i.id)).length === 0 ? (
                     <p className="text-xs text-gray-500 text-center py-4">
-                      All instructors are already assigned.
+                      {t('course.allInstructorsAssigned')}
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -663,7 +663,7 @@ export default function CoursePage() {
                               disabled={assignLoading}
                               className="px-2 py-1 text-xs font-semibold rounded text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 flex-shrink-0"
                             >
-                              Add
+                              {t('course.add')}
                             </button>
                           </div>
                         ))}
@@ -675,7 +675,7 @@ export default function CoursePage() {
 
             {/* Course Info Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Course Details</h3>
+              <h3 className="text-sm font-bold text-gray-900 mb-3">{t('course.courseDetails')}</h3>
               <div className="space-y-3 text-sm">
                 {course.course_data?.logistics?.startDate && (
                   <div className="flex items-start gap-2">
@@ -683,7 +683,7 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Start Date</p>
+                      <p className="font-semibold text-gray-900">{t('course.startDate')}</p>
                       <p className="text-gray-600">{course.course_data.logistics.startDate}</p>
                     </div>
                   </div>
@@ -695,7 +695,7 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Duration</p>
+                      <p className="font-semibold text-gray-900">{t('course.duration')}</p>
                       <p className="text-gray-600">{course.course_data.logistics.duration}</p>
                     </div>
                   </div>
@@ -707,7 +707,7 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Schedule</p>
+                      <p className="font-semibold text-gray-900">{t('course.schedule')}</p>
                       <p className="text-gray-600">{course.course_data.logistics.schedule}</p>
                       <p className="text-gray-600">{course.course_data.logistics.scheduleDetail}</p>
                     </div>
@@ -720,7 +720,7 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Modality</p>
+                      <p className="font-semibold text-gray-900">{t('course.modality')}</p>
                       <p className="text-gray-600">{course.course_data.logistics.modality}</p>
                     </div>
                   </div>
@@ -732,7 +732,7 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Total Hours</p>
+                      <p className="font-semibold text-gray-900">{t('course.totalHours')}</p>
                       <p className="text-gray-600">{course.course_data.logistics.hours}</p>
                     </div>
                   </div>
@@ -745,7 +745,7 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Tools</p>
+                      <p className="font-semibold text-gray-900">{t('course.tools')}</p>
                       <p className="text-gray-600">{course.course_data.logistics.tools}</p>
                     </div>
                   </div>
@@ -757,8 +757,8 @@ export default function CoursePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                     <div>
-                      <p className="font-semibold text-gray-900">Enrolled Students</p>
-                      <p className="text-gray-600">{course.enrollment_count} students</p>
+                      <p className="font-semibold text-gray-900">{t('course.enrolledStudents')}</p>
+                      <p className="text-gray-600">{course.enrollment_count} {t('course.studentsCount')}</p>
                     </div>
                   </div>
                 )}

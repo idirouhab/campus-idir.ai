@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getCourseStudentsAction, getCourseByIdAction, updateStudentStatusAction, deleteStudentFromCourseAction } from '@/lib/course-actions';
 import { Instructor } from '@/types/database';
@@ -25,6 +26,7 @@ export default function CourseStudentsPage() {
   const router = useRouter();
   const params = useParams();
   const courseId = params?.courseId as string;
+  const { t } = useLanguage();
 
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [courseName, setCourseName] = useState<string>('');
@@ -82,18 +84,18 @@ export default function CourseStudentsPage() {
         if (studentsResult.success && studentsResult.data) {
           setStudents(studentsResult.data);
         } else {
-          setError(studentsResult.error || 'Failed to load students');
+          setError(studentsResult.error || t('instructor.students.failedToLoad'));
         }
       } catch (err: any) {
         console.error('Error loading data:', err);
-        setError(err.message || 'An error occurred');
+        setError(err.message || t('instructor.students.errorOccurred'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [courseId, router]);
+  }, [courseId, router, t]);
 
   // Handle status update
   const handleStatusChange = async (signupId: string, newStatus: 'pending' | 'confirmed' | 'enrolled') => {
@@ -108,13 +110,13 @@ export default function CourseStudentsPage() {
         setStudents(students.map(s =>
           s.id === signupId ? { ...s, signup_status: newStatus } : s
         ));
-        setSuccess('Status updated successfully');
+        setSuccess(t('instructor.students.statusUpdated'));
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(result.error || 'Failed to update status');
+        setError(result.error || t('instructor.students.failedToUpdate'));
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || t('instructor.students.errorOccurred'));
     } finally {
       setUpdatingStatusId(null);
     }
@@ -122,7 +124,7 @@ export default function CourseStudentsPage() {
 
   // Handle delete
   const handleDelete = async (signupId: string, studentName: string) => {
-    if (!confirm(`Are you sure you want to remove ${studentName} from this course? This action cannot be undone.`)) {
+    if (!confirm(t('instructor.students.confirmDelete').replace('{name}', studentName))) {
       return;
     }
 
@@ -135,13 +137,13 @@ export default function CourseStudentsPage() {
       if (result.success) {
         // Remove from local state
         setStudents(students.filter(s => s.id !== signupId));
-        setSuccess('Student removed successfully');
+        setSuccess(t('instructor.students.studentRemoved'));
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(result.error || 'Failed to delete student');
+        setError(result.error || t('instructor.students.failedToDelete'));
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || t('instructor.students.errorOccurred'));
     } finally {
       setDeletingId(null);
     }
@@ -194,7 +196,7 @@ export default function CourseStudentsPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading students...</p>
+          <p className="mt-4 text-gray-600">{t('instructor.students.loadingStudents')}</p>
         </div>
       </div>
     );
@@ -241,10 +243,10 @@ export default function CourseStudentsPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Dashboard
+            {t('instructor.students.backToDashboard')}
           </Link>
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-4">
-            Students Enrolled in <span className="text-[#10b981]">{courseName}</span>
+            {t('instructor.students.title')} <span className="text-[#10b981]">{courseName}</span>
           </h1>
 
           {/* Tab Navigation */}
@@ -255,33 +257,33 @@ export default function CourseStudentsPage() {
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/edit`)}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Edit Course
+                {t('instructor.editCourse.tabs.editCourse')}
               </button>
               <button
                 type="button"
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/materials`)}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Materials
+                {t('instructor.editCourse.tabs.materials')}
               </button>
               <button
                 type="button"
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/sessions`)}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Sessions
+                {t('instructor.editCourse.tabs.sessions')}
               </button>
               <button
                 type="button"
                 className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
               >
-                Students
+                {t('instructor.editCourse.tabs.students')}
               </button>
             </nav>
           </div>
 
           <p className="text-sm md:text-base text-gray-600 mt-2">
-            {filteredAndSortedStudents.length} of {students.length} {students.length === 1 ? 'student' : 'students'}
+            {filteredAndSortedStudents.length} {t('instructor.students.studentsCount')} {students.length} {students.length === 1 ? t('instructor.students.student') : t('instructor.students.studentsPlural')}
           </p>
         </div>
 
@@ -304,8 +306,8 @@ export default function CourseStudentsPage() {
             <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            <p className="text-gray-600 font-semibold">No students enrolled yet</p>
-            <p className="text-sm text-gray-500 mt-1">Students will appear here once they sign up for this course.</p>
+            <p className="text-gray-600 font-semibold">{t('instructor.students.noStudents')}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('instructor.students.noStudentsMessage')}</p>
           </div>
         ) : (
           <>
@@ -315,7 +317,7 @@ export default function CourseStudentsPage() {
                 {/* Search */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Search
+                    {t('instructor.students.search')}
                   </label>
                   <div className="relative">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,7 +325,7 @@ export default function CourseStudentsPage() {
                     </svg>
                     <input
                       type="text"
-                      placeholder="Search by name or email..."
+                      placeholder={t('instructor.students.searchPlaceholder')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-sm"
@@ -334,36 +336,36 @@ export default function CourseStudentsPage() {
                 {/* Status Filter */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Filter by Status
+                    {t('instructor.students.filterByStatus')}
                   </label>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-sm"
                   >
-                    <option value="all">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="enrolled">Enrolled</option>
+                    <option value="all">{t('instructor.students.allStatuses')}</option>
+                    <option value="pending">{t('instructor.students.pending')}</option>
+                    <option value="confirmed">{t('instructor.students.confirmed')}</option>
+                    <option value="enrolled">{t('instructor.students.enrolled')}</option>
                   </select>
                 </div>
 
                 {/* Sort */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Sort By
+                    {t('instructor.students.sortBy')}
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
                     className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-sm"
                   >
-                    <option value="date_desc">Newest First</option>
-                    <option value="date_asc">Oldest First</option>
-                    <option value="name_asc">Name (A-Z)</option>
-                    <option value="name_desc">Name (Z-A)</option>
-                    <option value="status_asc">Status (A-Z)</option>
-                    <option value="status_desc">Status (Z-A)</option>
+                    <option value="date_desc">{t('instructor.students.newestFirst')}</option>
+                    <option value="date_asc">{t('instructor.students.oldestFirst')}</option>
+                    <option value="name_asc">{t('instructor.students.nameAZ')}</option>
+                    <option value="name_desc">{t('instructor.students.nameZA')}</option>
+                    <option value="status_asc">{t('instructor.students.statusAZ')}</option>
+                    <option value="status_desc">{t('instructor.students.statusZA')}</option>
                   </select>
                 </div>
               </div>
@@ -375,8 +377,8 @@ export default function CourseStudentsPage() {
                 <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <p className="text-gray-600 font-semibold">No students match your filters</p>
-                <p className="text-sm text-gray-500 mt-1">Try adjusting your search or filter criteria.</p>
+                <p className="text-gray-600 font-semibold">{t('instructor.students.noMatchingStudents')}</p>
+                <p className="text-sm text-gray-500 mt-1">{t('instructor.students.adjustFilters')}</p>
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm overflow-hidden">
@@ -386,22 +388,22 @@ export default function CourseStudentsPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Student
+                          {t('instructor.students.studentColumn')}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Email
+                          {t('instructor.students.emailColumn')}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Status
+                          {t('instructor.students.statusColumn')}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Enrolled
+                          {t('instructor.students.enrolledColumn')}
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Language
+                          {t('instructor.students.languageColumn')}
                         </th>
                         <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Actions
+                          {t('instructor.students.actionsColumn')}
                         </th>
                       </tr>
                     </thead>
@@ -434,9 +436,9 @@ export default function CourseStudentsPage() {
                               disabled={updatingStatusId === student.id}
                               className={`px-2 py-1 text-xs font-semibold rounded border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#10b981] disabled:opacity-50 disabled:cursor-not-allowed ${getStatusBadgeClass(student.signup_status)}`}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed</option>
-                              <option value="enrolled">Enrolled</option>
+                              <option value="pending">{t('instructor.students.pending')}</option>
+                              <option value="confirmed">{t('instructor.students.confirmed')}</option>
+                              <option value="enrolled">{t('instructor.students.enrolled')}</option>
                             </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -453,7 +455,7 @@ export default function CourseStudentsPage() {
                               onClick={() => handleDelete(student.id, `${student.first_name} ${student.last_name}`)}
                               disabled={deletingId === student.id}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                              title="Remove student"
+                              title={t('instructor.students.removeStudent')}
                             >
                               {deletingId === student.id ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -496,9 +498,9 @@ export default function CourseStudentsPage() {
                               disabled={updatingStatusId === student.id}
                               className={`px-2 py-1 font-semibold rounded border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#10b981] disabled:opacity-50 disabled:cursor-not-allowed ${getStatusBadgeClass(student.signup_status)}`}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed</option>
-                              <option value="enrolled">Enrolled</option>
+                              <option value="pending">{t('instructor.students.pending')}</option>
+                              <option value="confirmed">{t('instructor.students.confirmed')}</option>
+                              <option value="enrolled">{t('instructor.students.enrolled')}</option>
                             </select>
                             <span className="text-gray-500">•</span>
                             <span className="text-gray-600">
@@ -516,7 +518,7 @@ export default function CourseStudentsPage() {
                             disabled={deletingId === student.id}
                             className="w-full px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
                           >
-                            {deletingId === student.id ? 'Removing...' : 'Remove Student'}
+                            {deletingId === student.id ? t('instructor.students.removing') : t('instructor.students.removeStudentButton')}
                           </button>
                         </div>
                       </div>

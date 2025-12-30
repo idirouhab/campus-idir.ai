@@ -137,14 +137,60 @@ export default function SessionMaterialsManager({
     }
   };
 
-  const handleMaterialDeleted = (materialId: string) => {
-    setMaterials((prev) => prev.filter((m) => m.id !== materialId));
+  const handleMaterialRename = async (materialId: string, newName: string) => {
+    try {
+      const response = await fetch(`/api/materials/${materialId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || '',
+        },
+        body: JSON.stringify({ displayFilename: newName }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMaterials(prev => prev.map(m => m.id === materialId ? data.material : m));
+        setSuccess('File renamed successfully');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(data.error || 'Failed to rename file');
+        setTimeout(() => setError(null), 5000);
+      }
+    } catch (error) {
+      console.error('Rename error:', error);
+      setError('Failed to rename file');
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
-  const handleMaterialUpdated = (updatedMaterial: CourseMaterial) => {
-    setMaterials((prev) =>
-      prev.map((m) => (m.id === updatedMaterial.id ? updatedMaterial : m))
-    );
+  const handleMaterialDelete = async (materialId: string) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+
+    try {
+      const response = await fetch(`/api/materials/${materialId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-csrf-token': csrfToken || '',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMaterials(prev => prev.filter(m => m.id !== materialId));
+        setSuccess('File deleted successfully');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(data.error || 'Failed to delete file');
+        setTimeout(() => setError(null), 5000);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      setError('Failed to delete file');
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   return (
@@ -231,9 +277,9 @@ export default function SessionMaterialsManager({
             <MaterialItem
               key={material.id}
               material={material}
-              csrfToken={csrfToken}
-              onDeleted={handleMaterialDeleted}
-              onUpdated={handleMaterialUpdated}
+              onRename={handleMaterialRename}
+              onDelete={handleMaterialDelete}
+              isUploading={uploadingFiles.has(material.original_filename)}
             />
           ))}
         </div>

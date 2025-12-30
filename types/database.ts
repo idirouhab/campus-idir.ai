@@ -37,6 +37,7 @@ export interface InstructorProfile {
   website_url?: string;
   role: InstructorRole;
   preferred_language: 'en' | 'es';
+  timezone?: string;
   created_at: string;
   updated_at: string;
 }

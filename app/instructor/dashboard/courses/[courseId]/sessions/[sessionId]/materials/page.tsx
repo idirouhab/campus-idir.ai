@@ -87,7 +87,7 @@ export default function SessionMaterialsPage() {
       <SessionMaterialsManager
         courseId={courseId}
         sessionId={sessionId}
-        csrfToken={csrfToken}
+        csrfToken={csrfToken || undefined}
       />
     </div>
   );

@@ -22,7 +22,8 @@ export async function instructorSignUpAction(
   firstName: string,
   lastName: string,
   dateOfBirth: string,
-  country: string
+  country: string,
+  timezone: string = 'America/New_York'
 ): Promise<InstructorAuthResponse> {
   try {
     const sql = getDb();
@@ -87,8 +88,8 @@ export async function instructorSignUpAction(
 
       // Create instructor profile (without birthday as it's now in users table)
       await sql`
-        INSERT INTO instructor_profiles (user_id, role, preferred_language)
-        VALUES (${userId}, 'instructor', 'en')
+        INSERT INTO instructor_profiles (user_id, role, preferred_language, timezone)
+        VALUES (${userId}, 'instructor', 'en', ${timezone})
       `;
     } else {
       // New user - create account
@@ -128,8 +129,8 @@ export async function instructorSignUpAction(
 
       // Create instructor profile (without birthday as it's now in users table)
       await sql`
-        INSERT INTO instructor_profiles (user_id, role, preferred_language)
-        VALUES (${userId}, 'instructor', 'en')
+        INSERT INTO instructor_profiles (user_id, role, preferred_language, timezone)
+        VALUES (${userId}, 'instructor', 'en', ${timezone})
       `;
     }
 
@@ -192,7 +193,7 @@ export async function instructorSignInAction(
       SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.password_hash, u.birthday,
              ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
+             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language, ip.timezone,
              ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
       FROM users u
       LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
@@ -273,6 +274,7 @@ export async function instructorSignInAction(
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
+        timezone: user.timezone,
         created_at: user.profile_created_at,
         updated_at: user.profile_updated_at,
       } : undefined,
@@ -335,6 +337,7 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
+        timezone: user.timezone,
         created_at: user.profile_created_at,
         updated_at: user.profile_updated_at,
       } : undefined,
@@ -356,6 +359,7 @@ export async function updateInstructorProfileAction(
   country: string,
   description?: string,
   preferredLanguage?: 'en' | 'es',
+  timezone?: string,
   linkedinUrl?: string,
   websiteUrl?: string,
   xUrl?: string,
@@ -403,6 +407,7 @@ export async function updateInstructorProfileAction(
       UPDATE instructor_profiles
       SET description = ${description || null},
           preferred_language = ${preferredLanguage || 'en'},
+          timezone = ${timezone || 'America/New_York'},
           linkedin_url = ${linkedinUrl || null},
           website_url = ${websiteUrl || null},
           x_url = ${xUrl || null},
@@ -448,6 +453,7 @@ export async function updateInstructorProfileAction(
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
+        timezone: user.timezone,
         created_at: user.profile_created_at,
         updated_at: user.profile_updated_at,
       } : undefined,

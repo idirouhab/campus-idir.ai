@@ -10,6 +10,7 @@ import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import imageCompression from 'browser-image-compression';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
+import { COMMON_TIMEZONES } from '@/lib/timezone-utils';
 
 const COUNTRIES = {
   US: { en: 'United States', es: 'Estados Unidos' },
@@ -42,6 +43,7 @@ export default function InstructorProfilePage() {
   const [country, setCountry] = useState('');
   const [description, setDescription] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState<'en' | 'es'>('en');
+  const [timezone, setTimezone] = useState('America/New_York');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [xUrl, setXUrl] = useState('');
@@ -97,6 +99,7 @@ export default function InstructorProfilePage() {
       setCountry(instructor.country || '');
       setDescription(instructor.profile?.description || '');
       setPreferredLanguage(instructor.profile?.preferred_language || 'en');
+      setTimezone(instructor.profile?.timezone || 'America/New_York');
       setLinkedinUrl(instructor.profile?.linkedin_url || '');
       setWebsiteUrl(instructor.profile?.website_url || '');
       setXUrl(instructor.profile?.x_url || '');
@@ -233,6 +236,7 @@ export default function InstructorProfilePage() {
         country,
         description,
         preferredLanguage,
+        timezone,
         linkedinUrl,
         websiteUrl,
         xUrl,
@@ -545,6 +549,25 @@ export default function InstructorProfilePage() {
               >
                 <option value="en">English</option>
                 <option value="es">Español</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="timezone" className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                Timezone
+              </label>
+              <select
+                id="timezone"
+                name="timezone"
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+              >
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
               </select>
             </div>
 

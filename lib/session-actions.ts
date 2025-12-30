@@ -1,9 +1,65 @@
 'use server';
 
 import { getDb } from '@/lib/db';
-import { CourseSession } from '@/types/database';
+import { CourseSession, Instructor } from '@/types/database';
 import { requireUserType } from '@/lib/session';
 import { canViewAllCourses } from '@/lib/roles';
+
+/**
+ * Helper function to fetch instructor with proper structure
+ */
+async function getInstructorById(instructorId: string): Promise<Instructor | null> {
+  const sql = getDb();
+
+  const rows = await sql`
+    SELECT
+      u.id, u.email, u.first_name, u.last_name, u.country, u.birthday,
+      u.is_active, u.email_verified, u.created_at, u.updated_at, u.last_login_at,
+      ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
+      ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url,
+      ip.role, ip.preferred_language, ip.timezone,
+      ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+    FROM users u
+    INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+    WHERE u.id = ${instructorId}
+  `;
+
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+
+  // Construct Instructor object with nested profile
+  const instructor: Instructor = {
+    id: row.id,
+    email: row.email,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    country: row.country || undefined,
+    birthday: row.birthday || undefined,
+    is_active: row.is_active,
+    email_verified: row.email_verified,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    last_login_at: row.last_login_at || undefined,
+    profile: {
+      user_id: row.profile_user_id,
+      title: row.title || undefined,
+      description: row.description || undefined,
+      picture_url: row.picture_url || undefined,
+      linkedin_url: row.linkedin_url || undefined,
+      x_url: row.x_url || undefined,
+      youtube_url: row.youtube_url || undefined,
+      website_url: row.website_url || undefined,
+      role: row.role,
+      preferred_language: row.preferred_language,
+      timezone: row.timezone || undefined,
+      created_at: row.profile_created_at,
+      updated_at: row.profile_updated_at,
+    },
+  };
+
+  return instructor;
+}
 
 /**
  * Get all sessions for a course (ordered by display_order)
@@ -18,18 +74,11 @@ export async function getCourseSessionsAction(courseId: string): Promise<{
     const sql = getDb();
 
     // Verify instructor has access to the course
-    const instructors = await sql`
-      SELECT u.*, ip.role
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${session.id}
-    `;
+    const instructor = await getInstructorById(session.id);
 
-    if (instructors.length === 0) {
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0];
 
     // Check if instructor has access to this course
     if (!canViewAllCourses(instructor)) {
@@ -53,7 +102,7 @@ export async function getCourseSessionsAction(courseId: string): Promise<{
 
     return {
       success: true,
-      data: sessions as CourseSession[],
+      data: sessions as unknown as CourseSession[],
     };
   } catch (error: any) {
     console.error('Error fetching course sessions:', error);
@@ -81,18 +130,11 @@ export async function createSessionAction(sessionData: {
     const sql = getDb();
 
     // Verify instructor has access to the course
-    const instructors = await sql`
-      SELECT u.*, ip.role
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${session.id}
-    `;
+    const instructor = await getInstructorById(session.id);
 
-    if (instructors.length === 0) {
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0];
 
     // Check if instructor has access to this course
     if (!canViewAllCourses(instructor)) {
@@ -135,7 +177,7 @@ export async function createSessionAction(sessionData: {
 
     return {
       success: true,
-      data: newSessions[0] as CourseSession,
+      data: newSessions[0] as unknown as CourseSession,
     };
   } catch (error: any) {
     console.error('Error creating session:', error);
@@ -176,18 +218,11 @@ export async function updateSessionAction(
     const courseId = existingSessions[0].course_id;
 
     // Verify instructor has access to the course
-    const instructors = await sql`
-      SELECT u.*, ip.role
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${session.id}
-    `;
+    const instructor = await getInstructorById(session.id);
 
-    if (instructors.length === 0) {
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0];
 
     // Check if instructor has access to this course
     if (!canViewAllCourses(instructor)) {
@@ -238,7 +273,7 @@ export async function updateSessionAction(
 
     return {
       success: true,
-      data: updatedSessions[0] as CourseSession,
+      data: updatedSessions[0] as unknown as CourseSession,
     };
   } catch (error: any) {
     console.error('Error updating session:', error);
@@ -272,18 +307,11 @@ export async function deleteSessionAction(sessionId: string): Promise<{
     const courseId = existingSessions[0].course_id;
 
     // Verify instructor has access to the course
-    const instructors = await sql`
-      SELECT u.*, ip.role
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${session.id}
-    `;
+    const instructor = await getInstructorById(session.id);
 
-    if (instructors.length === 0) {
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0];
 
     // Check if instructor has access to this course
     if (!canViewAllCourses(instructor)) {
@@ -322,18 +350,11 @@ export async function reorderSessionsAction(
     const sql = getDb();
 
     // Verify instructor has access to the course
-    const instructors = await sql`
-      SELECT u.*, ip.role
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${session.id}
-    `;
+    const instructor = await getInstructorById(session.id);
 
-    if (instructors.length === 0) {
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0];
 
     // Check if instructor has access to this course
     if (!canViewAllCourses(instructor)) {
