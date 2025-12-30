@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useInstructorAuth } from '@/hooks/useInstructorAuth';
 import { CourseMaterial } from '@/types/database';
 import MaterialItem from '@/components/courses/MaterialItem';
@@ -229,6 +230,15 @@ export default function ManageCourseMaterialsPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
         {/* Header with navigation tabs */}
         <div className="mb-6">
+          <Link
+            href="/instructor/dashboard"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#10b981] mb-4 font-semibold transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </Link>
           <h1 className="text-3xl font-black text-gray-900 mb-2">Manage Course Materials</h1>
           <p className="text-gray-600 mb-4">{courseName}</p>
 
@@ -245,6 +255,12 @@ export default function ManageCourseMaterialsPage() {
                 className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
               >
                 Materials
+              </button>
+              <button
+                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/sessions`)}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Sessions
               </button>
               <button
                 onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/students`)}

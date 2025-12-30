@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const courseId = formData.get('courseId') as string;
+    const sessionId = formData.get('sessionId') as string | null;
     const displayFilename = formData.get('displayFilename') as string | null;
 
     if (!file || !courseId) {
@@ -69,12 +70,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Sanitize filename
+    // 6. Sanitize filename and determine storage path
     const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const timestamp = Date.now();
     const extension = sanitizedFilename.split('.').pop();
     const storageFilename = `${timestamp}-${sanitizedFilename}`;
-    const filePath = `course-materials/${courseId}/${storageFilename}`;
+
+    // Use sessions subdirectory if sessionId provided
+    const filePath = sessionId
+      ? `course-materials/${courseId}/sessions/${sessionId}/${storageFilename}`
+      : `course-materials/${courseId}/${storageFilename}`;
 
     // 7. Upload to Supabase Storage (course-materials bucket)
     const bytes = await file.arrayBuffer();
@@ -109,6 +114,7 @@ export async function POST(request: NextRequest) {
     const [material] = await sql`
       INSERT INTO course_materials (
         course_id,
+        session_id,
         uploaded_by,
         original_filename,
         display_filename,
@@ -118,6 +124,7 @@ export async function POST(request: NextRequest) {
         mime_type
       ) VALUES (
         ${courseId},
+        ${sessionId || null},
         ${session.id},
         ${sanitizedFilename},
         ${finalDisplayFilename},

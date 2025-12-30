@@ -101,9 +101,23 @@ export interface CourseInstructor {
   updated_at: string;
 }
 
+export interface CourseSession {
+  id: string;
+  course_id: string;
+  title: string;
+  description?: string;
+  session_date: string; // ISO 8601 string (UTC)
+  duration_minutes: number;
+  display_order: number;
+  timezone: string; // IANA timezone (e.g., 'America/New_York')
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CourseMaterial {
   id: string;
   course_id: string;
+  session_id?: string; // NULL = course-level material, NOT NULL = session-specific material
   uploaded_by: string;
   original_filename: string;
   display_filename: string;

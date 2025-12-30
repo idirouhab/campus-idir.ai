@@ -10,13 +10,15 @@ import MarkdownContent from '@/components/MarkdownContent';
 import Cookies from 'js-cookie';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getCourseByIdAction, getAllInstructorsAction } from '@/lib/course-actions';
-import { Instructor, CourseMaterial } from '@/types/database';
+import { Instructor, CourseMaterial, CourseSession } from '@/types/database';
 import { canViewAllCourses } from '@/lib/roles';
 import {
   assignInstructorToCourseAction,
   removeInstructorFromCourseAction,
   getCourseInstructorsAction,
 } from '@/lib/instructor-assignment-actions';
+import { getCourseSessionsAction } from '@/lib/session-actions';
+import SessionsList from '@/components/courses/SessionsList';
 
 export default function CoursePage() {
   const { user, loading: authLoading } = useAuth();
@@ -40,6 +42,10 @@ export default function CoursePage() {
   // Course materials state (for students)
   const [materials, setMaterials] = useState<CourseMaterial[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(false);
+
+  // Course sessions state
+  const [sessions, setSessions] = useState<CourseSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
   const { course, loading: courseLoading } = useCourse(slug);
   const { hasAccess, loading: accessLoading } = useCheckCourseAccess(
@@ -149,6 +155,27 @@ export default function CoursePage() {
 
     fetchMaterials();
   }, [user, course, hasAccess]);
+
+  // Fetch course sessions
+  useEffect(() => {
+    const fetchSessions = async () => {
+      if (!course) return;
+
+      setSessionsLoading(true);
+      try {
+        const result = await getCourseSessionsAction(course.id);
+        if (result.success && result.data) {
+          setSessions(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching course sessions:', error);
+      } finally {
+        setSessionsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, [course]);
 
   // Redirect to login only if neither student nor instructor is authenticated
   useEffect(() => {
@@ -472,16 +499,24 @@ export default function CoursePage() {
               </div>
             )}
 
-            {/* Course Content Structure - TODO: Implement lessons/modules */}
-            {isStudent && (
+            {/* Course Sessions */}
+            {sessions.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-6">
                   <svg className="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <h2 className="text-xl font-bold text-gray-900">Course Curriculum</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Course Sessions</h2>
                 </div>
-                <p className="text-gray-600">Detailed course curriculum and lessons will be available here.</p>
+
+                {sessionsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto"></div>
+                    <p className="text-sm text-gray-500 mt-4">Loading sessions...</p>
+                  </div>
+                ) : (
+                  <SessionsList sessions={sessions} courseId={course.id} />
+                )}
               </div>
             )}
           </div>
