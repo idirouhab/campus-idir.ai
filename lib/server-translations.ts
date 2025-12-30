@@ -1,16 +1,28 @@
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+// Import translations directly as modules
+import enTranslations from '@/public/locales/en.json';
+import esTranslations from '@/public/locales/es.json';
 
 type Translations = Record<string, any>;
+
+const translationsMap: Record<string, Translations> = {
+  en: enTranslations,
+  es: esTranslations,
+};
 
 /**
  * Load translations for a given locale (server-side)
  */
 export async function loadTranslations(locale: string): Promise<Translations> {
   try {
-    const filePath = join(process.cwd(), 'public', 'locales', `${locale}.json`);
-    const fileContent = await readFile(filePath, 'utf-8');
-    return JSON.parse(fileContent);
+    const normalizedLocale = locale.toLowerCase();
+    const translations = translationsMap[normalizedLocale] || translationsMap['en'];
+
+    if (!translations) {
+      console.error(`Failed to load translations for locale ${locale}, using empty object`);
+      return {};
+    }
+
+    return translations;
   } catch (error) {
     console.error(`Failed to load translations for locale ${locale}:`, error);
     // Fallback to English if locale not found

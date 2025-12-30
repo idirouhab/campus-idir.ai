@@ -44,6 +44,14 @@ interface PasswordResetEmailParams {
 }
 
 /**
+ * Normalize locale to 'en' or 'es'
+ */
+function normalizeLocale(locale: string): string {
+  const normalized = locale.toLowerCase();
+  return normalized.startsWith('es') ? 'es' : 'en';
+}
+
+/**
  * Get localized template variables for password reset email using translations
  */
 async function getPasswordResetVariables(
@@ -52,7 +60,7 @@ async function getPasswordResetVariables(
   locale: string
 ) {
   // Normalize locale to match our translation files
-  const normalizedLocale = locale.startsWith('es') ? 'es' : 'en';
+  const normalizedLocale = normalizeLocale(locale);
   const currentYear = new Date().getFullYear().toString();
 
   // Load translations for the locale
@@ -89,7 +97,7 @@ async function getPasswordResetVariables(
  * Get localized subject line using translations
  */
 async function getSubject(locale: string): Promise<string> {
-  const normalizedLocale = locale.startsWith('es') ? 'es' : 'en';
+  const normalizedLocale = normalizeLocale(locale);
   const translations = await loadTranslations(normalizedLocale);
   return t(translations, 'resetPassword.email.subject');
 }
@@ -98,7 +106,7 @@ async function getSubject(locale: string): Promise<string> {
  * Get localized sender name and preposition using translations
  */
 async function getSenderName(locale: string): Promise<string> {
-  const normalizedLocale = locale.startsWith('es') ? 'es' : 'en';
+  const normalizedLocale = normalizeLocale(locale);
   const translations = await loadTranslations(normalizedLocale);
   const name = t(translations, 'resetPassword.email.senderName');
   const preposition = t(translations, 'resetPassword.email.senderPreposition');
@@ -127,6 +135,14 @@ export async function sendPasswordResetEmail({
       getSubject(locale),
       getSenderName(locale),
     ]);
+
+    console.log('[EMAIL] Template variables preview:', {
+      subject,
+      senderName,
+      greeting: templateVariables.greeting,
+      message1: templateVariables.message1?.substring(0, 50) + '...',
+      locale: templateVariables.language,
+    });
 
     // Construct sender with localized preposition: "Idir from idir.ai <noreply@idir.ai>"
     const fromEmail = `${senderName} <${FROM_EMAIL_ADDRESS}>`;
