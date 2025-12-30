@@ -65,7 +65,16 @@
     "signOut": "Cerrar Sesión",
     "menu": "Menú",
     "closeMenu": "Cerrar menú",
-    "openMenu": "Abrir menú"
+    "openMenu": "Abrir menú",
+    "student": "Estudiante",
+    "instructor": "Instructor",
+    "myProfile": "Mi Perfil",
+    "updateMyProfile": "Actualizar Mi Perfil",
+    "manageInstructors": "Gestionar Instructores",
+    "switchView": "Cambiar Vista",
+    "studentView": "Vista de Estudiante",
+    "instructorView": "Vista de Instructor",
+    "logOut": "Cerrar Sesión"
   },
   "dashboard": {
     "title": "Mis",

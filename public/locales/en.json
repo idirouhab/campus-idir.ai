@@ -65,7 +65,16 @@
     "signOut": "Sign Out",
     "menu": "Menu",
     "closeMenu": "Close menu",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "student": "Student",
+    "instructor": "Instructor",
+    "myProfile": "My Profile",
+    "updateMyProfile": "Update My Profile",
+    "manageInstructors": "Manage Instructors",
+    "switchView": "Switch View",
+    "studentView": "Student View",
+    "instructorView": "Instructor View",
+    "logOut": "Log-out"
   },
   "dashboard": {
     "title": "My",

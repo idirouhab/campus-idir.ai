@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
 import { Calendar, Clock, FileText, Download } from 'lucide-react';
 import { formatSessionDateLong, formatDuration } from '@/lib/timezone-utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SessionsListProps {
   sessions: CourseSession[];
@@ -32,6 +33,10 @@ function getFileTypeColor(fileType: string): string {
 export default function SessionsList({ sessions, courseId }: SessionsListProps) {
   const [materialsMap, setMaterialsMap] = useState<Record<string, CourseMaterial[]>>({});
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const { language } = useLanguage();
+
+  // Map language code to locale
+  const locale = language === 'es' ? 'es-ES' : 'en-US';
 
   // Fetch materials for all sessions
   useEffect(() => {
@@ -106,7 +111,7 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-1.5">
                   <Calendar size={16} className="text-emerald-600" />
-                  <span>{formatSessionDateLong(session.session_date, session.timezone)}</span>
+                  <span>{formatSessionDateLong(session.session_date, session.timezone, locale)}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Clock size={16} className="text-emerald-600" />

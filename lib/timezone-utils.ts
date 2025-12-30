@@ -4,12 +4,14 @@ import { Instructor } from '@/types/database';
  * Format session date in specific timezone
  * @param isoDate ISO 8601 date string (UTC)
  * @param timezone IANA timezone (e.g., 'America/New_York')
+ * @param locale Locale string (e.g., 'en-US', 'es-ES') - defaults to 'en-US'
  * @param options Intl.DateTimeFormatOptions for custom formatting
  * @returns Formatted date string
  */
 export function formatSessionDate(
   isoDate: string,
   timezone: string,
+  locale: string = 'en-US',
   options?: Intl.DateTimeFormatOptions
 ): string {
   try {
@@ -25,7 +27,7 @@ export function formatSessionDate(
       ...options,
     };
 
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(locale, {
       ...defaultOptions,
       timeZone: timezone,
     }).format(date);
@@ -38,8 +40,8 @@ export function formatSessionDate(
 /**
  * Format session date for display (e.g., "Jan 15, 2025 at 7:00 PM EST")
  */
-export function formatSessionDateLong(isoDate: string, timezone: string): string {
-  return formatSessionDate(isoDate, timezone, {
+export function formatSessionDateLong(isoDate: string, timezone: string, locale: string = 'en-US'): string {
+  return formatSessionDate(isoDate, timezone, locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -52,8 +54,8 @@ export function formatSessionDateLong(isoDate: string, timezone: string): string
 /**
  * Format session date for short display (e.g., "Jan 15, 7:00 PM")
  */
-export function formatSessionDateShort(isoDate: string, timezone: string): string {
-  return formatSessionDate(isoDate, timezone, {
+export function formatSessionDateShort(isoDate: string, timezone: string, locale: string = 'en-US'): string {
+  return formatSessionDate(isoDate, timezone, locale, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -64,8 +66,8 @@ export function formatSessionDateShort(isoDate: string, timezone: string): strin
 /**
  * Format session time only (e.g., "7:00 PM EST")
  */
-export function formatSessionTime(isoDate: string, timezone: string): string {
-  return formatSessionDate(isoDate, timezone, {
+export function formatSessionTime(isoDate: string, timezone: string, locale: string = 'en-US'): string {
+  return formatSessionDate(isoDate, timezone, locale, {
     hour: 'numeric',
     minute: '2-digit',
     timeZoneName: 'short',

@@ -195,7 +195,7 @@ export default function Navigation() {
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    Student
+                    {t('navigation.student')}
                   </button>
                   <button
                     onClick={() => handleSwitchView('instructor')}
@@ -205,7 +205,7 @@ export default function Navigation() {
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    Instructor
+                    {t('navigation.instructor')}
                   </button>
                 </div>
               )}
@@ -266,7 +266,7 @@ export default function Navigation() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                               </svg>
-                              Dashboard
+                              {t('navigation.dashboard')}
                             </Link>
                             {instructorRole === 'admin' && (
                               <Link
@@ -277,7 +277,7 @@ export default function Navigation() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
-                                Manage Instructors
+                                {t('navigation.manageInstructors')}
                               </Link>
                             )}
                             <Link
@@ -288,7 +288,7 @@ export default function Navigation() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
-                              Update My Profile
+                              {t('navigation.updateMyProfile')}
                             </Link>
                           </>
                         ) : (
@@ -301,7 +301,7 @@ export default function Navigation() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                               </svg>
-                              My Courses
+                              {t('navigation.myCourses')}
                             </Link>
                             <Link
                               href="/dashboard/profile"
@@ -311,7 +311,7 @@ export default function Navigation() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
-                              My Profile
+                              {t('navigation.myProfile')}
                             </Link>
                           </>
                         )}
@@ -325,7 +325,7 @@ export default function Navigation() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                           </svg>
-                          Log-out
+                          {t('navigation.logOut')}
                         </button>
                       </div>
                     </>
@@ -419,7 +419,7 @@ export default function Navigation() {
                 {/* View Switcher for Dual-Role Users - Mobile */}
                 {isDualRole && (
                   <div className="mt-3 px-3">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-bold">Switch View</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-bold">{t('navigation.switchView')}</p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -432,7 +432,7 @@ export default function Navigation() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        Student
+                        {t('navigation.student')}
                       </button>
                       <button
                         onClick={() => {
@@ -445,7 +445,7 @@ export default function Navigation() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        Instructor
+                        {t('navigation.instructor')}
                       </button>
                     </div>
                   </div>
@@ -488,7 +488,7 @@ export default function Navigation() {
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
-                      Manage Instructors
+                      {t('navigation.manageInstructors')}
                     </Link>
                   )}
 
