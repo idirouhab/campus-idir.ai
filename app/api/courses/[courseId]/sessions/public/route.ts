@@ -28,38 +28,37 @@ export async function GET(
 
     if (!enrollment) {
       return NextResponse.json(
-        { error: 'You must be enrolled in this course to access materials' },
+        { error: 'You must be enrolled in this course to view sessions' },
         { status: 403 }
       );
     }
 
-    // Fetch materials for this course (including session_id for session-specific materials)
-    const materials = await sql`
+    // Fetch sessions for this course
+    const sessions = await sql`
       SELECT
         id,
         course_id,
-        session_id,
-        original_filename,
-        display_filename,
-        file_url,
-        file_type,
-        file_size_bytes,
-        mime_type,
+        title,
+        description,
+        session_date,
+        duration_minutes,
         display_order,
-        created_at
-      FROM course_materials
+        timezone,
+        created_at,
+        updated_at
+      FROM course_sessions
       WHERE course_id = ${courseId}
-      ORDER BY display_order ASC, created_at DESC
+      ORDER BY display_order ASC, session_date ASC
     `;
 
     return NextResponse.json({
       success: true,
-      materials,
+      sessions,
     });
   } catch (error) {
-    console.error('[Fetch Public Course Materials] Error:', error);
+    console.error('[Fetch Public Course Sessions] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch materials' },
+      { error: 'Failed to fetch sessions' },
       { status: 500 }
     );
   }

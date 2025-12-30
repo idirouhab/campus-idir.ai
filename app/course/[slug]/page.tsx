@@ -163,9 +163,20 @@ export default function CoursePage() {
 
       setSessionsLoading(true);
       try {
-        const result = await getCourseSessionsAction(course.id);
-        if (result.success && result.data) {
-          setSessions(result.data);
+        // Use different endpoints based on user type
+        if (user && hasAccess) {
+          // Students use public API
+          const response = await fetch(`/api/courses/${course.id}/sessions/public`);
+          const data = await response.json();
+          if (data.success) {
+            setSessions(data.sessions || []);
+          }
+        } else if (instructor) {
+          // Instructors use server action
+          const result = await getCourseSessionsAction(course.id);
+          if (result.success && result.data) {
+            setSessions(result.data);
+          }
         }
       } catch (error) {
         console.error('Error fetching course sessions:', error);
@@ -175,7 +186,7 @@ export default function CoursePage() {
     };
 
     fetchSessions();
-  }, [course]);
+  }, [course, user, instructor, hasAccess]);
 
   // Redirect to login only if neither student nor instructor is authenticated
   useEffect(() => {
@@ -345,6 +356,17 @@ export default function CoursePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
+        {/* Back to Dashboard Link */}
+        <Link
+          href={dashboardLink}
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#10b981] mb-4 font-semibold transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Dashboard
+        </Link>
+
         {/* Course Header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">{course.title}</h1>
@@ -396,14 +418,14 @@ export default function CoursePage() {
               )}
             </div>
 
-            {/* Course Materials Section - Only for Students */}
-            {isStudent && (
+            {/* Course Materials Section - Only for Students - Only course-level materials */}
+            {isStudent && materials.filter(m => !m.session_id).length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <svg className="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <h2 className="text-xl font-bold text-gray-900">Course Materials</h2>
+                  <h2 className="text-xl font-bold text-gray-900">General Course Materials</h2>
                 </div>
 
                 {materialsLoading ? (
@@ -411,17 +433,9 @@ export default function CoursePage() {
                     <div className="animate-spin w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto"></div>
                     <p className="text-sm text-gray-500 mt-4">Loading materials...</p>
                   </div>
-                ) : materials.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <svg className="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="text-lg font-medium mb-2">No materials available yet</p>
-                    <p className="text-sm">Your instructor hasn't uploaded any course materials yet.</p>
-                  </div>
                 ) : (
                   <div className="space-y-3">
-                    {materials.map((material) => {
+                    {materials.filter(m => !m.session_id).map((material) => {
                       const getFileIcon = () => {
                         switch (material.file_type.toLowerCase()) {
                           case 'pdf':
@@ -661,14 +675,91 @@ export default function CoursePage() {
 
             {/* Course Info Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">{t('course.courseInfo')}</h3>
-              <div className="space-y-2 text-sm">
+              <h3 className="text-sm font-bold text-gray-900 mb-3">Course Details</h3>
+              <div className="space-y-3 text-sm">
+                {course.course_data?.logistics?.startDate && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-gray-900">Start Date</p>
+                      <p className="text-gray-600">{course.course_data.logistics.startDate}</p>
+                    </div>
+                  </div>
+                )}
+
+                {course.course_data?.logistics?.duration && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-gray-900">Duration</p>
+                      <p className="text-gray-600">{course.course_data.logistics.duration}</p>
+                    </div>
+                  </div>
+                )}
+
+                {course.course_data?.logistics?.schedule && course.course_data?.logistics?.scheduleDetail && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-gray-900">Schedule</p>
+                      <p className="text-gray-600">{course.course_data.logistics.schedule}</p>
+                      <p className="text-gray-600">{course.course_data.logistics.scheduleDetail}</p>
+                    </div>
+                  </div>
+                )}
+
+                {course.course_data?.logistics?.modality && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-gray-900">Modality</p>
+                      <p className="text-gray-600">{course.course_data.logistics.modality}</p>
+                    </div>
+                  </div>
+                )}
+
+                {course.course_data?.logistics?.hours && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-gray-900">Total Hours</p>
+                      <p className="text-gray-600">{course.course_data.logistics.hours}</p>
+                    </div>
+                  </div>
+                )}
+
+                {course.course_data?.logistics?.tools && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-gray-900">Tools</p>
+                      <p className="text-gray-600">{course.course_data.logistics.tools}</p>
+                    </div>
+                  </div>
+                )}
+
                 {course.enrollment_count > 0 && (
-                  <div className="flex items-center text-gray-600">
-                    <svg className="w-4 h-4 mr-2 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
-                    {course.enrollment_count} {t('course.students')}
+                    <div>
+                      <p className="font-semibold text-gray-900">Enrolled Students</p>
+                      <p className="text-gray-600">{course.enrollment_count} students</p>
+                    </div>
                   </div>
                 )}
               </div>

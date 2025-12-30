@@ -9,6 +9,7 @@ import { useInstructorAuth } from '@/hooks/useInstructorAuth';
 import { Instructor } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
 import imageCompression from 'browser-image-compression';
+import Link from 'next/link';
 
 export default function EditCoursePage() {
   const router = useRouter();

@@ -156,5 +156,103 @@
     "ogDescription": "Access your enrolled courses, track your progress, and enhance your learning experience.",
     "twitterTitle": "Courses Platform — Access Your Learning",
     "twitterDescription": "Access your enrolled courses and enhance your learning experience."
+  },
+  "instructor": {
+    "dashboard": {
+      "title": "Instructor Dashboard",
+      "welcomeBack": "Welcome back,",
+      "myCourses": "My Courses",
+      "noCourses": "No Courses Yet",
+      "noCoursesMessage": "You haven't created or been assigned to any courses yet.",
+      "createCourse": "Create New Course",
+      "editCourse": "Edit Course",
+      "viewCourse": "View Course",
+      "students": "students",
+      "sessions": "sessions"
+    },
+    "editCourse": {
+      "title": "Edit Course",
+      "backToDashboard": "Back to Dashboard",
+      "tabs": {
+        "editCourse": "Edit Course",
+        "materials": "Materials",
+        "sessions": "Sessions",
+        "students": "Students"
+      },
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "successMessage": "Course updated successfully!",
+      "errorMessage": "Failed to update course"
+    },
+    "materials": {
+      "title": "Manage Course Materials",
+      "uploadMaterials": "Upload Course Materials",
+      "uploadedMaterials": "Uploaded Materials",
+      "clickToUpload": "Click to upload",
+      "dragAndDrop": "or drag and drop",
+      "fileTypes": "PDF, DOCX, PPTX (max 10MB per file)",
+      "uploading": "Uploading",
+      "noMaterials": "No materials uploaded yet",
+      "noMaterialsMessage": "Upload PDF, DOCX, or PPTX files to get started",
+      "uploadSuccess": "Uploaded:",
+      "deleteSuccess": "File deleted",
+      "renameSuccess": "File renamed",
+      "uploadError": "Failed to upload:",
+      "deleteError": "Failed to delete file",
+      "renameError": "Failed to rename file",
+      "invalidFileType": "Invalid file type:",
+      "fileTooLarge": "File too large:",
+      "loadingMaterials": "Loading materials..."
+    },
+    "sessions": {
+      "title": "Manage Sessions",
+      "sessionsFor": "Sessions for",
+      "noSessions": "No sessions configured",
+      "noSessionsMessage": "Add your first session to get started",
+      "addSession": "Add Session",
+      "saveSession": "Save Sessions",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "sessionTitle": "Session Title",
+      "sessionDescription": "Description",
+      "sessionDate": "Date",
+      "sessionTime": "Time",
+      "duration": "Duration (minutes)",
+      "timezone": "Timezone",
+      "materials": "Materials",
+      "uploadMaterial": "Upload Material",
+      "noMaterials": "No materials for this session",
+      "deleteSession": "Delete Session",
+      "successMessage": "Sessions saved successfully!",
+      "errorMessage": "Failed to save sessions",
+      "deleteConfirm": "Are you sure you want to delete this session?",
+      "session": "Session"
+    },
+    "students": {
+      "title": "Enrolled Students",
+      "backToDashboard": "Back to Dashboard",
+      "noStudents": "No students enrolled yet",
+      "noStudentsMessage": "Students will appear here once they enroll in your course",
+      "studentName": "Student Name",
+      "email": "Email",
+      "enrolledDate": "Enrolled Date",
+      "actions": "Actions",
+      "loadingStudents": "Loading students..."
+    },
+    "common": {
+      "backToDashboard": "Back to Dashboard",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "upload": "Upload",
+      "download": "Download",
+      "loading": "Loading...",
+      "success": "Success",
+      "error": "Error",
+      "confirm": "Confirm",
+      "areYouSure": "Are you sure?"
+    }
   }
 }

@@ -156,5 +156,103 @@
     "ogDescription": "Accede a tus cursos inscritos, rastrea tu progreso y mejora tu experiencia de aprendizaje.",
     "twitterTitle": "Plataforma de Cursos — Accede a tu Aprendizaje",
     "twitterDescription": "Accede a tus cursos inscritos y mejora tu experiencia de aprendizaje."
+  },
+  "instructor": {
+    "dashboard": {
+      "title": "Panel de Instructor",
+      "welcomeBack": "Bienvenido de nuevo,",
+      "myCourses": "Mis Cursos",
+      "noCourses": "Aún no hay cursos",
+      "noCoursesMessage": "Todavía no has creado o sido asignado a ningún curso.",
+      "createCourse": "Crear Nuevo Curso",
+      "editCourse": "Editar Curso",
+      "viewCourse": "Ver Curso",
+      "students": "estudiantes",
+      "sessions": "sesiones"
+    },
+    "editCourse": {
+      "title": "Editar Curso",
+      "backToDashboard": "Volver al Panel",
+      "tabs": {
+        "editCourse": "Editar Curso",
+        "materials": "Materiales",
+        "sessions": "Sesiones",
+        "students": "Estudiantes"
+      },
+      "saveChanges": "Guardar Cambios",
+      "saving": "Guardando...",
+      "cancel": "Cancelar",
+      "successMessage": "¡Curso actualizado exitosamente!",
+      "errorMessage": "Error al actualizar el curso"
+    },
+    "materials": {
+      "title": "Gestionar Materiales del Curso",
+      "uploadMaterials": "Subir Materiales del Curso",
+      "uploadedMaterials": "Materiales Subidos",
+      "clickToUpload": "Haz clic para subir",
+      "dragAndDrop": "o arrastra y suelta",
+      "fileTypes": "PDF, DOCX, PPTX (máx. 10MB por archivo)",
+      "uploading": "Subiendo",
+      "noMaterials": "Aún no se han subido materiales",
+      "noMaterialsMessage": "Sube archivos PDF, DOCX o PPTX para comenzar",
+      "uploadSuccess": "Subido:",
+      "deleteSuccess": "Archivo eliminado",
+      "renameSuccess": "Archivo renombrado",
+      "uploadError": "Error al subir:",
+      "deleteError": "Error al eliminar el archivo",
+      "renameError": "Error al renombrar el archivo",
+      "invalidFileType": "Tipo de archivo inválido:",
+      "fileTooLarge": "Archivo demasiado grande:",
+      "loadingMaterials": "Cargando materiales..."
+    },
+    "sessions": {
+      "title": "Gestionar Sesiones",
+      "sessionsFor": "Sesiones para",
+      "noSessions": "No hay sesiones configuradas",
+      "noSessionsMessage": "Añade tu primera sesión para comenzar",
+      "addSession": "Añadir Sesión",
+      "saveSession": "Guardar Sesiones",
+      "saving": "Guardando...",
+      "cancel": "Cancelar",
+      "sessionTitle": "Título de la Sesión",
+      "sessionDescription": "Descripción",
+      "sessionDate": "Fecha",
+      "sessionTime": "Hora",
+      "duration": "Duración (minutos)",
+      "timezone": "Zona Horaria",
+      "materials": "Materiales",
+      "uploadMaterial": "Subir Material",
+      "noMaterials": "No hay materiales para esta sesión",
+      "deleteSession": "Eliminar Sesión",
+      "successMessage": "¡Sesiones guardadas exitosamente!",
+      "errorMessage": "Error al guardar las sesiones",
+      "deleteConfirm": "¿Estás seguro de que quieres eliminar esta sesión?",
+      "session": "Sesión"
+    },
+    "students": {
+      "title": "Estudiantes Inscritos",
+      "backToDashboard": "Volver al Panel",
+      "noStudents": "Aún no hay estudiantes inscritos",
+      "noStudentsMessage": "Los estudiantes aparecerán aquí una vez que se inscriban en tu curso",
+      "studentName": "Nombre del Estudiante",
+      "email": "Correo Electrónico",
+      "enrolledDate": "Fecha de Inscripción",
+      "actions": "Acciones",
+      "loadingStudents": "Cargando estudiantes..."
+    },
+    "common": {
+      "backToDashboard": "Volver al Panel",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "upload": "Subir",
+      "download": "Descargar",
+      "loading": "Cargando...",
+      "success": "Éxito",
+      "error": "Error",
+      "confirm": "Confirmar",
+      "areYouSure": "¿Estás seguro?"
+    }
   }
 }
