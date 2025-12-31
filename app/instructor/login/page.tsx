@@ -135,7 +135,7 @@ export default function InstructorLoginPage() {
                   href="/reset-password"
                   className="text-sm font-medium text-[#10b981] hover:text-[#059669] transition-colors"
                 >
-                  Forgot Password?
+                  {t('login.forgotPassword')}
                 </Link>
               </div>
             </div>

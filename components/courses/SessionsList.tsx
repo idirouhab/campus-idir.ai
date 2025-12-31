@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
-import { Calendar, Clock, FileText, Download } from 'lucide-react';
+import { Calendar, Clock, FileText, Download, Video } from 'lucide-react';
 import { formatSessionDateLong, formatDuration } from '@/lib/timezone-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -76,10 +76,15 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
     return null;
   }
 
-  // Sort sessions by date
-  const sortedSessions = [...sessions].sort(
-    (a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime()
-  );
+  // Sort sessions by display_order, then by date
+  const sortedSessions = [...sessions].sort((a, b) => {
+    // First sort by display_order
+    if (a.display_order !== b.display_order) {
+      return a.display_order - b.display_order;
+    }
+    // If display_order is the same, sort by date
+    return new Date(a.session_date).getTime() - new Date(b.session_date).getTime();
+  });
 
   return (
     <div className="space-y-6">
@@ -123,6 +128,21 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
             {/* Session Description */}
             {session.description && (
               <p className="text-gray-700 mb-4 leading-relaxed">{session.description}</p>
+            )}
+
+            {/* Meeting URL */}
+            {session.meeting_url && (
+              <div className="mb-4">
+                <a
+                  href={session.meeting_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
+                >
+                  <Video size={18} />
+                  Join Video Session
+                </a>
+              </div>
             )}
 
             {/* Session Materials */}

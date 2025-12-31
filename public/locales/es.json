@@ -28,6 +28,7 @@
     "emailPlaceholder": "tu@email.com",
     "passwordLabel": "Contraseña",
     "passwordPlaceholder": "••••••••",
+    "forgotPassword": "He olvidado mi contraseña",
     "signingIn": "Iniciando sesión...",
     "signInButton": "Iniciar sesión",
     "noAccount": "¿No tienes cuenta? Regístrate"

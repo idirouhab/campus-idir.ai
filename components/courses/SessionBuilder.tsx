@@ -90,6 +90,7 @@ interface SessionFormData {
   time: string; // HH:MM
   duration_minutes: number;
   timezone: string;
+  meeting_url: string;
   display_order: number;
   isExpanded: boolean;
 }
@@ -119,6 +120,7 @@ export default function SessionBuilder({
         time,
         duration_minutes: session.duration_minutes,
         timezone: session.timezone,
+        meeting_url: session.meeting_url || '',
         display_order: session.display_order,
         isExpanded: index === 0, // First session expanded by default
       };
@@ -139,6 +141,7 @@ export default function SessionBuilder({
       session_date: localToUTC(form.date, form.time, form.timezone),
       duration_minutes: form.duration_minutes,
       timezone: form.timezone,
+      meeting_url: form.meeting_url || undefined,
       display_order: index,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -159,6 +162,7 @@ export default function SessionBuilder({
       time: '19:00', // Default to 7 PM
       duration_minutes: 120, // Default to 2 hours
       timezone: defaultTimezone,
+      meeting_url: '',
       display_order: formSessions.length,
       isExpanded: true,
     };
@@ -554,6 +558,15 @@ export default function SessionBuilder({
                       ))}
                     </select>
                   </div>
+
+                  {/* Meeting URL */}
+                  <InputField
+                    label="Meeting URL (Optional)"
+                    value={session.meeting_url}
+                    onChange={(value) => handleUpdateSession(index, 'meeting_url', value)}
+                    type="url"
+                    placeholder="https://meet.google.com/... or https://zoom.us/..."
+                  />
 
                   {/* Session Materials Section - Only show for saved sessions */}
                   {session.id && !session.id.startsWith('temp-') && (

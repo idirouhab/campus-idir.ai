@@ -111,6 +111,7 @@ export interface CourseSession {
   duration_minutes: number;
   display_order: number;
   timezone: string; // IANA timezone (e.g., 'America/New_York')
+  meeting_url?: string; // Optional video conference link (Google Meet, Zoom, etc.)
   created_at: string;
   updated_at: string;
 }

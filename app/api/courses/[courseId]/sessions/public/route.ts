@@ -44,6 +44,7 @@ export async function GET(
         duration_minutes,
         display_order,
         timezone,
+        meeting_url,
         created_at,
         updated_at
       FROM course_sessions

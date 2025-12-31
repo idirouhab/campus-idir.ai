@@ -28,6 +28,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordLabel": "Password",
     "passwordPlaceholder": "••••••••",
+    "forgotPassword": "Forgot Password",
     "signingIn": "Signing in...",
     "signInButton": "Sign in",
     "noAccount": "Don't have an account? Sign up"

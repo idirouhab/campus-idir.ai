@@ -123,6 +123,7 @@ export async function createSessionAction(sessionData: {
   sessionDate: string; // ISO 8601 UTC
   durationMinutes: number;
   timezone: string;
+  meetingUrl?: string;
   displayOrder: number;
 }): Promise<{ success: boolean; data?: CourseSession; error?: string }> {
   try {
@@ -162,7 +163,8 @@ export async function createSessionAction(sessionData: {
         session_date,
         duration_minutes,
         display_order,
-        timezone
+        timezone,
+        meeting_url
       ) VALUES (
         ${sessionData.courseId},
         ${sessionData.title},
@@ -170,7 +172,8 @@ export async function createSessionAction(sessionData: {
         ${sessionData.sessionDate},
         ${sessionData.durationMinutes},
         ${sessionData.displayOrder},
-        ${sessionData.timezone}
+        ${sessionData.timezone},
+        ${sessionData.meetingUrl || null}
       )
       RETURNING *
     `;
@@ -199,6 +202,7 @@ export async function updateSessionAction(
     sessionDate?: string;
     durationMinutes?: number;
     timezone?: string;
+    meetingUrl?: string;
     displayOrder?: number;
   }
 ): Promise<{ success: boolean; data?: CourseSession; error?: string }> {
@@ -254,6 +258,7 @@ export async function updateSessionAction(
     const session_date = sessionData.sessionDate !== undefined ? sessionData.sessionDate : current.session_date;
     const duration_minutes = sessionData.durationMinutes !== undefined ? sessionData.durationMinutes : current.duration_minutes;
     const timezone = sessionData.timezone !== undefined ? sessionData.timezone : current.timezone;
+    const meeting_url = sessionData.meetingUrl !== undefined ? sessionData.meetingUrl : current.meeting_url;
     const display_order = sessionData.displayOrder !== undefined ? sessionData.displayOrder : current.display_order;
 
     // Update session with all fields
@@ -265,6 +270,7 @@ export async function updateSessionAction(
         session_date = ${session_date},
         duration_minutes = ${duration_minutes},
         timezone = ${timezone},
+        meeting_url = ${meeting_url},
         display_order = ${display_order},
         updated_at = NOW()
       WHERE id = ${sessionId}
