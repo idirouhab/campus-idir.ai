@@ -93,17 +93,17 @@ export default function Navigation() {
     if (currentView === 'instructor') {
       if (instructorRole === 'admin') {
         return {
-          text: 'Administrator',
+          text: t('navigation.administrator'),
           className: 'bg-purple-50 text-purple-700 border-purple-200'
         };
       }
       return {
-        text: 'Instructor',
+        text: t('navigation.instructor'),
         className: 'bg-emerald-50 text-[#10b981] border-emerald-200'
       };
     }
     return {
-      text: 'Student',
+      text: t('navigation.student'),
       className: 'bg-blue-50 text-blue-700 border-blue-200'
     };
   };

@@ -12,6 +12,7 @@ import {
 } from '@/lib/instructor-assignment-actions';
 import { Instructor, CourseInstructorRole } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Course {
   id: string;
@@ -27,6 +28,7 @@ interface InstructorWithRole extends Instructor {
 
 export default function ManageInstructorsPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [admin, setAdmin] = useState<Instructor | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [allInstructors, setAllInstructors] = useState<Instructor[]>([]);
@@ -145,7 +147,7 @@ export default function ManageInstructorsPage() {
       );
 
       if (result.success) {
-        setSuccess('Instructor assigned successfully!');
+        setSuccess(t('course.instructorAssignedSuccess'));
         // Refresh course instructors
         const refreshResult = await getCourseInstructorsAction(selectedCourse);
         if (refreshResult.success && refreshResult.data) {
@@ -164,7 +166,7 @@ export default function ManageInstructorsPage() {
 
   const handleRemoveInstructor = async (instructorId: string) => {
     if (!admin || !selectedCourse) return;
-    if (!confirm('Are you sure you want to remove this instructor from the course?')) return;
+    if (!confirm(t('course.confirmRemoveInstructor'))) return;
 
     setAssignLoading(true);
     setError('');
@@ -177,7 +179,7 @@ export default function ManageInstructorsPage() {
       );
 
       if (result.success) {
-        setSuccess('Instructor removed successfully!');
+        setSuccess(t('instructor.manageInstructors.instructorRemovedSuccess'));
         // Refresh course instructors
         const refreshResult = await getCourseInstructorsAction(selectedCourse);
         if (refreshResult.success && refreshResult.data) {
@@ -218,10 +220,10 @@ export default function ManageInstructorsPage() {
         {/* Page Title */}
         <div className="mb-6 md:mb-8 animate-fade-in-up">
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-            Manage <span className="text-[#10b981]">Instructors</span>
+            {t('navigation.manageInstructors')}
           </h1>
           <p className="text-sm md:text-base text-gray-600 mt-1">
-            Assign instructors to courses
+            {t('instructor.dashboard.assignInstructorSubtitle')}
           </p>
         </div>
 
@@ -240,13 +242,13 @@ export default function ManageInstructorsPage() {
 
         {/* Course Selection */}
         <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Select Course</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('instructor.manageInstructors.selectCourse')}</h2>
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
           >
-            <option value="">-- Select a course --</option>
+            <option value="">{t('instructor.manageInstructors.selectCourseOption')}</option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.title} ({course.status})
@@ -260,12 +262,12 @@ export default function ManageInstructorsPage() {
             {/* Assigned Instructors */}
             <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Assigned Instructors ({courseInstructors.length})
+                {t('instructor.manageInstructors.assignedInstructors')} ({courseInstructors.length})
               </h2>
 
               {courseInstructors.length === 0 ? (
                 <p className="text-gray-600 text-center py-8">
-                  No instructors assigned to this course yet.
+                  {t('instructor.manageInstructors.noInstructorsAssigned')}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -294,7 +296,7 @@ export default function ManageInstructorsPage() {
                           </p>
                           <p className="text-sm text-gray-600">{instructor.email}</p>
                           <span className="text-xs text-gray-500">
-                            Role: {instructor.instructor_role || 'instructor'}
+                            {t('instructor.manageInstructors.role')}: {instructor.instructor_role || 'instructor'}
                           </span>
                         </div>
                       </div>
@@ -303,7 +305,7 @@ export default function ManageInstructorsPage() {
                         disabled={assignLoading}
                         className="px-3 py-1.5 text-sm font-semibold rounded-lg text-red-600 border border-red-200 hover:bg-red-50 transition-all disabled:opacity-50"
                       >
-                        Remove
+                        {t('instructor.manageInstructors.remove')}
                       </button>
                     </div>
                   ))}
@@ -314,12 +316,12 @@ export default function ManageInstructorsPage() {
             {/* Available Instructors */}
             <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Available Instructors ({availableInstructors.length})
+                {t('instructor.manageInstructors.availableInstructors')} ({availableInstructors.length})
               </h2>
 
               {availableInstructors.length === 0 ? (
                 <p className="text-gray-600 text-center py-8">
-                  All instructors have been assigned to this course.
+                  {t('instructor.manageInstructors.allInstructorsAssigned')}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -348,7 +350,7 @@ export default function ManageInstructorsPage() {
                           </p>
                           <p className="text-sm text-gray-600">{instructor.email}</p>
                           <span className="text-xs text-gray-500">
-                            Account role: {instructor.profile?.role}
+                            {t('instructor.manageInstructors.accountRole')}: {instructor.profile?.role}
                           </span>
                         </div>
                       </div>
@@ -357,7 +359,7 @@ export default function ManageInstructorsPage() {
                         disabled={assignLoading}
                         className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50"
                       >
-                        Assign
+                        {t('instructor.manageInstructors.assign')}
                       </button>
                     </div>
                   ))}

@@ -120,10 +120,10 @@ export default function EditCoursePage() {
             );
           }
         } else {
-          setError(result.error || 'Course not found');
+          setError(result.error || t('instructor.editCourse.courseNotFound'));
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load course');
+        setError(err.message || t('instructor.editCourse.failedToLoadCourse'));
       }
     };
 
@@ -137,7 +137,7 @@ export default function EditCoursePage() {
 
     try {
       if (!currentInstructor || !courseId) {
-        throw new Error('Not authenticated');
+        throw new Error(t('instructor.editCourse.notAuthenticated'));
       }
 
       // Ensure hero title is synced with main title before submission
@@ -159,11 +159,11 @@ export default function EditCoursePage() {
       );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to update course');
+        throw new Error(result.error || t('instructor.editCourse.errorMessage'));
       }
 
       // Success message with auto-hide
-      setSuccess('Course updated successfully!');
+      setSuccess(t('instructor.editCourse.successMessage'));
       setTimeout(() => setSuccess(null), 3000);
 
       // Redirect to dashboard after 3.5 seconds
@@ -202,13 +202,13 @@ export default function EditCoursePage() {
     try {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        setError('Please select an image file');
+        setError(t('instructor.editCourse.pleaseSelectImageFile'));
         return;
       }
 
       // Validate file size (max 5MB before compression)
       if (file.size > 5 * 1024 * 1024) {
-        setError('Image size should be less than 5MB');
+        setError(t('instructor.editCourse.imageSizeTooLarge'));
         return;
       }
 
@@ -247,7 +247,7 @@ export default function EditCoursePage() {
       reader.readAsDataURL(processedFile);
     } catch (error) {
       console.error('Error processing image:', error);
-      setError('Failed to process image');
+      setError(t('instructor.editCourse.failedToProcessImage'));
       setCoverCompressing(false);
     }
   };
@@ -278,7 +278,7 @@ export default function EditCoursePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload image');
+        throw new Error(data.error || t('instructor.editCourse.failedToUploadImage'));
       }
 
       // Update form data with the uploaded URL
@@ -292,7 +292,7 @@ export default function EditCoursePage() {
         setCoverUploadSuccess(false);
       }, 3000);
     } catch (error: any) {
-      setError(error.message || 'Failed to upload image');
+      setError(error.message || t('instructor.editCourse.failedToUploadImage'));
     } finally {
       setCoverUploading(false);
     }
@@ -353,7 +353,7 @@ export default function EditCoursePage() {
             {t('instructor.common.backToDashboard')}
           </Link>
           <h1 className="text-3xl font-black text-gray-900 mb-2">{t('instructor.editCourse.title')}</h1>
-          <p className="text-gray-600 mb-4">Update course details and content</p>
+          <p className="text-gray-600 mb-4">{t('instructor.editCourse.subtitle')}</p>
 
           {/* Tab Navigation */}
           <div className="border-b border-gray-200">
@@ -399,7 +399,7 @@ export default function EditCoursePage() {
                 </svg>
                 <div>
                   <p className="text-sm text-[#10b981] font-semibold">{success}</p>
-                  <p className="text-xs text-gray-600 mt-1">Redirecting to dashboard...</p>
+                  <p className="text-xs text-gray-600 mt-1">{t('instructor.editCourse.redirectingMessage')}</p>
                 </div>
               </div>
             </div>
@@ -415,7 +415,7 @@ export default function EditCoursePage() {
               onClick={() => toggleSection('basic')}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
-              <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.basicInformation')}</h2>
               <svg
                 className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.basic ? 'rotate-180' : ''}`}
                 fill="none"
@@ -430,7 +430,7 @@ export default function EditCoursePage() {
               <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Title *
+                  {t('instructor.editCourse.titleLabel')} *
                 </label>
                 <input
                   type="text"
@@ -438,13 +438,13 @@ export default function EditCoursePage() {
                   value={formData.title}
                   onChange={(e) => handleTitleChange(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder="Course Title"
+                  placeholder={t('instructor.editCourse.courseTitlePlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Slug * {originalStatus !== 'published' && <span className="text-gray-500 normal-case">(auto-generated)</span>}
+                  {t('instructor.editCourse.slugLabel')} * {originalStatus !== 'published' && <span className="text-gray-500 normal-case">{t('instructor.editCourse.autoGenerated')}</span>}
                 </label>
                 <input
                   type="text"
@@ -457,19 +457,19 @@ export default function EditCoursePage() {
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-100 text-gray-900'
                   }`}
-                  placeholder="course-slug"
+                  placeholder={t('instructor.editCourse.slugPlaceholder')}
                 />
-                <p className="text-xs text-gray-500 mt-1">URL: /course/{formData.slug}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('instructor.editCourse.urlPreview').replace('{slug}', formData.slug)}</p>
                 {originalStatus === 'published' && (
                   <p className="text-xs text-orange-600 mt-1 font-semibold">
-                    Slug cannot be changed for published courses to avoid breaking links
+                    {t('instructor.editCourse.slugChangeWarning')}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Short Description *
+                  {t('instructor.editCourse.shortDescriptionLabel')} *
                 </label>
                 <textarea
                   required
@@ -477,20 +477,20 @@ export default function EditCoursePage() {
                   onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
-                  placeholder="Brief description of the course..."
+                  placeholder={t('instructor.editCourse.shortDescriptionPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Cover Image
+                  {t('instructor.editCourse.coverImageLabel')}
                 </label>
 
                 <div className="space-y-3">
                   {/* Success Message */}
                   {coverUploadSuccess && (
                     <div className="rounded-md bg-emerald-50 border border-[#10b981] p-3">
-                      <p className="text-sm text-[#10b981] font-semibold">Image uploaded successfully!</p>
+                      <p className="text-sm text-[#10b981] font-semibold">{t('instructor.editCourse.imageUploadedSuccess')}</p>
                     </div>
                   )}
 
@@ -503,7 +503,7 @@ export default function EditCoursePage() {
                     disabled={coverUploading || coverCompressing}
                   />
                   <p className="text-xs text-gray-500">
-                    PNG, JPG, GIF up to 5MB. Images over 1MB will be automatically compressed.
+                    {t('instructor.editCourse.imageUploadHint')}
                   </p>
 
                   {/* Compressing indicator */}
@@ -513,7 +513,7 @@ export default function EditCoursePage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Compressing image...
+                      {t('instructor.editCourse.compressingImage')}
                     </p>
                   )}
 
@@ -522,7 +522,7 @@ export default function EditCoursePage() {
                     <div className="space-y-3">
                       <img
                         src={coverPreview}
-                        alt="Cover preview"
+                        alt={t('instructor.editCourse.coverPreviewAlt')}
                         className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
                       />
                       <div className="flex gap-2">
@@ -532,7 +532,7 @@ export default function EditCoursePage() {
                           disabled={coverUploading}
                           className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
                         >
-                          {coverUploading ? 'Uploading...' : 'Upload Image'}
+                          {coverUploading ? t('instructor.editCourse.uploadingButton') : t('instructor.editCourse.uploadImageButton')}
                         </button>
                         <button
                           type="button"
@@ -553,11 +553,11 @@ export default function EditCoursePage() {
                   {/* Current uploaded image */}
                   {formData.cover_image && !coverPreview && (
                     <div className="space-y-2">
-                      <p className="text-xs text-gray-600 font-semibold">Current Cover Image:</p>
+                      <p className="text-xs text-gray-600 font-semibold">{t('instructor.editCourse.currentCoverImage')}</p>
                       <img
                         key={formData.cover_image}
                         src={formData.cover_image}
-                        alt="Current cover"
+                        alt={t('instructor.editCourse.currentCoverAlt')}
                         className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
@@ -571,7 +571,7 @@ export default function EditCoursePage() {
                         }}
                         className="text-xs text-red-600 hover:text-red-700 font-semibold"
                       >
-                        Remove Image
+                        {t('instructor.editCourse.removeImageButton')}
                       </button>
                     </div>
                   )}
@@ -579,7 +579,7 @@ export default function EditCoursePage() {
                   {/* Manual URL input (alternative) */}
                   <div className="pt-2">
                     <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">
-                      Or Enter Image URL
+                      {t('instructor.editCourse.orEnterImageUrl')}
                     </label>
                     <input
                       type="url"
@@ -589,11 +589,11 @@ export default function EditCoursePage() {
                         setCoverUploadSuccess(false);
                       }}
                       className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                      placeholder="https://example.com/image.jpg"
+                      placeholder={t('instructor.editCourse.imageUrlPlaceholder')}
                     />
                     {formData.cover_image && (
                       <p className="text-xs text-gray-500 mt-1 break-all">
-                        <span className="font-semibold">Current URL:</span> {formData.cover_image}
+                        <span className="font-semibold">{t('instructor.editCourse.currentUrl')}</span> {formData.cover_image}
                       </p>
                     )}
                   </div>
@@ -603,29 +603,29 @@ export default function EditCoursePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Language *
+                    {t('instructor.editCourse.language')} *
                   </label>
                   <select
                     value={formData.language}
                     onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'es' })}
                     className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                   >
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
+                    <option value="en">{t('instructor.editCourse.english')}</option>
+                    <option value="es">{t('instructor.editCourse.spanish')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Status *
+                    {t('instructor.editCourse.status')} *
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
                     className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">{t('instructor.editCourse.draft')}</option>
+                    <option value="published">{t('instructor.editCourse.published')}</option>
                   </select>
                 </div>
               </div>
@@ -640,7 +640,7 @@ export default function EditCoursePage() {
               onClick={() => toggleSection('seo')}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
-              <h2 className="text-xl font-bold text-gray-900">SEO (Optional)</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.seoSectionTitle')}</h2>
               <svg
                 className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.seo ? 'rotate-180' : ''}`}
                 fill="none"
@@ -655,27 +655,27 @@ export default function EditCoursePage() {
               <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Meta Title
+                  {t('instructor.editCourse.metaTitleLabel')}
                 </label>
                 <input
                   type="text"
                   value={formData.meta_title}
                   onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder="Course Title | Platform Name"
+                  placeholder={t('instructor.editCourse.metaTitlePlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Meta Description
+                  {t('instructor.editCourse.metaDescriptionLabel')}
                 </label>
                 <textarea
                   value={formData.meta_description}
                   onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
                   rows={2}
                   className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
-                  placeholder="SEO description..."
+                  placeholder={t('instructor.editCourse.metaDescriptionPlaceholder')}
                 />
               </div>
               </div>
@@ -690,9 +690,9 @@ export default function EditCoursePage() {
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <div className="text-left">
-                <h2 className="text-xl font-bold text-gray-900">Course Content Builder (Optional)</h2>
+                <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.courseContentBuilderTitle')}</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Use the visual builder below to create your course structure
+                  {t('instructor.editCourse.courseContentBuilderDescription')}
                 </p>
               </div>
               <svg
@@ -722,9 +722,9 @@ export default function EditCoursePage() {
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <div className="text-left">
-                <h2 className="text-xl font-bold text-gray-900">Assign Instructors (Optional)</h2>
+                <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.assignInstructorsTitle')}</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  You can assign one or multiple instructors to this course
+                  {t('instructor.editCourse.assignInstructorsDescription')}
                 </p>
               </div>
               <svg
@@ -743,7 +743,7 @@ export default function EditCoursePage() {
             {/* Selected Instructors */}
             {selectedInstructors.length > 0 && (
               <div className="mb-4 space-y-2">
-                <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">Selected Instructors:</p>
+                <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">{t('instructor.editCourse.selectedInstructors')}</p>
                 {selectedInstructors.map((si) => {
                   const instructor = allInstructors.find(i => i.id === si.instructor_id);
                   if (!instructor) return null;
@@ -776,10 +776,10 @@ export default function EditCoursePage() {
                           onChange={(e) => handleUpdateRole(si.instructor_id, e.target.value)}
                           className="px-3 py-1 border border-gray-200 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
                         >
-                          <option value="instructor">Instructor</option>
-                          <option value="lead_instructor">Lead Instructor</option>
-                          <option value="teaching_assistant">Teaching Assistant</option>
-                          <option value="guest_instructor">Guest Instructor</option>
+                          <option value="instructor">{t('instructor.editCourse.roleInstructor')}</option>
+                          <option value="lead_instructor">{t('instructor.editCourse.roleLeadInstructor')}</option>
+                          <option value="teaching_assistant">{t('instructor.editCourse.roleTeachingAssistant')}</option>
+                          <option value="guest_instructor">{t('instructor.editCourse.roleGuestInstructor')}</option>
                         </select>
                         <button
                           type="button"
@@ -800,7 +800,7 @@ export default function EditCoursePage() {
             {/* Available Instructors */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                Add Instructor
+                {t('instructor.editCourse.addInstructorLabel')}
               </label>
               <select
                 onChange={(e) => {
@@ -811,7 +811,7 @@ export default function EditCoursePage() {
                 }}
                 className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
               >
-                <option value="">Select an instructor...</option>
+                <option value="">{t('instructor.editCourse.selectInstructorPlaceholder')}</option>
                 {allInstructors
                   .filter(i => !selectedInstructors.find(si => si.instructor_id === i.id))
                   .map(instructor => (

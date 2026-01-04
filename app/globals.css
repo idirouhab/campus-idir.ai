@@ -144,3 +144,34 @@ button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Cursor pointer for interactive elements */
+a,
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+select,
+label[for],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Ensure disabled elements show not-allowed cursor */
+button:disabled,
+[disabled] {
+  cursor: not-allowed;
+}
+
+/* Default cursor for text inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea {
+  cursor: text;
+}

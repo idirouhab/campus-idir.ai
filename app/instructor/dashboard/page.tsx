@@ -174,7 +174,8 @@ export default function InstructorDashboardPage() {
   const handleDeleteCourse = async (courseId: string, courseTitle: string) => {
     if (!instructor) return;
 
-    if (!confirm(`Are you sure you want to delete "${courseTitle}"? This action cannot be undone.`)) {
+    const confirmMessage = t('instructor.dashboard.deleteConfirm').replace('{courseTitle}', courseTitle);
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -185,11 +186,11 @@ export default function InstructorDashboardPage() {
         // Remove the course from the list
         setCourses(courses.filter(course => course.id !== courseId));
       } else {
-        alert(result.error || 'Failed to delete course');
+        alert(result.error || t('instructor.dashboard.deleteError'));
       }
     } catch (error: any) {
       console.error('Error deleting course:', error);
-      alert(error.message || 'Failed to delete course');
+      alert(error.message || t('instructor.dashboard.deleteError'));
     } finally {
       setDeletingCourseId(null);
     }
@@ -227,9 +228,9 @@ export default function InstructorDashboardPage() {
         {permissions.canViewAllCourses() && (
           <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">All Instructors</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('instructor.dashboard.allInstructors')}</h2>
               <span className="text-sm text-gray-600">
-                {instructors.length} {instructors.length === 1 ? 'instructor' : 'instructors'}
+                {instructors.length} {instructors.length === 1 ? t('instructor.dashboard.instructor') : t('instructor.dashboard.instructors')}
               </span>
             </div>
 
@@ -242,7 +243,7 @@ export default function InstructorDashboardPage() {
                 <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <p className="text-gray-600 font-semibold">No instructors found</p>
+                <p className="text-gray-600 font-semibold">{t('instructor.dashboard.noInstructorsFound')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -282,7 +283,7 @@ export default function InstructorDashboardPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                               </svg>
                               <span className="text-sm font-semibold text-gray-700">
-                                {inst.course_count} {inst.course_count === 1 ? 'Course' : 'Courses'}
+                                {inst.course_count} {inst.course_count === 1 ? t('instructor.dashboard.course') : t('instructor.dashboard.courses')}
                               </span>
                             </div>
 
@@ -291,7 +292,7 @@ export default function InstructorDashboardPage() {
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <span className="text-sm text-gray-600">{age} years old</span>
+                                <span className="text-sm text-gray-600">{age} {t('instructor.dashboard.yearsOld')}</span>
                               </div>
                             )}
 
@@ -309,7 +310,7 @@ export default function InstructorDashboardPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <span className="text-sm text-gray-600">
-                                Joined {formatDate(inst.created_at)}
+                                {t('instructor.dashboard.joined')} {formatDate(inst.created_at)}
                               </span>
                             </div>
                           </div>
@@ -328,7 +329,7 @@ export default function InstructorDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-gray-900">
-                {permissions.canViewAllCourses() ? 'All Courses' : 'My Courses'}
+                {permissions.canViewAllCourses() ? t('instructor.dashboard.allCourses') : t('instructor.dashboard.myCourses')}
               </h2>
               {permissions.canCreateCourses() && (
                 <Link
@@ -338,12 +339,12 @@ export default function InstructorDashboardPage() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Create Course
+                  {t('instructor.dashboard.createCourse')}
                 </Link>
               )}
             </div>
             <span className="text-sm text-gray-600">
-              {courses.length} {courses.length === 1 ? 'course' : 'courses'}
+              {courses.length} {courses.length === 1 ? t('instructor.dashboard.course') : t('instructor.dashboard.courses')}
             </span>
           </div>
 
@@ -356,11 +357,11 @@ export default function InstructorDashboardPage() {
               <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              <p className="text-gray-600 font-semibold">No courses yet</p>
+              <p className="text-gray-600 font-semibold">{t('instructor.dashboard.noCourses')}</p>
               <p className="text-sm text-gray-500 mt-1">
                 {permissions.canViewAllCourses()
-                  ? 'No courses have been created yet.'
-                  : 'You have not been assigned to any courses yet.'}
+                  ? t('instructor.dashboard.noCoursesCreated')
+                  : t('instructor.dashboard.notAssignedToCourses')}
               </p>
             </div>
           ) : (
@@ -411,7 +412,7 @@ export default function InstructorDashboardPage() {
                             ))}
                           </div>
                           <span className="text-xs text-gray-500">
-                            {course.instructors.length} {course.instructors.length === 1 ? 'instructor' : 'instructors'}
+                            {course.instructors.length} {course.instructors.length === 1 ? t('instructor.dashboard.instructor') : t('instructor.dashboard.instructors')}
                           </span>
                         </div>
                       )}
@@ -422,7 +423,7 @@ export default function InstructorDashboardPage() {
                             ? 'bg-emerald-50 text-[#10b981]'
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {course.status}
+                          {course.status === 'published' ? t('instructor.editCourse.published') : t('instructor.editCourse.draft')}
                         </span>
                         <span>{course.language.toUpperCase()}</span>
                       </div>
@@ -431,15 +432,14 @@ export default function InstructorDashboardPage() {
                   {/* Action Buttons */}
                   <div className="px-4 pb-4 pt-0 border-t border-gray-100">
                     <Link
-                      href={`/instructor/dashboard/courses/${course.id}/students`}
+                      href={`/instructor/dashboard/courses/${course.id}/edit`}
                       onClick={(e) => e.stopPropagation()}
                       className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-bold rounded-lg text-[#10b981] bg-emerald-50 hover:bg-emerald-100 transition-all uppercase tracking-wide"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-
-                      View Students ({course.enrollment_count || 0})
+                      {t('instructor.dashboard.manageCourse')}
                     </Link>
                   </div>
 

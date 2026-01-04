@@ -4,6 +4,7 @@ import { useState, useCallback, memo, useEffect } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
 import { ChevronDown, ChevronUp, Trash2, Plus, GripVertical, FileText, Upload, X, Edit2, Check } from 'lucide-react';
 import { COMMON_TIMEZONES, utcToLocal, localToUTC } from '@/lib/timezone-utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Memoized input components for better performance
 const InputField = memo(({
@@ -102,6 +103,7 @@ export default function SessionBuilder({
   defaultTimezone = 'America/New_York',
   csrfToken,
 }: SessionBuilderProps) {
+  const { t } = useLanguage();
   // Materials state for each session
   const [sessionMaterials, setSessionMaterials] = useState<Record<string, CourseMaterial[]>>({});
   const [loadingMaterials, setLoadingMaterials] = useState<Record<string, boolean>>({});
@@ -386,14 +388,14 @@ export default function SessionBuilder({
     <div className="space-y-4">
       {formSessions.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <p className="text-gray-600 mb-4">No sessions configured for this course.</p>
+          <p className="text-gray-600 mb-4">{t('instructor.sessions.noSessionsConfigured')}</p>
           <button
             type="button"
             onClick={handleAddSession}
             className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
           >
             <Plus size={20} />
-            Add First Session
+            {t('instructor.sessions.addFirstSession')}
           </button>
         </div>
       ) : (
@@ -694,7 +696,7 @@ export default function SessionBuilder({
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500 italic text-center py-4">
-                          No materials uploaded yet
+                          {t('instructor.materials.noMaterials')}
                         </p>
                       )}
                     </div>
@@ -704,7 +706,7 @@ export default function SessionBuilder({
                   {(!session.id || session.id.startsWith('temp-')) && (
                     <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-blue-700">
-                        💡 <strong>Tip:</strong> Save this session first to upload materials.
+                        💡 {t('instructor.sessions.saveTipMessage')}
                       </p>
                     </div>
                   )}

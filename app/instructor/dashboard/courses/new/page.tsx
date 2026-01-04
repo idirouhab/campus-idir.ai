@@ -472,29 +472,29 @@ export default function NewCoursePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Language *
+                    {t('instructor.editCourse.language')} *
                   </label>
                   <select
                     value={formData.language}
                     onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'es' })}
                     className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                   >
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
+                    <option value="en">{t('instructor.editCourse.english')}</option>
+                    <option value="es">{t('instructor.editCourse.spanish')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    Status *
+                    {t('instructor.editCourse.status')} *
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
                     className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">{t('instructor.editCourse.draft')}</option>
+                    <option value="published">{t('instructor.editCourse.published')}</option>
                   </select>
                 </div>
               </div>

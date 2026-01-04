@@ -33,7 +33,7 @@ function getFileTypeColor(fileType: string): string {
 export default function SessionsList({ sessions, courseId }: SessionsListProps) {
   const [materialsMap, setMaterialsMap] = useState<Record<string, CourseMaterial[]>>({});
   const [loadingMaterials, setLoadingMaterials] = useState(false);
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   // Map language code to locale
   const locale = language === 'es' ? 'es-ES' : 'en-US';
@@ -191,7 +191,7 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
               </div>
             ) : (
               <div className="text-sm text-gray-500 italic">
-                No materials uploaded for this session yet.
+                {t('course.noMaterialsForSession')}
               </div>
             )}
           </div>
