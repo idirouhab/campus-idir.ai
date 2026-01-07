@@ -24,7 +24,16 @@ const translationsMap: Record<Language, Record<string, any>> = {
 const detectBrowserLanguage = (): Language => {
   if (typeof window === 'undefined') return 'en';
 
-  // Check localStorage first
+  // Check URL parameter first
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlLang = urlParams.get('lang');
+  if (urlLang === 'en' || urlLang === 'es') {
+    // Save to localStorage if provided via URL
+    localStorage.setItem('preferred-language', urlLang);
+    return urlLang;
+  }
+
+  // Check localStorage
   const savedLanguage = localStorage.getItem('preferred-language') as Language;
   if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'es')) {
     return savedLanguage;
