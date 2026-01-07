@@ -102,33 +102,48 @@ export default function CoursePage() {
     checkInstructorCourseAccess();
   }, [instructor, course]);
 
-  // Fetch instructors for assignment (admin only)
+  // Fetch instructors for assignment (admin only) and for display (students)
   useEffect(() => {
     const fetchInstructors = async () => {
-      if (!instructor || !course || !canViewAllCourses(instructor)) {
+      if (!course) {
         return;
       }
 
-      try {
-        const [allInstructorsResult, courseInstructorsResult] = await Promise.all([
-          getAllInstructorsAction(),
-          getCourseInstructorsAction(course.id),
-        ]);
+      // For admins, fetch both all instructors and course instructors
+      if (instructor && canViewAllCourses(instructor)) {
+        try {
+          const [allInstructorsResult, courseInstructorsResult] = await Promise.all([
+            getAllInstructorsAction(),
+            getCourseInstructorsAction(course.id),
+          ]);
 
-        if (allInstructorsResult.success && allInstructorsResult.data) {
-          setAllInstructors(allInstructorsResult.data);
-        }
+          if (allInstructorsResult.success && allInstructorsResult.data) {
+            setAllInstructors(allInstructorsResult.data);
+          }
 
-        if (courseInstructorsResult.success && courseInstructorsResult.data) {
-          setCourseInstructors(courseInstructorsResult.data);
+          if (courseInstructorsResult.success && courseInstructorsResult.data) {
+            setCourseInstructors(courseInstructorsResult.data);
+          }
+        } catch (error) {
+          console.error('Error fetching instructors:', error);
         }
-      } catch (error) {
-        console.error('Error fetching instructors:', error);
+      }
+      // For students and non-admin instructors, fetch only course instructors
+      else if (user || instructor) {
+        try {
+          const courseInstructorsResult = await getCourseInstructorsAction(course.id);
+
+          if (courseInstructorsResult.success && courseInstructorsResult.data) {
+            setCourseInstructors(courseInstructorsResult.data);
+          }
+        } catch (error) {
+          console.error('Error fetching course instructors:', error);
+        }
       }
     };
 
     fetchInstructors();
-  }, [instructor, course]);
+  }, [instructor, course, user]);
 
   // Fetch course materials for students
   useEffect(() => {
@@ -415,6 +430,64 @@ export default function CoursePage() {
                 <p className="text-gray-600">{course.short_description}</p>
               ) : (
                 <p className="text-gray-500 italic">{t('course.noDescription')}</p>
+              )}
+
+              {/* Instructor Contact Information (For Students) */}
+              {isStudent && courseInstructors.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('course.yourInstructors')}</h3>
+                  <div className="space-y-4">
+                    {courseInstructors.map((inst) => (
+                      <div
+                        key={inst.id}
+                        className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        {/* Instructor Avatar */}
+                        <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                          {inst.profile?.picture_url ? (
+                            <img
+                              src={inst.profile.picture_url}
+                              alt={`${inst.first_name} ${inst.last_name}`}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-base font-semibold text-[#10b981]">
+                              {inst.first_name[0]}{inst.last_name[0]}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Instructor Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-bold text-gray-900">
+                            {inst.first_name} {inst.last_name}
+                          </p>
+                          <p className="text-sm text-gray-500 capitalize mb-3">
+                            {inst.instructor_role.replace('_', ' ')}
+                          </p>
+                          <a
+                            href={`mailto:${inst.email}`}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#10b981] text-white text-sm font-semibold rounded-lg hover:bg-[#059669] transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            {t('course.contactInstructor')}
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show message if no instructors for students */}
+              {isStudent && courseInstructors.length === 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                    {t('course.noInstructorsInfo')}
+                  </p>
+                </div>
               )}
             </div>
 

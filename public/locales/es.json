@@ -144,7 +144,14 @@
     "instructorRemovedError": "Error al eliminar instructor",
     "confirmRemoveInstructor": "¿Estás seguro de que quieres eliminar a este instructor del curso?",
     "errorOccurred": "Ocurrió un error",
-    "noMaterialsForSession": "Aún no se han subido materiales para esta sesión."
+    "noMaterialsForSession": "Aún no se han subido materiales para esta sesión.",
+    "yourInstructors": "Tus Instructores",
+    "contactInstructor": "Contactar Instructor",
+    "noInstructorsInfo": "Aún no hay información de instructores disponible.",
+    "joinVideoSession": "Unirse a Sesión de Video",
+    "completed": "Completado",
+    "loadingMaterialsEllipsis": "Cargando materiales...",
+    "sessionMaterials": "Materiales de la Sesión"
   },
   "password": {
     "weak": "débil",

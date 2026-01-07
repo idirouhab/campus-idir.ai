@@ -108,7 +108,7 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
                 </h3>
                 {isPast && (
                   <span className="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded">
-                    Completed
+                    {t('course.completed')}
                   </span>
                 )}
               </div>
@@ -140,7 +140,7 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
                 >
                   <Video size={18} />
-                  Join Video Session
+                  {t('course.joinVideoSession')}
                 </a>
               </div>
             )}
@@ -149,13 +149,13 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
             {loadingMaterials ? (
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-emerald-600"></div>
-                Loading materials...
+                {t('course.loadingMaterialsEllipsis')}
               </div>
             ) : sessionMaterials.length > 0 ? (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <FileText size={16} className="text-emerald-600" />
-                  Session Materials ({sessionMaterials.length})
+                  {t('course.sessionMaterials')} ({sessionMaterials.length})
                 </h4>
                 <div className="space-y-2">
                   {sessionMaterials.map((material) => (
