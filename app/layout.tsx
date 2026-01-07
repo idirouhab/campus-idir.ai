@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from 'next/font/google';
+import Script from 'next/script';
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Navigation from "@/components/Navigation";
 import { LanguageWrapper } from "@/components/LanguageWrapper";
+import { Analytics } from "@/components/Analytics";
+import { AnalyticsUserWrapper } from "@/components/AnalyticsUserWrapper";
+import { GA_MEASUREMENT_ID } from "@/lib/gtag";
 
 // Optimize font loading - Inter for body text
 const inter = Inter({
@@ -86,10 +90,38 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="antialiased bg-gray-50 text-gray-900" suppressHydrationWarning>
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            />
+            <Script
+              id="google-analytics"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${GA_MEASUREMENT_ID}', {
+                    send_page_view: false
+                  });
+                `,
+              }}
+            />
+          </>
+        )}
         <Providers>
           <LanguageWrapper>
             <Navigation />
             {children}
+            {GA_MEASUREMENT_ID && (
+              <>
+                <Analytics />
+                <AnalyticsUserWrapper />
+              </>
+            )}
           </LanguageWrapper>
         </Providers>
       </body>
