@@ -27,11 +27,17 @@ export const pageview = (url: string) => {
 
 // Set user ID for authenticated users
 export const setUserId = (userId: string) => {
-  if (!isGAEnabled || !userId) return;
+    if (!isGAEnabled || !userId) return;
 
-  window.gtag('config', GA_MEASUREMENT_ID, {
-    user_id: userId,
-  });
+   window.gtag('set', 'user_properties', {
+        user_id: userId
+    });
+
+    // 2. Update the configuration to include the user_id
+    window.gtag('config', GA_MEASUREMENT_ID, {
+        user_id: userId,
+        update: true // This is the key! It updates the current session config
+    });
 };
 
 // Track custom events
