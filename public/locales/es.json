@@ -9,7 +9,19 @@
     "fullName": "Nombre Completo",
     "createAccount": "Crear Cuenta",
     "menu": "Menú",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "deletePost": "Eliminar",
+    "deleteAnswer": "Eliminar",
+    "deleting": "Eliminando...",
+    "deleteError": "Error al eliminar. Por favor, inténtalo de nuevo.",
+    "deletePostConfirm": {
+      "title": "¿Eliminar publicación?",
+      "message": "¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer y también eliminará todas las respuestas."
+    },
+    "deleteAnswerConfirm": {
+      "title": "¿Eliminar respuesta?",
+      "message": "¿Estás seguro de que quieres eliminar esta respuesta? Esta acción no se puede deshacer."
+    }
   },
   "home": {
     "title": "CURSOS",

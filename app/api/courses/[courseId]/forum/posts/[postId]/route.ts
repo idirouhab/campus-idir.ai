@@ -132,3 +132,43 @@ export async function PATCH(
     );
   }
 }
+
+// DELETE /api/courses/[courseId]/forum/posts/[postId]- Delete post (author only)
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ courseId: string; postId: string }> }
+) {
+    try {
+        const session = await requireSession();
+        const { courseId, postId } = await params;
+
+        // Verify CSRF
+        const isValidCSRF = await verifyCSRF(request);
+        if (!isValidCSRF) {
+            return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
+        }
+
+        // Verify access
+        await requireCourseForumAccess(session, courseId);
+
+        const sql = getDb();
+
+        // Delete post (only if user is the author)
+        await sql`
+      DELETE FROM forum_posts
+      WHERE id = ${postId}
+        AND course_id = ${courseId}
+        AND user_id = ${session.id}
+    `;
+
+        return NextResponse.json({
+            success: true,
+        });
+    } catch (error: any) {
+        console.error('[Forum Post DELETE] Error:', error);
+        return NextResponse.json(
+            { error: 'Failed to delete forum post' },
+            { status: 500 }
+        );
+    }
+}
