@@ -388,7 +388,7 @@ export default function CoursePage() {
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">{course.title}</h1>
           {course.short_description && (
-            <p className="text-sm text-gray-600">{course.short_description}</p>
+            <p className="text-base text-gray-700 leading-relaxed">{course.short_description}</p>
           )}
         </div>
 
@@ -486,12 +486,12 @@ export default function CoursePage() {
                           <p className="text-base font-bold text-gray-900">
                             {inst.first_name} {inst.last_name}
                           </p>
-                          <p className="text-sm text-gray-500 capitalize mb-3">
+                          <p className="text-base text-gray-600 capitalize mb-3">
                             {inst.instructor_role.replace('_', ' ')}
                           </p>
                           <a
                             href={`mailto:${inst.email}`}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#10b981] text-white text-sm font-semibold rounded-lg hover:bg-[#059669] transition-colors"
+                            className="inline-flex items-center gap-2 px-5 py-3 bg-[#10b981] text-white text-base font-semibold rounded-lg hover:bg-[#059669] transition-colors min-h-[44px]"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -508,7 +508,7 @@ export default function CoursePage() {
               {/* Show message if no instructors for students */}
               {isStudent && courseInstructors.length === 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                  <p className="text-base text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
                     {t('course.noInstructorsInfo')}
                   </p>
                 </div>
@@ -582,10 +582,10 @@ export default function CoursePage() {
 
                           {/* File Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                            <p className="text-base font-semibold text-gray-900 truncate">
                               {material.display_filename}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-sm text-gray-600 font-medium">
                               {formatFileSize(material.file_size_bytes)} • {material.file_type.toUpperCase()}
                             </p>
                           </div>
@@ -595,7 +595,7 @@ export default function CoursePage() {
                             href={material.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2 bg-[#10b981] text-white text-sm font-bold rounded-lg hover:bg-[#059669] transition-colors flex items-center gap-2 flex-shrink-0"
+                            className="px-5 py-3 bg-[#10b981] text-white text-base font-bold rounded-lg hover:bg-[#059669] transition-colors flex items-center gap-2 flex-shrink-0 min-h-[44px]"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -656,23 +656,23 @@ export default function CoursePage() {
                 {/* Messages */}
                 {assignError && (
                   <div className="mx-4 mt-4 rounded-md bg-red-50 border border-red-500 p-3">
-                    <p className="text-xs text-red-600">{assignError}</p>
+                    <p className="text-sm text-red-700 font-medium">{assignError}</p>
                   </div>
                 )}
 
                 {assignSuccess && (
                   <div className="mx-4 mt-4 rounded-md bg-emerald-50 border border-[#10b981] p-3">
-                    <p className="text-xs text-[#10b981] font-semibold">{assignSuccess}</p>
+                    <p className="text-sm text-[#10b981] font-semibold">{assignSuccess}</p>
                   </div>
                 )}
 
                 {/* Assigned Instructors */}
                 <div className="p-4">
-                  <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     {t('course.assigned')} ({courseInstructors.length})
                   </h4>
                   {courseInstructors.length === 0 ? (
-                    <p className="text-xs text-gray-500 text-center py-4">
+                    <p className="text-sm text-gray-600 text-center py-4">
                       {t('course.noInstructorsAssigned')}
                     </p>
                   ) : (
@@ -697,16 +697,16 @@ export default function CoursePage() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold text-gray-900 truncate">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
                                 {inst.first_name} {inst.last_name}
                               </p>
-                              <p className="text-xs text-gray-500 truncate">{inst.instructor_role}</p>
+                              <p className="text-sm text-gray-600 truncate">{inst.instructor_role}</p>
                             </div>
                           </div>
                           <button
                             onClick={() => handleRemoveInstructor(inst.id)}
                             disabled={assignLoading}
-                            className="px-2 py-1 text-xs font-semibold rounded text-red-600 border border-red-200 hover:bg-red-50 transition-all disabled:opacity-50 flex-shrink-0"
+                            className="px-3 py-2 text-sm font-semibold rounded text-red-600 border border-red-200 hover:bg-red-50 transition-all disabled:opacity-50 flex-shrink-0 min-h-[44px]"
                           >
                             {t('course.remove')}
                           </button>
@@ -718,11 +718,11 @@ export default function CoursePage() {
 
                 {/* Available Instructors */}
                 <div className="p-4 pt-0">
-                  <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                     {t('course.addInstructor')}
                   </h4>
                   {allInstructors.filter(i => !courseInstructors.find(ci => ci.id === i.id)).length === 0 ? (
-                    <p className="text-xs text-gray-500 text-center py-4">
+                    <p className="text-sm text-gray-600 text-center py-4">
                       {t('course.allInstructorsAssigned')}
                     </p>
                   ) : (
@@ -749,16 +749,16 @@ export default function CoursePage() {
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold text-gray-900 truncate">
+                                <p className="text-sm font-semibold text-gray-900 truncate">
                                   {inst.first_name} {inst.last_name}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">{inst.email}</p>
+                                <p className="text-sm text-gray-600 truncate">{inst.email}</p>
                               </div>
                             </div>
                             <button
                               onClick={() => handleAssignInstructor(inst.id)}
                               disabled={assignLoading}
-                              className="px-2 py-1 text-xs font-semibold rounded text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 flex-shrink-0"
+                              className="px-3 py-2 text-sm font-semibold rounded text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 flex-shrink-0 min-h-[44px]"
                             >
                               {t('course.add')}
                             </button>

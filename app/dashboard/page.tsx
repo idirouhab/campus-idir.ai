@@ -110,23 +110,23 @@ export default function DashboardPage() {
                 )}
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center px-3 py-1 rounded text-xs font-bold bg-emerald-50 text-[#10b981] uppercase tracking-wide border border-emerald-100">
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-bold bg-emerald-50 text-[#10b981] uppercase tracking-wide border border-emerald-200">
                       {course.language}
                     </span>
-                    <span className="text-xs text-gray-500 font-bold uppercase">
+                    <span className="text-sm text-gray-600 font-bold uppercase px-2 py-0.5 bg-gray-100 rounded">
                       {course.status}
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#10b981] transition-colors">
                     {course.title}
                   </h3>
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-4 leading-relaxed">
+                  <p className="text-base text-gray-700 line-clamp-2 mb-4 leading-relaxed">
                     {course.short_description || course.meta_description || 'No description available'}
                   </p>
-                  <div className="flex items-center text-[#10b981] text-sm font-bold uppercase tracking-wide group-hover:text-[#059669] transition-colors">
+                  <div className="flex items-center text-[#10b981] text-base font-bold uppercase tracking-wide group-hover:text-[#059669] transition-colors">
                     {t('dashboard.accessCourse')}
                     <svg
-                      className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"
+                      className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"

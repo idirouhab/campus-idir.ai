@@ -107,20 +107,20 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
                   Session {index + 1}: {session.title}
                 </h3>
                 {isPast && (
-                  <span className="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded">
+                  <span className="px-3 py-1.5 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
                     {t('course.completed')}
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1.5">
-                  <Calendar size={16} className="text-emerald-600" />
-                  <span>{formatSessionDateLong(session.session_date, session.timezone, locale)}</span>
+              <div className="flex flex-wrap items-center gap-4 text-base text-gray-700">
+                <div className="flex items-center gap-2">
+                  <Calendar size={18} className="text-emerald-600" />
+                  <span className="font-medium">{formatSessionDateLong(session.session_date, session.timezone, locale)}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock size={16} className="text-emerald-600" />
-                  <span>{formatDuration(session.duration_minutes)}</span>
+                <div className="flex items-center gap-2">
+                  <Clock size={18} className="text-emerald-600" />
+                  <span className="font-medium">{formatDuration(session.duration_minutes)}</span>
                 </div>
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
                   href={session.meeting_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold text-base min-h-[48px] shadow-sm hover:shadow-md"
                 >
                   <Video size={18} />
                   {t('course.joinVideoSession')}
@@ -153,8 +153,8 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
               </div>
             ) : sessionMaterials.length > 0 ? (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <FileText size={16} className="text-emerald-600" />
+                <h4 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <FileText size={18} className="text-emerald-600" />
                   {t('course.sessionMaterials')} ({sessionMaterials.length})
                 </h4>
                 <div className="space-y-2">
@@ -173,10 +173,10 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
                           <FileText size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate group-hover:text-emerald-600 transition-colors">
+                          <p className="text-base font-semibold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">
                             {material.display_filename}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm text-gray-600 font-medium">
                             {material.file_type.toUpperCase()} • {formatFileSize(material.file_size_bytes)}
                           </p>
                         </div>
@@ -190,7 +190,7 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-gray-500 italic">
+              <div className="text-base text-gray-600 italic">
                 {t('course.noMaterialsForSession')}
               </div>
             )}

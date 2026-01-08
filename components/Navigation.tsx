@@ -189,7 +189,7 @@ export default function Navigation() {
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                   <button
                     onClick={() => handleSwitchView('student')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                    className={`px-4 py-2.5 rounded-md text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                       currentView === 'student'
                         ? 'bg-[#10b981] text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -199,7 +199,7 @@ export default function Navigation() {
                   </button>
                   <button
                     onClick={() => handleSwitchView('instructor')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                    className={`px-4 py-2.5 rounded-md text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                       currentView === 'instructor'
                         ? 'bg-[#10b981] text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -228,7 +228,7 @@ export default function Navigation() {
                       <span className="text-sm font-bold text-gray-900">
                         {user.first_name} {user.last_name}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded border ${getRoleBadge().className}`}>
+                      <span className={`text-sm px-2.5 py-1 rounded-md border font-semibold ${getRoleBadge().className}`}>
                         {getRoleBadge().text}
                       </span>
                     </div>
@@ -410,7 +410,7 @@ export default function Navigation() {
                     <p className="text-sm font-bold text-gray-900 truncate">
                       {user.first_name} {user.last_name}
                     </p>
-                    <span className={`inline-block text-xs px-2 py-0.5 rounded border ${getRoleBadge().className}`}>
+                    <span className={`inline-block text-sm px-2.5 py-1 rounded-md border font-semibold ${getRoleBadge().className}`}>
                       {getRoleBadge().text}
                     </span>
                   </div>
@@ -419,14 +419,14 @@ export default function Navigation() {
                 {/* View Switcher for Dual-Role Users - Mobile */}
                 {isDualRole && (
                   <div className="mt-3 px-3">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-bold">{t('navigation.switchView')}</p>
+                    <p className="text-sm text-gray-600 uppercase tracking-wide mb-2 font-bold">{t('navigation.switchView')}</p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
                           handleSwitchView('student');
                           setIsOpen(false);
                         }}
-                        className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${
+                        className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                           currentView === 'student'
                             ? 'bg-[#10b981] text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -439,7 +439,7 @@ export default function Navigation() {
                           handleSwitchView('instructor');
                           setIsOpen(false);
                         }}
-                        className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${
+                        className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                           currentView === 'instructor'
                             ? 'bg-[#10b981] text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
