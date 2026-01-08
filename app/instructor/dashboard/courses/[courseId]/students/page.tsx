@@ -98,7 +98,7 @@ export default function CourseStudentsPage() {
   }, [courseId, router, t]);
 
   // Handle status update
-  const handleStatusChange = async (signupId: string, newStatus: 'pending' | 'confirmed' | 'enrolled') => {
+  const handleStatusChange = async (signupId: string, newStatus: 'pending' | 'confirmed' | 'enrolled' | 'cancelled' | 'expired') => {
     setUpdatingStatusId(signupId);
     setError(null);
     setSuccess(null);
@@ -226,6 +226,10 @@ export default function CourseStudentsPage() {
         return 'bg-blue-50 text-blue-700 border border-blue-200';
       case 'pending':
         return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+      case 'cancelled':
+        return 'bg-red-50 text-red-700 border border-red-200';
+      case 'expired':
+        return 'bg-gray-50 text-gray-700 border border-gray-200';
       default:
         return 'bg-gray-50 text-gray-700 border border-gray-200';
     }
@@ -459,6 +463,8 @@ export default function CourseStudentsPage() {
                               <option value="pending">{t('instructor.students.pending')}</option>
                               <option value="confirmed">{t('instructor.students.confirmed')}</option>
                               <option value="enrolled">{t('instructor.students.enrolled')}</option>
+                              <option value="cancelled">{t('instructor.students.cancelled')}</option>
+                              <option value="expired">{t('instructor.students.expired')}</option>
                             </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -521,6 +527,8 @@ export default function CourseStudentsPage() {
                               <option value="pending">{t('instructor.students.pending')}</option>
                               <option value="confirmed">{t('instructor.students.confirmed')}</option>
                               <option value="enrolled">{t('instructor.students.enrolled')}</option>
+                              <option value="cancelled">{t('instructor.students.cancelled')}</option>
+                              <option value="expired">{t('instructor.students.expired')}</option>
                             </select>
                             <span className="text-gray-500">•</span>
                             <span className="text-gray-600">

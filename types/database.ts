@@ -75,7 +75,7 @@ export interface CourseSignup {
   email: string;
   course_slug: string;
   student_id?: string; // References users.id (nullable)
-  signup_status: 'pending' | 'confirmed' | 'enrolled';
+  signup_status: 'pending' | 'confirmed' | 'enrolled' | 'cancelled' | 'expired';
   language: 'en' | 'es';
   enrolled_at?: string;
   completed_at?: string;

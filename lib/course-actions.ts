@@ -718,7 +718,7 @@ export async function deleteCourseAction(
  */
 export async function updateStudentStatusAction(
   signupId: string,
-  newStatus: 'pending' | 'confirmed' | 'enrolled'
+  newStatus: 'pending' | 'confirmed' | 'enrolled' | 'cancelled' | 'expired'
 ): Promise<{
   success: boolean;
   error?: string;
