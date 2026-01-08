@@ -33,6 +33,7 @@ export async function GET(
       FROM forum_posts fp
       JOIN users u ON fp.user_id = u.id
       WHERE fp.id = ${postId} AND fp.course_id = ${courseId}
+      LIMIT 1
     `;
 
     if (posts.length === 0) {
@@ -42,12 +43,14 @@ export async function GET(
       );
     }
 
-    // Increment view count
-    await sql`
-      UPDATE forum_posts
-      SET view_count = view_count + 1
-      WHERE id = ${postId}
-    `;
+    if(posts[0].user_id !== session.id) {
+        // Increment view count
+        await sql`
+            UPDATE forum_posts
+            SET view_count = view_count + 1
+            WHERE id = ${postId}
+        `;
+    }
 
     return NextResponse.json({
       success: true,
