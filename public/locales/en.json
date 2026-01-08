@@ -256,6 +256,83 @@
     "twitterTitle": "Courses Platform — Access Your Learning",
     "twitterDescription": "Access your enrolled courses and enhance your learning experience."
   },
+  "forum": {
+    "title": "Course Forum",
+    "subtitle": "Ask questions and discuss with instructors and peers",
+    "accessForum": "Go to Forum",
+    "noPosts": "No posts yet",
+    "noPostsMessage": "Be the first to start a discussion!",
+    "createPost": "New Question",
+    "searchPlaceholder": "Search questions...",
+    "filterAll": "All Questions",
+    "filterResolved": "Resolved",
+    "filterUnresolved": "Unresolved",
+    "answerCount": "answer",
+    "answerCount_plural": "answers",
+    "viewCount": "view",
+    "viewCount_plural": "views",
+    "verified": "Verified Answer",
+    "resolved": "Resolved",
+    "pinned": "Pinned",
+    "postedBy": "Posted by",
+    "answeredBy": "Answered by",
+    "instructor": "Instructor",
+    "student": "Student",
+    "warningBanner": {
+      "title": "Public Forum Notice",
+      "message": "This is a public forum visible to all course participants. Do not share passwords, API keys, personal contact information, or other sensitive data."
+    },
+    "privateQuestions": {
+      "title": "Need to Ask Privately?",
+      "message": "For sensitive or personal matters, contact your instructor directly.",
+      "emailInstructor": "Email Instructor"
+    },
+    "createPostForm": {
+      "title": "Ask a Question",
+      "titleLabel": "Question Title",
+      "titlePlaceholder": "Briefly describe your question...",
+      "bodyLabel": "Question Details",
+      "bodyPlaceholder": "Provide more context, what you've tried, error messages, etc...",
+      "submitButton": "Post Question",
+      "submitting": "Posting...",
+      "cancel": "Cancel",
+      "success": "Question posted successfully!",
+      "error": "Failed to post question"
+    },
+    "createAnswerForm": {
+      "title": "Your Answer",
+      "bodyLabel": "Answer",
+      "bodyPlaceholder": "Share your knowledge, provide code examples, explain solutions...",
+      "submitButton": "Post Answer",
+      "submitting": "Posting...",
+      "success": "Answer posted successfully!",
+      "error": "Failed to post answer"
+    },
+    "sensitiveDataWarning": {
+      "title": "Sensitive Data Detected",
+      "message": "Your message may contain sensitive information (passwords, API keys, tokens). Are you sure you want to post this publicly?",
+      "detected": "Detected patterns:",
+      "cancel": "Review & Edit",
+      "proceed": "Post Anyway"
+    },
+    "postDetail": {
+      "backToForum": "Back to Forum",
+      "markResolved": "Mark as Resolved",
+      "markUnresolved": "Reopen Question",
+      "editPost": "Edit Question",
+      "deletePost": "Delete Question",
+      "answers": "Answers",
+      "noAnswers": "No answers yet",
+      "noAnswersMessage": "Be the first to help answer this question!",
+      "writeAnswer": "Write an Answer"
+    },
+    "accessDenied": {
+      "title": "Access Denied",
+      "message": "You must be enrolled in this course to access the forum.",
+      "enrollNow": "Enroll Now",
+      "backToCourse": "Back to Course"
+    }
+  },
   "instructor": {
     "dashboard": {
       "title": "Instructor Dashboard",

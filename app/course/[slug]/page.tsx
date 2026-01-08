@@ -89,10 +89,11 @@ export default function CoursePage() {
         return;
       }
 
-      // Check if instructor is assigned to this course
+      // Check if instructor is assigned to this course via API
       try {
-        const result = await getCourseByIdAction(course.id);
-        setInstructorHasAccess(result.success);
+        const response = await fetch(`/api/courses/${course.id}/check-instructor-access`);
+        const data = await response.json();
+        setInstructorHasAccess(data.hasAccess || false);
       } catch (error) {
         console.error('Error checking instructor access:', error);
         setInstructorHasAccess(false);
@@ -298,7 +299,8 @@ export default function CoursePage() {
   // Determine which type of user and their access
   const isStudent = !!user;
   const isInstructor = !!instructor;
-  const userHasAccess = isStudent ? hasAccess : instructorHasAccess;
+  // Grant access if user has EITHER student access OR instructor access (supports dual-role users)
+  const userHasAccess = hasAccess || instructorHasAccess;
 
   if (!course) {
     return (
@@ -431,6 +433,28 @@ export default function CoursePage() {
               ) : (
                 <p className="text-gray-500 italic">{t('course.noDescription')}</p>
               )}
+
+              {/* Forum Call-to-Action */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="text-gray-600 mb-4">
+                        {t('forum.subtitle')}
+                      </p>
+                      <Link
+                        href={`/course/${slug}/forum`}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white text-base font-bold rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        </svg>
+                        {t('forum.accessForum')}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Instructor Contact Information (For Students) */}
               {isStudent && courseInstructors.length > 0 && (

@@ -385,6 +385,18 @@ export default function EditCoursePage() {
               >
                 {t('instructor.editCourse.tabs.students')}
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // Navigate to forum using course slug
+                  if (formData.slug) {
+                    router.push(`/course/${formData.slug}/forum`);
+                  }
+                }}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Forum
+              </button>
             </nav>
           </div>
         </div>

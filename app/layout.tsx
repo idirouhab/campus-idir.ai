@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import Script from 'next/script';
 import "./globals.css";
@@ -118,7 +119,9 @@ export default function RootLayout({
             {children}
             {GA_MEASUREMENT_ID && (
               <>
-                <Analytics />
+                  <Suspense fallback={null}>
+                      <Analytics />
+                  </Suspense>
                 <AnalyticsUserWrapper />
               </>
             )}

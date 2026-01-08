@@ -256,6 +256,83 @@
     "twitterTitle": "Plataforma de Cursos — Accede a tu Aprendizaje",
     "twitterDescription": "Accede a tus cursos inscritos y mejora tu experiencia de aprendizaje."
   },
+  "forum": {
+    "title": "Foro del Curso",
+    "subtitle": "Haz preguntas y discute con instructores y compañeros",
+    "accessForum": "Ir al Foro",
+    "noPosts": "Aún no hay publicaciones",
+    "noPostsMessage": "¡Sé el primero en iniciar una discusión!",
+    "createPost": "Nueva Pregunta",
+    "searchPlaceholder": "Buscar preguntas...",
+    "filterAll": "Todas las Preguntas",
+    "filterResolved": "Resueltas",
+    "filterUnresolved": "Sin Resolver",
+    "answerCount": "respuesta",
+    "answerCount_plural": "respuestas",
+    "viewCount": "vista",
+    "viewCount_plural": "vistas",
+    "verified": "Respuesta Verificada",
+    "resolved": "Resuelta",
+    "pinned": "Fijada",
+    "postedBy": "Publicado por",
+    "answeredBy": "Respondido por",
+    "instructor": "Instructor",
+    "student": "Estudiante",
+    "warningBanner": {
+      "title": "Aviso de Foro Público",
+      "message": "Este es un foro público visible para todos los participantes del curso. No compartas contraseñas, claves API, información de contacto personal u otros datos sensibles."
+    },
+    "privateQuestions": {
+      "title": "¿Necesitas Preguntar Privadamente?",
+      "message": "Para asuntos sensibles o personales, contacta directamente a tu instructor.",
+      "emailInstructor": "Enviar Email al Instructor"
+    },
+    "createPostForm": {
+      "title": "Hacer una Pregunta",
+      "titleLabel": "Título de la Pregunta",
+      "titlePlaceholder": "Describe brevemente tu pregunta...",
+      "bodyLabel": "Detalles de la Pregunta",
+      "bodyPlaceholder": "Proporciona más contexto, lo que has intentado, mensajes de error, etc...",
+      "submitButton": "Publicar Pregunta",
+      "submitting": "Publicando...",
+      "cancel": "Cancelar",
+      "success": "¡Pregunta publicada exitosamente!",
+      "error": "Error al publicar la pregunta"
+    },
+    "createAnswerForm": {
+      "title": "Tu Respuesta",
+      "bodyLabel": "Respuesta",
+      "bodyPlaceholder": "Comparte tu conocimiento, proporciona ejemplos de código, explica soluciones...",
+      "submitButton": "Publicar Respuesta",
+      "submitting": "Publicando...",
+      "success": "¡Respuesta publicada exitosamente!",
+      "error": "Error al publicar la respuesta"
+    },
+    "sensitiveDataWarning": {
+      "title": "Datos Sensibles Detectados",
+      "message": "Tu mensaje puede contener información sensible (contraseñas, claves API, tokens). ¿Estás seguro de que quieres publicar esto públicamente?",
+      "detected": "Patrones detectados:",
+      "cancel": "Revisar y Editar",
+      "proceed": "Publicar de Todos Modos"
+    },
+    "postDetail": {
+      "backToForum": "Volver al Foro",
+      "markResolved": "Marcar como Resuelta",
+      "markUnresolved": "Reabrir Pregunta",
+      "editPost": "Editar Pregunta",
+      "deletePost": "Eliminar Pregunta",
+      "answers": "Respuestas",
+      "noAnswers": "Aún no hay respuestas",
+      "noAnswersMessage": "¡Sé el primero en ayudar a responder esta pregunta!",
+      "writeAnswer": "Escribir una Respuesta"
+    },
+    "accessDenied": {
+      "title": "Acceso Denegado",
+      "message": "Debes estar inscrito en este curso para acceder al foro.",
+      "enrollNow": "Inscribirse Ahora",
+      "backToCourse": "Volver al Curso"
+    }
+  },
   "instructor": {
     "dashboard": {
       "title": "Panel de Instructor",

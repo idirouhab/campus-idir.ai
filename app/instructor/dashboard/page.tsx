@@ -369,7 +369,7 @@ export default function InstructorDashboardPage() {
               {courses.map((course) => (
                 <div key={course.id} className="relative border border-gray-200 rounded-lg overflow-hidden group">
                   <Link
-                    href={`/course/${course.slug}`}
+                    href={`/instructor/dashboard/courses/${course.id}/edit`}
                     className="block hover:border-[#10b981] transition-all"
                   >
                     {course.cover_image && (
