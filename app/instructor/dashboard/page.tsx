@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
@@ -36,6 +36,7 @@ interface CourseWithInstructors extends Course {
 export default function InstructorDashboardPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const pathname = usePathname();
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [courses, setCourses] = useState<CourseWithInstructors[]>([]);
   const [instructors, setInstructors] = useState<InstructorWithStats[]>([]);
@@ -110,7 +111,7 @@ export default function InstructorDashboardPage() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, pathname]);
 
   // Fetch courses when instructor is loaded
   useEffect(() => {
