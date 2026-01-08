@@ -37,39 +37,36 @@ export default function ForumPage() {
   const [courseId, setCourseId] = useState<string | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = checking, true = has access, false = denied
   const [instructorEmail, setInstructorEmail] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isInstructorMode, setIsInstructorMode] = useState(false);
 
-  // Check if user is in instructor mode
+  // Initialize: Check user type and fetch course ID in parallel
   useEffect(() => {
-    async function checkUserType() {
+    async function initialize() {
       try {
-        const response = await fetch('/api/auth/session', { credentials: 'include' });
-        const data = await response.json();
-        setIsInstructorMode(data.user?.userType === 'instructor');
-      } catch (error) {
-        console.error('Error checking user type:', error);
-      }
-    }
-    checkUserType();
-  }, []);
+        // Run both requests in parallel
+        const [sessionResponse, courseResponse] = await Promise.all([
+          fetch('/api/auth/session', { credentials: 'include' }),
+          fetch(`/api/courses/by-slug/${slug}`)
+        ]);
 
-  // Fetch course ID from slug
-  useEffect(() => {
-    async function fetchCourseId() {
-      try {
-        const response = await fetch(`/api/courses/by-slug/${slug}`);
-        const data = await response.json();
-        if (data.success && data.course) {
-          setCourseId(data.course.id);
+        const [sessionData, courseData] = await Promise.all([
+          sessionResponse.json(),
+          courseResponse.json()
+        ]);
+
+        setIsInstructorMode(sessionData.user?.userType === 'instructor');
+
+        if (courseData.success && courseData.course) {
+          setCourseId(courseData.course.id);
         }
       } catch (error) {
-        console.error('Error fetching course:', error);
+        console.error('Error initializing:', error);
       }
     }
-    fetchCourseId();
+    initialize();
   }, [slug]);
 
   // Check access
@@ -80,9 +77,10 @@ export default function ForumPage() {
       try {
         const response = await fetch(`/api/courses/${courseId}/forum/check-access`);
         const data = await response.json();
-        setHasAccess(data.hasAccess);
+        setHasAccess(data.hasAccess === true);
       } catch (error) {
         console.error('Error checking access:', error);
+        setHasAccess(false);
       }
     }
     checkAccess();
@@ -133,7 +131,22 @@ export default function ForumPage() {
     }
   };
 
-  if (!hasAccess) {
+  // Show loading while checking access
+  if (hasAccess === null) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 pt-20 pb-8">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">{t('common.loading')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied only after checking
+  if (hasAccess === false) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 pt-20 pb-8">

@@ -8,7 +8,8 @@
     "password": "Contraseña",
     "fullName": "Nombre Completo",
     "createAccount": "Crear Cuenta",
-    "menu": "Menú"
+    "menu": "Menú",
+    "cancel": "Cancelar"
   },
   "home": {
     "title": "CURSOS",
@@ -260,6 +261,12 @@
     "title": "Foro del Curso",
     "subtitle": "Haz preguntas y discute con instructores y compañeros",
     "accessForum": "Ir al Foro",
+    "markdownSupported": "Markdown soportado: **negrita**, *cursiva*, `código`, [enlaces](url), etc.",
+    "editPost": "Editar",
+    "editingPost": "Editando Publicación",
+    "saveChanges": "Guardar Cambios",
+    "updating": "Actualizando...",
+    "updateError": "Error al actualizar la publicación. Por favor, inténtalo de nuevo.",
     "noPosts": "Aún no hay publicaciones",
     "noPostsMessage": "¡Sé el primero en iniciar una discusión!",
     "createPost": "Nueva Pregunta",

@@ -8,7 +8,8 @@
     "password": "Password",
     "fullName": "Full Name",
     "createAccount": "Create Account",
-    "menu": "Menu"
+    "menu": "Menu",
+    "cancel": "Cancel"
   },
   "home": {
     "title": "COURSES",
@@ -260,6 +261,12 @@
     "title": "Course Forum",
     "subtitle": "Ask questions and discuss with instructors and peers",
     "accessForum": "Go to Forum",
+    "markdownSupported": "Markdown supported: **bold**, *italic*, `code`, [links](url), etc.",
+    "editPost": "Edit",
+    "editingPost": "Editing Post",
+    "saveChanges": "Save Changes",
+    "updating": "Updating...",
+    "updateError": "Failed to update post. Please try again.",
     "noPosts": "No posts yet",
     "noPostsMessage": "Be the first to start a discussion!",
     "createPost": "New Question",
