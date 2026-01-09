@@ -95,14 +95,24 @@ export async function requireSession(): Promise<SessionUser> {
 
 /**
  * Require specific user type
+ * For dual-role users, this checks if they have the required profile
  */
 export async function requireUserType(
   userType: 'student' | 'instructor'
 ): Promise<SessionUser> {
   const session = await requireSession();
-  if (session.userType !== userType) {
-    throw new Error('Forbidden: Invalid user type');
+
+  // For dual-role users, check profile availability instead of strict userType
+  if (userType === 'student') {
+    if (!session.hasStudentProfile) {
+      throw new Error('Forbidden: Student profile required');
+    }
+  } else if (userType === 'instructor') {
+    if (!session.hasInstructorProfile) {
+      throw new Error('Forbidden: Instructor profile required');
+    }
   }
+
   return session;
 }
 

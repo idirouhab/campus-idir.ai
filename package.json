@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "generate:icons": "node scripts/generate-icons.js",
-    "fix:favicon": "node scripts/fix-favicon.js"
+    "fix:favicon": "node scripts/fix-favicon.js",
+    "create:svg-logo": "node scripts/create-svg-logo.js",
+    "create:maskable-icons": "node scripts/create-maskable-icons.js"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.32.1",
