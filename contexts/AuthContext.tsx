@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [hasInstructorProfile, setHasInstructorProfile] = useState(false);
   const [currentView, setCurrentView] = useState<'student' | 'instructor' | null>(null);
   const [instructorRole, setInstructorRole] = useState<'instructor' | 'admin' | null>(null);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -101,8 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setHasInstructorProfile(false);
         setCurrentView(null);
         setInstructorRole(null);
+      } finally {
+        setLoading(false);
+        setInitialCheckDone(true);
       }
-      setLoading(false);
     };
 
     checkAuth();

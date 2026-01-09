@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import Script from 'next/script';
+import NextTopLoader from 'nextjs-toploader';
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Navigation from "@/components/Navigation";
@@ -95,6 +96,17 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="antialiased bg-gray-50 text-gray-900" suppressHydrationWarning>
+        <NextTopLoader
+          color="#10b981"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #10b981,0 0 5px #10b981"
+        />
         {GA_MEASUREMENT_ID && (
           <>
             <Script
