@@ -159,7 +159,7 @@ export default function ForumPage() {
             </p>
             <Link
               href={isInstructorMode && courseId ? `/instructor/dashboard/courses/${courseId}/edit` : `/course/${slug}`}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex items-center justify-center px-4 py-3 min-h-[44px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
               {isInstructorMode ? 'Back to Course Management' : t('forum.accessDenied.backToCourse')}
             </Link>
@@ -191,10 +191,11 @@ export default function ForumPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
               <Plus className="h-5 w-5" />
-              {t('forum.createPost')}
+              <span className="hidden sm:inline">{t('forum.createPost')}</span>
+              <span className="sm:hidden">Ask</span>
             </button>
           </div>
         </div>

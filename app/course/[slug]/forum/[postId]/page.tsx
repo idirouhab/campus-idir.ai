@@ -404,22 +404,22 @@ export default function PostDetailPage() {
                                     )}
                                     {/* Edit and Delete Buttons - Only show to author */}
                                     {currentUserId && post.user_id === currentUserId && (
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                             <button
                                                 onClick={handleEditPost}
-                                                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="flex items-center justify-center gap-1 px-4 py-2.5 min-h-[44px] text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
-                                                {t('forum.editPost') || 'Edit'}
+                                                <span className="hidden sm:inline">{t('forum.editPost') || 'Edit'}</span>
                                             </button>
                                             <button
                                                 onClick={() => setShowDeletePostConfirm(true)}
-                                                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="flex items-center justify-center gap-1 px-4 py-2.5 min-h-[44px] text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                             >
                                                 <Trash2 className="w-4 h-4" />
-                                                {t('common.deletePost') || 'Delete'}
+                                                <span className="hidden sm:inline">{t('common.deletePost') || 'Delete'}</span>
                                             </button>
                                         </div>
                                     )}
@@ -580,17 +580,17 @@ export default function PostDetailPage() {
                                                     </svg>
                                                     {t('forum.markdownSupported')}
                                                 </p>
-                                                <div className="flex justify-end gap-2">
+                                                <div className="flex flex-col sm:flex-row justify-end gap-2">
                                                     <button
                                                         onClick={handleCancelEditAnswer}
-                                                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                                        className="px-4 py-2.5 min-h-[44px] text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
                                                         disabled={isUpdatingAnswer}
                                                     >
                                                         {t('common.cancel') || 'Cancel'}
                                                     </button>
                                                     <button
                                                         onClick={() => handleUpdateAnswer(answer.id)}
-                                                        className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                                        className="px-4 py-2.5 min-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                                                         disabled={isUpdatingAnswer}
                                                     >
                                                         {isUpdatingAnswer ? (t('forum.updating') || 'Updating...') : (t('forum.saveChanges') || 'Save')}

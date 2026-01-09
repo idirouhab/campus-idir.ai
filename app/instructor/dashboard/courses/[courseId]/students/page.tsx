@@ -480,7 +480,7 @@ export default function CourseStudentsPage() {
                             <button
                               onClick={() => handleDelete(student.id, `${student.first_name} ${student.last_name}`)}
                               disabled={deletingId === student.id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                               title={t('instructor.students.removeStudent')}
                             >
                               {deletingId === student.id ? (
@@ -544,7 +544,7 @@ export default function CourseStudentsPage() {
                           <button
                             onClick={() => handleDelete(student.id, `${student.first_name} ${student.last_name}`)}
                             disabled={deletingId === student.id}
-                            className="w-full px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                            className="w-full px-4 py-3 min-h-[44px] text-sm font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
                           >
                             {deletingId === student.id ? t('instructor.students.removing') : t('instructor.students.removeStudentButton')}
                           </button>
