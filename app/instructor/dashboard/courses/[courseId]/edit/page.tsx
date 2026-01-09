@@ -10,6 +10,7 @@ import { Instructor } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
 import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 export default function EditCoursePage() {
   const router = useRouter();
@@ -329,14 +330,7 @@ export default function EditCoursePage() {
   };
 
   if (authLoading || !currentInstructor) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay fullScreen={false} />;
   }
 
   return (

@@ -90,7 +90,9 @@
     "studentView": "Vista de Estudiante",
     "instructorView": "Vista de Instructor",
     "logOut": "Cerrar Sesión",
-    "language": "Idioma"
+    "language": "Idioma",
+    "switchingView": "Cambiando Vista",
+    "pleaseWait": "Por favor espera..."
   },
   "dashboard": {
     "title": "Mis",
@@ -273,6 +275,9 @@
     "title": "Foro del Curso",
     "subtitle": "Haz preguntas y discute con instructores y compañeros",
     "accessForum": "Ir al Foro",
+    "backToCourse": "Volver al Curso",
+    "backToCourseManagement": "Volver a la Gestión del Curso",
+    "ask": "Preguntar",
     "markdownSupported": "Markdown soportado: **negrita**, *cursiva*, `código`, [enlaces](url), etc.",
     "editPost": "Editar",
     "editingPost": "Editando Publicación",
@@ -316,7 +321,8 @@
       "submitting": "Publicando...",
       "cancel": "Cancelar",
       "success": "¡Pregunta publicada exitosamente!",
-      "error": "Error al publicar la pregunta"
+      "error": "Error al publicar la pregunta",
+      "failedToCreate": "Error al crear la publicación"
     },
     "createAnswerForm": {
       "title": "Tu Respuesta",

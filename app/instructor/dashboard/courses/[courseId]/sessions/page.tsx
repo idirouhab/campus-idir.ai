@@ -16,6 +16,7 @@ import {
 } from '@/lib/session-actions';
 import { getCourseByIdAction } from '@/lib/course-actions';
 import { Save } from 'lucide-react';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 export default function ManageCourseSessionsPage() {
   const router = useRouter();
@@ -167,11 +168,7 @@ export default function ManageCourseSessionsPage() {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
-      </div>
-    );
+    return <LoadingOverlay fullScreen={false} />;
   }
 
   return (

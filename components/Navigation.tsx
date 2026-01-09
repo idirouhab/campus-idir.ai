@@ -7,14 +7,23 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
+import LoadingOverlay from './LoadingOverlay';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [switchingView, setSwitchingView] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Reset switching state when pathname changes
+  useEffect(() => {
+    if (switchingView) {
+      setSwitchingView(false);
+    }
+  }, [pathname]);
   const {
     user,
     currentView,
@@ -116,10 +125,13 @@ export default function Navigation() {
 
   const handleSwitchView = async (view: 'student' | 'instructor') => {
     try {
-      await switchView(view);
+      setSwitchingView(true);
       setDropdownOpen(false);
+      await switchView(view);
+      // Note: Navigation will occur, so no need to reset state
     } catch (error) {
       console.error('Error switching view:', error);
+      setSwitchingView(false);
     }
   };
 
@@ -197,21 +209,23 @@ export default function Navigation() {
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                   <button
                     onClick={() => handleSwitchView('student')}
+                    disabled={switchingView}
                     className={`px-4 py-2.5 rounded-md text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                       currentView === 'student'
                         ? 'bg-[#10b981] text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                    } ${switchingView ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {t('navigation.student')}
                   </button>
                   <button
                     onClick={() => handleSwitchView('instructor')}
+                    disabled={switchingView}
                     className={`px-4 py-2.5 rounded-md text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                       currentView === 'instructor'
                         ? 'bg-[#10b981] text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                    } ${switchingView ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {t('navigation.instructor')}
                   </button>
@@ -446,11 +460,12 @@ export default function Navigation() {
                           handleSwitchView('student');
                           setIsOpen(false);
                         }}
+                        disabled={switchingView}
                         className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                           currentView === 'student'
                             ? 'bg-[#10b981] text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                        } ${switchingView ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {t('navigation.student')}
                       </button>
@@ -459,11 +474,12 @@ export default function Navigation() {
                           handleSwitchView('instructor');
                           setIsOpen(false);
                         }}
+                        disabled={switchingView}
                         className={`flex-1 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wide transition-all min-h-[44px] ${
                           currentView === 'instructor'
                             ? 'bg-[#10b981] text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                        } ${switchingView ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {t('navigation.instructor')}
                       </button>
@@ -591,6 +607,11 @@ export default function Navigation() {
           </div>
         </div>
       </div>
+
+      {/* Full-screen loading overlay when switching views */}
+      {switchingView && (
+        <LoadingOverlay message={t('navigation.switchingView')} />
+      )}
     </>
   );
 }

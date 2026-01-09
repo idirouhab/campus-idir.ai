@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getCourseStudentsAction, getCourseByIdAction, updateStudentStatusAction, deleteStudentFromCourseAction } from '@/lib/course-actions';
 import { Instructor } from '@/types/database';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Student {
   id: string;
@@ -192,14 +193,7 @@ export default function CourseStudentsPage() {
   }, [students, statusFilter, sortBy, searchQuery]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('instructor.students.loadingStudents')}</p>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay fullScreen={false} message={t('instructor.students.loadingStudents')} />;
   }
 
   if (!instructor) {

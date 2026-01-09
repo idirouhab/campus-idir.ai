@@ -90,7 +90,9 @@
     "studentView": "Student View",
     "instructorView": "Instructor View",
     "logOut": "Log-out",
-    "language": "Language"
+    "language": "Language",
+    "switchingView": "Switching View",
+    "pleaseWait": "Please wait..."
   },
   "dashboard": {
     "title": "My",
@@ -273,6 +275,9 @@
     "title": "Course Forum",
     "subtitle": "Ask questions and discuss with instructors and peers",
     "accessForum": "Go to Forum",
+    "backToCourse": "Back to Course",
+    "backToCourseManagement": "Back to Course Management",
+    "ask": "Ask",
     "markdownSupported": "Markdown supported: **bold**, *italic*, `code`, [links](url), etc.",
     "editPost": "Edit",
     "editingPost": "Editing Post",
@@ -316,7 +321,8 @@
       "submitting": "Posting...",
       "cancel": "Cancel",
       "success": "Question posted successfully!",
-      "error": "Failed to post question"
+      "error": "Failed to post question",
+      "failedToCreate": "Failed to create post"
     },
     "createAnswerForm": {
       "title": "Your Answer",

@@ -19,6 +19,7 @@ import {
 } from '@/lib/instructor-assignment-actions';
 import { getCourseSessionsAction } from '@/lib/session-actions';
 import SessionsList from '@/components/courses/SessionsList';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 export default function CoursePage() {
   const { user, loading: authLoading } = useAuth();
@@ -215,27 +216,7 @@ export default function CoursePage() {
   const isLoading = authLoading || instructorLoading || courseLoading || accessLoading;
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
-          <div className="animate-fade-in">
-            {/* Skeleton Course Header */}
-            <div className="mb-6">
-              <div className="h-8 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-            </div>
-            {/* Skeleton Course Cover */}
-            <div className="h-64 bg-gray-200 rounded-lg mb-6 animate-pulse"></div>
-            {/* Skeleton Content */}
-            <div className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay fullScreen={false} />;
   }
 
   // Handler functions for instructor assignment

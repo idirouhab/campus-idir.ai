@@ -11,6 +11,7 @@ import CreatePostModal from '@/components/forum/CreatePostModal';
 import RoleBadge from '@/components/forum/RoleBadge';
 import { MessageSquare, Eye, CheckCircle, Plus } from 'lucide-react';
 import Cookies from 'js-cookie';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface ForumPost {
   id: string;
@@ -121,7 +122,7 @@ export default function ForumPage() {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || 'Failed to create post');
+      throw new Error(data.error || t('forum.createPostForm.failedToCreate'));
     }
 
     // Refresh posts
@@ -133,16 +134,7 @@ export default function ForumPage() {
 
   // Show loading while checking access
   if (hasAccess === null) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 pt-20 pb-8">
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">{t('common.loading')}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay fullScreen={false} />;
   }
 
   // Show access denied only after checking
@@ -161,7 +153,7 @@ export default function ForumPage() {
               href={isInstructorMode && courseId ? `/instructor/dashboard/courses/${courseId}/edit` : `/course/${slug}`}
               className="inline-flex items-center justify-center px-4 py-3 min-h-[44px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
-              {isInstructorMode ? 'Back to Course Management' : t('forum.accessDenied.backToCourse')}
+              {isInstructorMode ? t('forum.backToCourseManagement') : t('forum.accessDenied.backToCourse')}
             </Link>
           </div>
         </div>
@@ -178,7 +170,7 @@ export default function ForumPage() {
             href={isInstructorMode && courseId ? `/instructor/dashboard/courses/${courseId}/edit` : `/course/${slug}`}
             className="text-sm text-blue-600 hover:text-blue-800 mb-4 inline-block"
           >
-            ← {isInstructorMode ? 'Back to Course Management' : 'Back to Course'}
+            ← {isInstructorMode ? t('forum.backToCourseManagement') : t('forum.backToCourse')}
           </Link>
           <div className="flex items-center justify-between">
             <div>
@@ -195,7 +187,7 @@ export default function ForumPage() {
             >
               <Plus className="h-5 w-5" />
               <span className="hidden sm:inline">{t('forum.createPost')}</span>
-              <span className="sm:hidden">Ask</span>
+              <span className="sm:hidden">{t('forum.ask')}</span>
             </button>
           </div>
         </div>

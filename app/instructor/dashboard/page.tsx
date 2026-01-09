@@ -8,6 +8,7 @@ import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getInstructorCoursesAction, deleteCourseAction, getAllInstructorsWithStatsAction } from '@/lib/course-actions';
 import { Instructor, Course } from '@/types/database';
 import { useInstructorPermissions } from '@/hooks/useInstructorPermissions';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface InstructorWithStats {
   id: string;
@@ -198,14 +199,7 @@ export default function InstructorDashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay fullScreen={false} />;
   }
 
   if (!instructor) {
