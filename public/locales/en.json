@@ -537,7 +537,9 @@
       "errorOccurred": "An error occurred",
       "failedToUpdate": "Failed to update status",
       "failedToDelete": "Failed to delete student",
-      "confirmDelete": "Are you sure you want to remove {name} from this course? This action cannot be undone."
+      "confirmDelete": "Are you sure you want to remove {name} from this course? This action cannot be undone.",
+      "cancel": "Cancelled",
+      "expired": "Expired"
     },
     "manageInstructors": {
       "selectCourse": "Select Course",

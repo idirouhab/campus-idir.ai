@@ -537,7 +537,10 @@
       "errorOccurred": "Ocurrió un error",
       "failedToUpdate": "Error al actualizar el estado",
       "failedToDelete": "Error al eliminar estudiante",
-      "confirmDelete": "¿Estás seguro de que quieres eliminar a {name} de este curso? Esta acción no se puede deshacer."
+      "confirmDelete": "¿Estás seguro de que quieres eliminar a {name} de este curso? Esta acción no se puede deshacer.",
+      "cancel": "Cancelado",
+      "expired": "Expirado"
+
     },
     "manageInstructors": {
       "selectCourse": "Seleccionar Curso",
