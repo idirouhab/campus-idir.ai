@@ -260,14 +260,14 @@
     "selectCountry": "Select a country"
   },
   "metadata": {
-    "title": "Courses Platform — Access Your Learning",
-    "description": "Student courses platform. Access your enrolled courses, track your progress, and enhance your learning experience.",
-    "keywords": "courses, learning, education, student platform, online courses",
-    "siteName": "Courses Platform",
-    "ogTitle": "Courses Platform — Access Your Learning",
-    "ogDescription": "Access your enrolled courses, track your progress, and enhance your learning experience.",
-    "twitterTitle": "Courses Platform — Access Your Learning",
-    "twitterDescription": "Access your enrolled courses and enhance your learning experience."
+    "title": "idir.ai — Courses Platform",
+    "description": "Learn automation, AI, and modern development practices. Access your enrolled courses, track your progress, and enhance your learning experience with idir.ai.",
+    "keywords": "idir.ai, courses, learning, automation, AI, education, online courses, programming",
+    "siteName": "idir.ai",
+    "ogTitle": "idir.ai — Courses Platform",
+    "ogDescription": "Learn automation, AI, and modern development practices. Access your courses and enhance your learning experience.",
+    "twitterTitle": "idir.ai — Courses Platform",
+    "twitterDescription": "Learn automation, AI, and modern development. Access your courses with idir.ai."
   },
   "forum": {
     "title": "Course Forum",

@@ -32,32 +32,32 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
-  title: "Courses Platform — Access Your Learning",
-  description: "Student courses platform. Access your enrolled courses, track your progress, and enhance your learning experience.",
-  keywords: ["courses", "learning", "education", "student platform", "online courses"],
+  title: "idir.ai — Courses Platform",
+  description: "Learn automation, AI, and modern development practices. Access your enrolled courses, track your progress, and enhance your learning experience with idir.ai.",
+  keywords: ["idir.ai", "courses", "learning", "automation", "AI", "education", "online courses", "programming"],
   authors: [{ name: "Idir Ouhab Meskine", url: "https://idir.ai" }],
   creator: "Idir Ouhab Meskine",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: baseUrl,
-    siteName: "Courses Platform",
-    title: "Courses Platform — Access Your Learning",
-    description: "Access your enrolled courses, track your progress, and enhance your learning experience.",
+    siteName: "idir.ai",
+    title: "idir.ai — Courses Platform",
+    description: "Learn automation, AI, and modern development practices. Access your courses and enhance your learning experience.",
     images: [
       {
         url: `${baseUrl}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "Courses Platform",
+        alt: "idir.ai Courses Platform",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Courses Platform — Access Your Learning",
-    description: "Access your enrolled courses and enhance your learning experience.",
+    title: "idir.ai — Courses Platform",
+    description: "Learn automation, AI, and modern development. Access your courses with idir.ai.",
     images: [`${baseUrl}/og-image.png`],
   },
   robots: {
@@ -81,6 +81,7 @@ export const metadata: Metadata = {
       { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

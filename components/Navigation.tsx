@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -173,10 +174,17 @@ export default function Navigation() {
             <div className="flex-shrink-0 md:mr-auto">
               <Link
                 href={isInstructor ? '/instructor/dashboard' : user ? '/dashboard' : '/'}
-                className="text-xl md:text-2xl font-black text-gray-900 hover:text-[#10b981] transition-colors uppercase tracking-tight"
-                aria-label="Home - Courses Platform"
+                className="flex items-center hover:opacity-80 transition-opacity"
+                aria-label="Home - idir.ai"
               >
-                IO
+                <Image
+                  src="/logo-idirai-dark.png"
+                  alt="idir.ai"
+                  width={130}
+                  height={64}
+                  priority
+                  className="h-6 md:h-8 w-auto"
+                />
               </Link>
             </div>
 
