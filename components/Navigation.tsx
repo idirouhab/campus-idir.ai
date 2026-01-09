@@ -381,7 +381,19 @@ export default function Navigation() {
         <div className="h-full flex flex-col">
           {/* Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0 bg-gray-50">
-            <span className="text-xl font-black text-gray-900 uppercase tracking-tight">IO</span>
+            <Link
+              href={isInstructor ? '/instructor/dashboard' : user ? '/dashboard' : '/'}
+              onClick={() => setIsOpen(false)}
+              className="flex items-center"
+            >
+              <Image
+                src="/logo-idirai-dark.png"
+                alt="idir.ai"
+                width={100}
+                height={49}
+                className="h-6 w-auto"
+              />
+            </Link>
             <button
               onClick={() => setIsOpen(false)}
               className="p-2 text-gray-600 hover:text-gray-900 transition-colors"

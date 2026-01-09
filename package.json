@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "generate:icons": "node scripts/generate-icons.js"
+    "generate:icons": "node scripts/generate-icons.js",
+    "fix:favicon": "node scripts/fix-favicon.js"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.32.1",
