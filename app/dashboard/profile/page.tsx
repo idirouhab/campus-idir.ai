@@ -1,41 +1,87 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { updateStudentProfileAction, updateStudentPasswordAction } from '@/lib/auth-actions';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
+import { LoadingButton } from '@/components/ui/LoadingButton';
+import { Spinner } from '@/components/ui/Spinner';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
+import { useNavigationState } from '@/hooks/useNavigationPending';
 
 export default function StudentProfilePage() {
   const { user, loading: authLoading, refreshUser } = useAuth();
   const { t } = useLanguage();
-  const router = useRouter();
+  const { navigate } = useNavigationState();
 
   // Profile form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [profileError, setProfileError] = useState('');
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileSuccess, setProfileSuccess] = useState(false);
 
   // Password form state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  // Profile form submission
+  const profileForm = useFormSubmit({
+    onSubmit: async () => {
+      if (!firstName || !lastName || !email || !dateOfBirth) {
+        return { error: 'All fields are required' };
+      }
+
+      const result = await updateStudentProfileAction(user!.id, firstName, lastName, email, dateOfBirth);
+
+      if (!result.success) {
+        return { error: result.error || 'Failed to update profile' };
+      }
+
+      await refreshUser();
+      return { success: true };
+    },
+  });
+
+  // Password form submission
+  const passwordForm = useFormSubmit({
+    onSubmit: async () => {
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return { error: 'All fields are required' };
+      }
+
+      if (newPassword !== confirmPassword) {
+        return { error: t('profile.passwordMismatch') };
+      }
+
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.isValid) {
+        return { error: t('signup.passwordError') };
+      }
+
+      const result = await updateStudentPasswordAction(user!.id, currentPassword, newPassword);
+
+      if (!result.success) {
+        return { error: result.error || 'Failed to update password' };
+      }
+
+      // Clear password fields on success
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      return { success: true };
+    },
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/student/login');
+      navigate('/student/login');
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -53,94 +99,11 @@ export default function StudentProfilePage() {
     }
   }, [user]);
 
-  const handleProfileSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setProfileError('');
-    setProfileSuccess(false);
-
-    if (!firstName || !lastName || !email || !dateOfBirth) {
-      setProfileError('All fields are required');
-      return;
-    }
-
-    setProfileLoading(true);
-
-    try {
-      const result = await updateStudentProfileAction(user!.id, firstName, lastName, email, dateOfBirth);
-
-      if (!result.success) {
-        setProfileError(result.error || 'Failed to update profile');
-        setProfileLoading(false);
-        return;
-      }
-
-      setProfileSuccess(true);
-      await refreshUser();
-
-      setTimeout(() => {
-        setProfileSuccess(false);
-      }, 3000);
-
-      setProfileLoading(false);
-    } catch (err: any) {
-      setProfileError(err.message || 'An error occurred');
-      setProfileLoading(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setPasswordError('');
-    setPasswordSuccess(false);
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All fields are required');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError(t('profile.passwordMismatch'));
-      return;
-    }
-
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.isValid) {
-      setPasswordError(t('signup.passwordError'));
-      return;
-    }
-
-    setPasswordLoading(true);
-
-    try {
-      const result = await updateStudentPasswordAction(user!.id, currentPassword, newPassword);
-
-      if (!result.success) {
-        setPasswordError(result.error || 'Failed to update password');
-        setPasswordLoading(false);
-        return;
-      }
-
-      setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-
-      setTimeout(() => {
-        setPasswordSuccess(false);
-      }, 3000);
-
-      setPasswordLoading(false);
-    } catch (err: any) {
-      setPasswordError(err.message || 'An error occurred');
-      setPasswordLoading(false);
-    }
-  };
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <Spinner size="lg" />
           <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
@@ -179,14 +142,14 @@ export default function StudentProfilePage() {
             <p className="text-sm text-gray-600">{t('profile.personalInfoDescription')}</p>
           </div>
 
-          <form onSubmit={handleProfileSubmit} className="space-y-4">
-            {profileError && (
+          <form onSubmit={profileForm.handleSubmit} className="space-y-4" aria-busy={profileForm.isSubmitting}>
+            {profileForm.error && (
               <div className="rounded-md bg-red-50 border border-red-500 p-4">
-                <p className="text-sm text-red-600">{profileError}</p>
+                <p className="text-sm text-red-600">{profileForm.error}</p>
               </div>
             )}
 
-            {profileSuccess && (
+            {profileForm.success && (
               <div className="rounded-md bg-emerald-50 border border-[#10b981] p-4">
                 <p className="text-sm text-[#10b981] font-semibold">{t('profile.profileUpdated')}</p>
                 <p className="text-xs text-gray-600 mt-1">{t('profile.profileUpdatedMessage')}</p>
@@ -203,7 +166,8 @@ export default function StudentProfilePage() {
                   name="firstName"
                   type="text"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                  disabled={profileForm.isSubmitting}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                 />
@@ -218,7 +182,8 @@ export default function StudentProfilePage() {
                   name="lastName"
                   type="text"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                  disabled={profileForm.isSubmitting}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                 />
@@ -235,7 +200,8 @@ export default function StudentProfilePage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={profileForm.isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -250,21 +216,24 @@ export default function StudentProfilePage() {
                 name="dateOfBirth"
                 type="date"
                 required
+                disabled={profileForm.isSubmitting}
                 max={new Date().toISOString().split('T')[0]}
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={dateOfBirth}
                 onChange={(e) => setDateOfBirth(e.target.value)}
               />
             </div>
 
             <div className="pt-2">
-              <button
+              <LoadingButton
                 type="submit"
-                disabled={profileLoading}
-                className="w-full md:w-auto px-6 py-3 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                loading={profileForm.isSubmitting}
+                loadingText={t('profile.savingChanges')}
+                variant="primary"
+                size="md"
               >
-                {profileLoading ? t('profile.savingChanges') : t('profile.saveChanges')}
-              </button>
+                {t('profile.saveChanges')}
+              </LoadingButton>
             </div>
           </form>
         </div>
@@ -276,14 +245,14 @@ export default function StudentProfilePage() {
             <p className="text-sm text-gray-600">{t('profile.securityDescription')}</p>
           </div>
 
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            {passwordError && (
+          <form onSubmit={passwordForm.handleSubmit} className="space-y-4" aria-busy={passwordForm.isSubmitting}>
+            {passwordForm.error && (
               <div className="rounded-md bg-red-50 border border-red-500 p-4">
-                <p className="text-sm text-red-600">{passwordError}</p>
+                <p className="text-sm text-red-600">{passwordForm.error}</p>
               </div>
             )}
 
-            {passwordSuccess && (
+            {passwordForm.success && (
               <div className="rounded-md bg-emerald-50 border border-[#10b981] p-4">
                 <p className="text-sm text-[#10b981] font-semibold">{t('profile.passwordUpdated')}</p>
                 <p className="text-xs text-gray-600 mt-1">{t('profile.passwordUpdatedMessage')}</p>
@@ -300,7 +269,8 @@ export default function StudentProfilePage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={passwordForm.isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
               />
@@ -316,7 +286,8 @@ export default function StudentProfilePage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={passwordForm.isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -333,20 +304,23 @@ export default function StudentProfilePage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={passwordForm.isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
 
             <div className="pt-2">
-              <button
+              <LoadingButton
                 type="submit"
-                disabled={passwordLoading}
-                className="w-full md:w-auto px-6 py-3 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                loading={passwordForm.isSubmitting}
+                loadingText={t('profile.changingPassword')}
+                variant="primary"
+                size="md"
               >
-                {passwordLoading ? t('profile.changingPassword') : t('profile.changePassword')}
-              </button>
+                {t('profile.changePassword')}
+              </LoadingButton>
             </div>
           </form>
         </div>

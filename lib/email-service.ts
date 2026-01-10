@@ -156,24 +156,36 @@ export async function sendPasswordResetEmail({
       'h:X-Mailgun-Variables': JSON.stringify(templateVariables),
     };
 
-    console.log('[EMAIL] Sending email with data:', {
-      from: fromEmail,
-      to: [to],
-      subject,
-      template: MAILGUN_TEMPLATE_NAME,
-      domain: MAILGUN_DOMAIN,
-      locale,
-    });
+    // SECURITY: Only log recipient email in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[EMAIL] Sending email with data:', {
+        from: fromEmail,
+        to: [to],
+        subject,
+        template: MAILGUN_TEMPLATE_NAME,
+        domain: MAILGUN_DOMAIN,
+        locale,
+      });
+    }
 
     const response = await mg.messages.create(MAILGUN_DOMAIN, messageData);
 
-    console.log('[EMAIL] Password reset email sent successfully:', {
-      to,
-      template: MAILGUN_TEMPLATE_NAME,
-      locale,
-      messageId: response.id,
-      status: response.status,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[EMAIL] Password reset email sent successfully:', {
+        to,
+        template: MAILGUN_TEMPLATE_NAME,
+        locale,
+        messageId: response.id,
+        status: response.status,
+      });
+    } else {
+      console.log('[EMAIL] Password reset email sent successfully:', {
+        template: MAILGUN_TEMPLATE_NAME,
+        locale,
+        messageId: response.id,
+        status: response.status,
+      });
+    }
 
     return { success: true };
   } catch (error: any) {

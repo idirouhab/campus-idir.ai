@@ -1,9 +1,22 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-// JWT Configuration
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-min-32-chars'
-);
+// JWT Configuration - CRITICAL: Enforce secure secret
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'SECURITY: JWT_SECRET environment variable must be set. ' +
+      'Generate a secure secret with: openssl rand -base64 32'
+    );
+  }
+  if (secret.length < 32) {
+    throw new Error(
+      'SECURITY: JWT_SECRET must be at least 32 characters long. ' +
+      'Current length: ' + secret.length
+    );
+  }
+  return new TextEncoder().encode(secret);
+})();
 const JWT_ALGORITHM = 'HS256';
 const JWT_EXPIRATION = '7d'; // 7 days
 

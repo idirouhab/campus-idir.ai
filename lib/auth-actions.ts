@@ -27,13 +27,31 @@ export async function signUpAction(
   try {
     const sql = getDb();
 
-    // Validate input
-    if (!email || !password || !firstName || !lastName || !dateOfBirth) {
-      return { success: false, error: 'All fields are required' };
+    // SECURITY: Validate all inputs with Zod schema
+    const { signUpSchema } = await import('@/lib/validation');
+    const validatedData = signUpSchema.parse({
+      email,
+      password,
+      firstName,
+      lastName,
+      dateOfBirth,
+      timezone,
+    });
+
+    // SECURITY: Rate limiting - 3 signups per hour per email
+    const { authRateLimiter, createEmailRateLimitToken } = await import('@/lib/rate-limit');
+    const rateLimitToken = createEmailRateLimitToken(validatedData.email);
+    const rateLimitResult = authRateLimiter.check(3, rateLimitToken);
+
+    if (!rateLimitResult.success) {
+      return {
+        success: false,
+        error: 'Too many signup attempts. Please try again later.'
+      };
     }
 
     // Server-side password validation
-    const passwordValidation = validatePassword(password);
+    const passwordValidation = validatePassword(validatedData.password);
     if (!passwordValidation.isValid) {
       return {
         success: false,
@@ -42,8 +60,8 @@ export async function signUpAction(
       };
     }
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // Use validated and normalized email
+    const normalizedEmail = validatedData.email;
 
     // Check if user already exists
     const existingUser = await sql`
@@ -72,7 +90,7 @@ export async function signUpAction(
       // Update timezone for existing user
       await sql`
         UPDATE users
-        SET timezone = ${timezone}
+        SET timezone = ${validatedData.timezone}
         WHERE id = ${userId}
       `;
 
@@ -83,12 +101,12 @@ export async function signUpAction(
       `;
     } else {
       // New user - create account
-      passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+      passwordHash = await bcrypt.hash(validatedData.password, SALT_ROUNDS);
 
       // Create new user
       const result = await sql`
         INSERT INTO users (email, password_hash, first_name, last_name, birthday, timezone, is_active, email_verified)
-        VALUES (${normalizedEmail}, ${passwordHash}, ${firstName}, ${lastName}, ${dateOfBirth}, ${timezone}, true, false)
+        VALUES (${normalizedEmail}, ${passwordHash}, ${validatedData.firstName}, ${validatedData.lastName}, ${validatedData.dateOfBirth}, ${validatedData.timezone}, true, false)
         RETURNING id, email, first_name, last_name, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       `;
 
@@ -145,13 +163,24 @@ export async function signInAction(
   try {
     const sql = getDb();
 
-    // Validate input
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required' };
+    // SECURITY: Validate all inputs with Zod schema
+    const { signInSchema } = await import('@/lib/validation');
+    const validatedData = signInSchema.parse({ email, password });
+
+    // SECURITY: Rate limiting - 5 attempts per minute per email
+    const { authRateLimiter, createEmailRateLimitToken } = await import('@/lib/rate-limit');
+    const rateLimitToken = createEmailRateLimitToken(validatedData.email);
+    const rateLimitResult = authRateLimiter.check(5, rateLimitToken);
+
+    if (!rateLimitResult.success) {
+      return {
+        success: false,
+        error: 'Too many login attempts. Please try again later.'
+      };
     }
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // Use validated and normalized email
+    const normalizedEmail = validatedData.email;
 
     // Get user by email and check if they have a student profile
     const result = await sql`
@@ -187,7 +216,7 @@ export async function signInAction(
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
 
     if (!isPasswordValid) {
       // Sanitized error - same message as above
@@ -244,13 +273,24 @@ export async function unifiedSignInAction(
   try {
     const sql = getDb();
 
-    // Validate input
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required' };
+    // SECURITY: Validate all inputs with Zod schema
+    const { signInSchema } = await import('@/lib/validation');
+    const validatedData = signInSchema.parse({ email, password });
+
+    // SECURITY: Rate limiting - 5 attempts per minute per email
+    const { authRateLimiter, createEmailRateLimitToken } = await import('@/lib/rate-limit');
+    const rateLimitToken = createEmailRateLimitToken(validatedData.email);
+    const rateLimitResult = authRateLimiter.check(5, rateLimitToken);
+
+    if (!rateLimitResult.success) {
+      return {
+        success: false,
+        error: 'Too many login attempts. Please try again later.'
+      };
     }
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // Use validated and normalized email
+    const normalizedEmail = validatedData.email;
 
     // Get user and check BOTH student and instructor profiles
     const result = await sql`
@@ -287,7 +327,7 @@ export async function unifiedSignInAction(
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
 
     if (!isPasswordValid) {
       return { success: false, error: 'Invalid credentials' };
@@ -405,17 +445,30 @@ export async function updateStudentProfileAction(
   try {
     const sql = getDb();
 
-    // Validate input
-    if (!firstName || !lastName || !email || !dateOfBirth) {
-      return { success: false, error: 'All fields are required' };
+    // SECURITY: Import validation at top of file
+    const { profileUpdateSchema } = await import('@/lib/validation');
+    const { requireUserType } = await import('@/lib/session');
+
+    // SECURITY: Get current session and verify authorization
+    const session = await requireUserType('student');
+
+    // SECURITY: Authorization check - user can only update their own profile
+    if (session.id !== studentId) {
+      return { success: false, error: 'Forbidden: You can only update your own profile' };
     }
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // SECURITY: Validate all inputs with Zod schema
+    const validatedData = profileUpdateSchema.parse({
+      studentId,
+      firstName,
+      lastName,
+      email,
+      dateOfBirth,
+    });
 
     // Check if email is taken by another user
     const existingUser = await sql`
-      SELECT id FROM users WHERE email = ${normalizedEmail} AND id != ${studentId}
+      SELECT id FROM users WHERE email = ${validatedData.email} AND id != ${validatedData.studentId}
     `;
 
     if (existingUser.length > 0) {
@@ -424,22 +477,22 @@ export async function updateStudentProfileAction(
 
     // Verify user has a student profile
     const profileCheck = await sql`
-      SELECT user_id FROM student_profiles WHERE user_id = ${studentId}
+      SELECT user_id FROM student_profiles WHERE user_id = ${validatedData.studentId}
     `;
 
     if (profileCheck.length === 0) {
       return { success: false, error: 'Student profile not found' };
     }
 
-    // Update user profile
+    // Update user profile with validated data
     const result = await sql`
       UPDATE users
-      SET first_name = ${firstName},
-          last_name = ${lastName},
-          email = ${normalizedEmail},
-          birthday = ${dateOfBirth},
+      SET first_name = ${validatedData.firstName},
+          last_name = ${validatedData.lastName},
+          email = ${validatedData.email},
+          birthday = ${validatedData.dateOfBirth},
           updated_at = NOW()
-      WHERE id = ${studentId}
+      WHERE id = ${validatedData.studentId}
       RETURNING id, email, first_name, last_name, birthday, is_active, email_verified, created_at, updated_at, last_login_at
     `;
 
@@ -476,13 +529,27 @@ export async function updateStudentPasswordAction(
   try {
     const sql = getDb();
 
-    // Validate input
-    if (!currentPassword || !newPassword) {
-      return { success: false, error: 'All fields are required' };
+    // SECURITY: Import validation
+    const { passwordUpdateSchema } = await import('@/lib/validation');
+    const { requireUserType } = await import('@/lib/session');
+
+    // SECURITY: Get current session and verify authorization
+    const session = await requireUserType('student');
+
+    // SECURITY: Authorization check - user can only update their own password
+    if (session.id !== studentId) {
+      return { success: false, error: 'Forbidden: You can only update your own password' };
     }
 
+    // SECURITY: Validate inputs
+    const validatedData = passwordUpdateSchema.parse({
+      studentId,
+      currentPassword,
+      newPassword,
+    });
+
     // Server-side password validation for new password
-    const passwordValidation = validatePassword(newPassword);
+    const passwordValidation = validatePassword(validatedData.newPassword);
     if (!passwordValidation.isValid) {
       return {
         success: false,
@@ -492,7 +559,7 @@ export async function updateStudentPasswordAction(
 
     // Verify user has student profile
     const profileCheck = await sql`
-      SELECT user_id FROM student_profiles WHERE user_id = ${studentId}
+      SELECT user_id FROM student_profiles WHERE user_id = ${validatedData.studentId}
     `;
 
     if (profileCheck.length === 0) {
@@ -503,7 +570,7 @@ export async function updateStudentPasswordAction(
     const result = await sql`
       SELECT password_hash
       FROM users
-      WHERE id = ${studentId}
+      WHERE id = ${validatedData.studentId}
     `;
 
     if (result.length === 0) {
@@ -513,21 +580,26 @@ export async function updateStudentPasswordAction(
     const user = result[0];
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(validatedData.currentPassword, user.password_hash);
     if (!isPasswordValid) {
       return { success: false, error: 'Current password is incorrect' };
     }
 
     // Hash new password
-    const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const newPasswordHash = await bcrypt.hash(validatedData.newPassword, SALT_ROUNDS);
 
     // Update password
     await sql`
       UPDATE users
       SET password_hash = ${newPasswordHash},
           updated_at = NOW()
-      WHERE id = ${studentId}
+      WHERE id = ${validatedData.studentId}
     `;
+
+    // SECURITY: Invalidate all existing sessions after password change
+    // Note: In a stateless JWT setup, you should track token versions or blacklist old tokens
+    // For now, log this security event
+    console.log(`[SECURITY] Password changed for user ${validatedData.studentId}`);
 
     return { success: true };
   } catch (error: any) {

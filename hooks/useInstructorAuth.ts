@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Instructor } from '@/types/database';
 import { instructorSignInAction, instructorSignUpAction, instructorSignOutAction, verifyInstructorAction } from '@/lib/instructor-auth-actions';
+import { getCSRFTokenFromCookie } from '@/lib/client-cookies';
 
 interface InstructorAuthReturn {
   instructor: Instructor | null;
@@ -57,7 +58,8 @@ export function useInstructorAuth(): InstructorAuthReturn {
           const instructorResult = await verifyInstructorAction(data.user.id);
           if (instructorResult.success && instructorResult.data) {
             setInstructor(instructorResult.data);
-            setCsrfToken(data.csrfToken);
+            // SECURITY: Read CSRF token from cookie instead of response
+            setCsrfToken(getCSRFTokenFromCookie());
           } else {
             setInstructor(null);
             setCsrfToken(null);
@@ -99,7 +101,8 @@ export function useInstructorAuth(): InstructorAuthReturn {
 
           if (instructorResult.success && instructorResult.data) {
             setInstructor(instructorResult.data);
-            setCsrfToken(data.csrfToken);
+            // SECURITY: Read CSRF token from cookie instead of response
+            setCsrfToken(getCSRFTokenFromCookie());
           }
         }
       }
@@ -164,7 +167,8 @@ export function useInstructorAuth(): InstructorAuthReturn {
 
           if (instructorResult.success && instructorResult.data) {
             setInstructor(instructorResult.data);
-            setCsrfToken(data.csrfToken);
+            // SECURITY: Read CSRF token from cookie instead of response
+            setCsrfToken(getCSRFTokenFromCookie());
           } else {
             setInstructor(null);
             setCsrfToken(null);

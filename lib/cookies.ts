@@ -11,11 +11,12 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 /**
  * Get secure cookie options
+ * SECURITY: Using sameSite='strict' to prevent CSRF attacks
  */
 export const getSecureCookieOptions = (): Partial<ResponseCookie> => ({
   httpOnly: true,
   secure: !isDevelopment, // true in production, false in dev
-  sameSite: 'lax',
+  sameSite: 'strict', // SECURITY: Changed from 'lax' to 'strict' for better CSRF protection
   path: '/',
   maxAge: COOKIE_MAX_AGE,
 });
@@ -46,13 +47,14 @@ export async function removeAuthCookie(): Promise<void> {
 
 /**
  * Set CSRF token cookie
+ * SECURITY: CSRF token readable by client, but with strict sameSite
  */
 export async function setCSRFCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(CSRF_COOKIE_NAME, token, {
     httpOnly: false, // CSRF token needs to be readable by client
     secure: !isDevelopment,
-    sameSite: 'lax',
+    sameSite: 'strict', // SECURITY: Changed from 'lax' to 'strict' for better CSRF protection
     path: '/',
     maxAge: COOKIE_MAX_AGE,
   });

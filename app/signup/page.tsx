@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { COMMON_TIMEZONES } from '@/lib/timezone-utils';
+import { LoadingButton } from '@/components/ui/LoadingButton';
+import { Spinner } from '@/components/ui/Spinner';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
+import { useNavigationState } from '@/hooks/useNavigationPending';
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
@@ -16,60 +19,49 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [timezone, setTimezone] = useState('Euope/Madrid');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const { signUp, user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
-  const router = useRouter();
+  const { navigate, isNavigating } = useNavigationState();
+
+  // Form submission with immediate feedback
+  const { isSubmitting, error, success, setError, handleSubmit } = useFormSubmit({
+    onSubmit: async () => {
+      // Validate password
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        return { error: t('signup.passwordError') };
+      }
+
+      const { error } = await signUp(email, password, firstName, lastName, dateOfBirth, timezone);
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      // Account created successfully, redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    },
+  });
 
   // Check if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
       // Already logged in, redirect to dashboard
-      router.push('/dashboard');
+      navigate('/dashboard');
     }
-  }, [user, authLoading, router]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Validate password
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      setError(t('signup.passwordError'));
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const { error } = await signUp(email, password, firstName, lastName, dateOfBirth, timezone);
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      } else {
-        // Account created successfully, redirect to login
-        setSuccess(true);
-        // Redirect to login after 2 seconds
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during signup');
-      setLoading(false);
-    }
-  };
+  }, [user, authLoading, navigate]);
 
   // Show loading while checking auth
-  if (authLoading) {
+  if (authLoading || isNavigating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <Spinner size="lg" />
           <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
@@ -122,7 +114,11 @@ export default function SignupPage() {
             {t('signup.subtitle')}
           </p>
         </div>
-        <form className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm" onSubmit={handleSubmit}>
+        <form
+          className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm"
+          onSubmit={handleSubmit}
+          aria-busy={isSubmitting}
+        >
           {error && (
             <div className="rounded-md bg-red-50 border border-red-500 p-4">
               <p className="text-sm text-red-600">{error}</p>
@@ -139,7 +135,8 @@ export default function SignupPage() {
                   name="firstName"
                   type="text"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-base"
+                  disabled={isSubmitting}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-base disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder={t('signup.firstNamePlaceholder')}
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -154,7 +151,8 @@ export default function SignupPage() {
                   name="lastName"
                   type="text"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-base"
+                  disabled={isSubmitting}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent text-base disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder={t('signup.lastNamePlaceholder')}
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -171,7 +169,8 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder={t('signup.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -187,7 +186,8 @@ export default function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder={t('signup.passwordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -203,7 +203,8 @@ export default function SignupPage() {
                 name="dateOfBirth"
                 type="date"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={dateOfBirth}
                 onChange={(e) => setDateOfBirth(e.target.value)}
                 max={new Date().toISOString().split('T')[0]}
@@ -217,7 +218,8 @@ export default function SignupPage() {
                 id="timezone"
                 name="timezone"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                disabled={isSubmitting}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
               >
@@ -231,13 +233,16 @@ export default function SignupPage() {
           </div>
 
           <div>
-            <button
+            <LoadingButton
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] disabled:opacity-50 transition-all uppercase tracking-wide"
+              loading={isSubmitting}
+              loadingText={t('signup.creatingAccount')}
+              variant="primary"
+              size="md"
+              fullWidth
             >
-              {loading ? t('signup.creatingAccount') : t('signup.signUpButton')}
-            </button>
+              {t('signup.signUpButton')}
+            </LoadingButton>
           </div>
 
           <div className="text-center">

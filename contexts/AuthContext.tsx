@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Student } from '@/types/database';
 import { unifiedSignInAction, signUpAction, signOutAction } from '@/lib/auth-actions';
 import { switchViewAction } from '@/lib/view-switch-actions';
+import { getCSRFTokenFromCookie } from '@/lib/client-cookies';
 
 interface AuthContextType {
   user: Student | null;
@@ -85,7 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updated_at: '',
           };
           setUser(studentUser);
-          setCsrfToken(data.csrfToken);
+          // SECURITY: Read CSRF token from cookie instead of response
+          setCsrfToken(getCSRFTokenFromCookie());
         } else {
           setUser(null);
           setCsrfToken(null);
@@ -146,7 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updated_at: '',
           };
           setUser(studentUser);
-          setCsrfToken(data.csrfToken);
+          // SECURITY: Read CSRF token from cookie instead of response
+          setCsrfToken(getCSRFTokenFromCookie());
         }
       }
 
@@ -221,7 +224,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updated_at: '',
           };
           setUser(studentUser);
-          setCsrfToken(data.csrfToken);
+          // SECURITY: Read CSRF token from cookie instead of response
+          setCsrfToken(getCSRFTokenFromCookie());
         } else {
           setUser(null);
           setCsrfToken(null);

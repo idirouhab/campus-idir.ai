@@ -23,12 +23,28 @@ export async function requestPasswordResetAction(
   try {
     const sql = getDb();
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+    // SECURITY: Validate all inputs with Zod schema
+    const { passwordResetRequestSchema } = await import('@/lib/validation');
+    const validatedData = passwordResetRequestSchema.parse({ email, locale });
 
-    if (!normalizedEmail) {
-      return { success: false, error: 'Email is required' };
+    // SECURITY: Rate limiting - 3 reset requests per hour per email
+    const { passwordResetRateLimiter, createEmailRateLimitToken } = await import('@/lib/rate-limit');
+    const rateLimitToken = createEmailRateLimitToken(validatedData.email);
+    const rateLimitResult = passwordResetRateLimiter.check(3, rateLimitToken);
+
+    if (!rateLimitResult.success) {
+      // Return success anyway to prevent email enumeration, but don't send email
+      // SECURITY: Don't log email in production
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PASSWORD_RESET] Rate limit exceeded for:', validatedData.email);
+      } else {
+        console.log('[PASSWORD_RESET] Rate limit exceeded');
+      }
+      return { success: true };
     }
+
+    // Use validated and normalized email
+    const normalizedEmail = validatedData.email;
 
     // Find user by email
     const users = await sql`
@@ -37,7 +53,10 @@ export async function requestPasswordResetAction(
 
     if (users.length === 0) {
       // Don't reveal if user exists - return success anyway for security
-      console.log('[PASSWORD_RESET] User not found:', normalizedEmail);
+      // SECURITY: Don't log email in production
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PASSWORD_RESET] User not found:', normalizedEmail);
+      }
       return { success: true };
     }
 
@@ -66,24 +85,30 @@ export async function requestPasswordResetAction(
     `;
 
     // Generate reset URL with locale
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password/confirm?token=${resetToken}&locale=${locale}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password/confirm?token=${resetToken}&locale=${validatedData.locale}`;
 
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('PASSWORD RESET REQUEST');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('Email:', user.email);
-    console.log('Name:', user.first_name);
-    console.log('Reset URL:', resetUrl);
-    console.log('Token expires at:', expiresAt.toISOString());
-    console.log('Locale:', locale);
-    console.log('═══════════════════════════════════════════════════════');
+    // SECURITY: Only log in development (no PII in production logs)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('PASSWORD RESET REQUEST');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('Email:', user.email);
+      console.log('Name:', user.first_name);
+      console.log('Reset URL:', resetUrl);
+      console.log('Token expires at:', expiresAt.toISOString());
+      console.log('Locale:', validatedData.locale);
+      console.log('═══════════════════════════════════════════════════════');
+    } else {
+      // Production: Log without PII
+      console.log('[PASSWORD_RESET] Reset email sent. Expires at:', expiresAt.toISOString());
+    }
 
     // Send password reset email
     const emailResult = await sendPasswordResetEmail({
       to: user.email,
       firstName: user.first_name,
       resetUrl,
-      locale,
+      locale: validatedData.locale,
     });
 
     if (!emailResult.success) {
@@ -155,18 +180,18 @@ export async function resetPasswordAction(
   try {
     const sql = getDb();
 
-    if (!token || !newPassword) {
-      return { success: false, error: 'Token and new password are required' };
-    }
+    // SECURITY: Validate all inputs with Zod schema
+    const { passwordResetSchema } = await import('@/lib/validation');
+    const validatedData = passwordResetSchema.parse({ token, newPassword });
 
     // Verify token first
-    const verification = await verifyResetTokenAction(token);
+    const verification = await verifyResetTokenAction(validatedData.token);
     if (!verification.valid || !verification.userId) {
       return { success: false, error: verification.error || 'Invalid token' };
     }
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const passwordHash = await bcrypt.hash(validatedData.newPassword, SALT_ROUNDS);
 
     // Update user's password
     await sql`
@@ -176,7 +201,7 @@ export async function resetPasswordAction(
     `;
 
     // Mark token as used
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(validatedData.token).digest('hex');
     await sql`
       UPDATE password_reset_tokens
       SET used = true

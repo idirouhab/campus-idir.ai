@@ -1,39 +1,31 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { requestPasswordResetAction } from '@/lib/password-reset-actions';
+import { LoadingButton } from '@/components/ui/LoadingButton';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
   const { t, language } = useLanguage();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
+  const { isSubmitting, error, success, handleSubmit } = useFormSubmit({
+    onSubmit: async () => {
       // Map language code to locale
       const locale = language === 'es' ? 'es-ES' : 'en-US';
       const result = await requestPasswordResetAction(email, locale);
 
       if (!result.success && result.error) {
-        setError(result.error);
-      } else {
-        // Always show success for security (don't reveal if email exists)
-        setSuccess(true);
+        return { error: result.error };
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      // Always show success for security (don't reveal if email exists)
+      return { success: true };
+    },
+    resetOnSuccess: false, // Keep success state visible
+  });
 
   if (success) {
     return (
@@ -87,7 +79,11 @@ export default function ResetPasswordPage() {
             {t('resetPassword.subtitle')}
           </p>
         </div>
-        <form className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm" onSubmit={handleSubmit}>
+        <form
+          className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm"
+          onSubmit={handleSubmit}
+          aria-busy={isSubmitting}
+        >
           {error && (
             <div className="rounded-md bg-red-50 border border-red-500 p-4">
               <p className="text-sm text-red-600">{error}</p>
@@ -104,7 +100,8 @@ export default function ResetPasswordPage() {
               type="email"
               autoComplete="email"
               required
-              className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+              disabled={isSubmitting}
+              className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder={t('login.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -112,13 +109,16 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <button
+            <LoadingButton
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] disabled:opacity-50 transition-all uppercase tracking-wide"
+              loading={isSubmitting}
+              loadingText={t('resetPassword.sending')}
+              variant="primary"
+              size="md"
+              fullWidth
             >
-              {loading ? t('resetPassword.sending') : t('resetPassword.sendButton')}
-            </button>
+              {t('resetPassword.sendButton')}
+            </LoadingButton>
           </div>
 
           <div className="text-center space-y-2">

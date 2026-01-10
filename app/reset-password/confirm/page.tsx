@@ -1,26 +1,62 @@
 'use client';
 
-import { useState, FormEvent, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { validatePassword } from '@/lib/passwordValidation';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { verifyResetTokenAction, resetPasswordAction } from '@/lib/password-reset-actions';
+import { LoadingButton } from '@/components/ui/LoadingButton';
+import { Spinner } from '@/components/ui/Spinner';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
+import { useNavigationState } from '@/hooks/useNavigationPending';
 
 function ResetPasswordConfirmContent() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
   const [tokenError, setTokenError] = useState('');
   const { t, setLanguage } = useLanguage();
-  const router = useRouter();
+  const { navigate } = useNavigationState();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const localeParam = searchParams.get('locale');
+
+  // Form submission hook
+  const { isSubmitting, error, success, setError, handleSubmit } = useFormSubmit({
+    onSubmit: async () => {
+      // Validate password
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        return { error: t('resetPassword.passwordRequirementsError') };
+      }
+
+      // Check if passwords match
+      if (password !== confirmPassword) {
+        return { error: t('resetPassword.passwordsDoNotMatch') };
+      }
+
+      if (!token) {
+        return { error: t('resetPassword.invalidResetLink') };
+      }
+
+      const result = await resetPasswordAction(token, password);
+
+      if (!result.success) {
+        return { error: result.error || 'Failed to reset password' };
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    },
+    resetOnSuccess: false,
+  });
 
   // Set language from URL parameter
   useEffect(() => {
@@ -49,55 +85,12 @@ function ResetPasswordConfirmContent() {
     verifyToken();
   }, [token, t]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Validate password
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      setError(t('resetPassword.passwordRequirementsError'));
-      return;
-    }
-
-    // Check if passwords match
-    if (password !== confirmPassword) {
-      setError(t('resetPassword.passwordsDoNotMatch'));
-      return;
-    }
-
-    if (!token) {
-      setError(t('resetPassword.invalidResetLink'));
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const result = await resetPasswordAction(token, password);
-
-      if (!result.success) {
-        setError(result.error || 'Failed to reset password');
-        setLoading(false);
-      } else {
-        setSuccess(true);
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-      setLoading(false);
-    }
-  };
-
   // Show loading while verifying token
   if (verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <Spinner size="lg" />
           <p className="mt-4 text-gray-600">{t('resetPassword.verifyingLink')}</p>
         </div>
       </div>
@@ -199,7 +192,11 @@ function ResetPasswordConfirmContent() {
             {t('resetPassword.confirmSubtitle')}
           </p>
         </div>
-        <form className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm" onSubmit={handleSubmit}>
+        <form
+          className="mt-8 space-y-6 bg-white p-8 rounded-lg border border-gray-200 shadow-sm"
+          onSubmit={handleSubmit}
+          aria-busy={isSubmitting}
+        >
           {error && (
             <div className="rounded-md bg-red-50 border border-red-500 p-4">
               <p className="text-sm text-red-600">{error}</p>
@@ -216,7 +213,8 @@ function ResetPasswordConfirmContent() {
               type="password"
               autoComplete="new-password"
               required
-              className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+              disabled={isSubmitting}
+              className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder={t('login.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -234,7 +232,8 @@ function ResetPasswordConfirmContent() {
               type="password"
               autoComplete="new-password"
               required
-              className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+              disabled={isSubmitting}
+              className="appearance-none relative block w-full px-4 py-3 border border-gray-200 bg-gray-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder={t('login.passwordPlaceholder')}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -242,13 +241,16 @@ function ResetPasswordConfirmContent() {
           </div>
 
           <div>
-            <button
+            <LoadingButton
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#10b981] disabled:opacity-50 transition-all uppercase tracking-wide"
+              loading={isSubmitting}
+              loadingText={t('resetPassword.resetting')}
+              variant="primary"
+              size="md"
+              fullWidth
             >
-              {loading ? t('resetPassword.resetting') : t('resetPassword.resetButton')}
-            </button>
+              {t('resetPassword.resetButton')}
+            </LoadingButton>
           </div>
 
           <div className="text-center">
@@ -270,7 +272,7 @@ export default function ResetPasswordConfirmPage() {
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#10b981] mx-auto"></div>
+          <Spinner size="lg" />
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
