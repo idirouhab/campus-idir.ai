@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com",
               "style-src 'self' 'unsafe-inline'",
               // SECURITY: Allow HTTP images only in development for local Supabase
               isDevelopment
@@ -54,8 +54,8 @@ const nextConfig: NextConfig = {
               "font-src 'self' data:",
               // SECURITY: Allow HTTP connections only in development for local Supabase
               isDevelopment
-                ? "connect-src 'self' http://127.0.0.1:* http://localhost:* https://www.google-analytics.com https://*.supabase.co"
-                : "connect-src 'self' https://www.google-analytics.com https://*.supabase.co",
+                ? "connect-src 'self' http://127.0.0.1:* http://localhost:* https://*.google-analytics.com https://*.googletagmanager.com https://*.sentry.io https://*.supabase.co"
+                : "connect-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.sentry.io https://*.supabase.co",
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'"

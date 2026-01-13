@@ -7,9 +7,12 @@ import { getDb } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Upload Course Material] Starting upload process');
+
     // 1. Verify CSRF token
     const isValidCSRF = await verifyCSRF(request);
     if (!isValidCSRF) {
+      console.error('[Upload Course Material] CSRF validation failed');
       return NextResponse.json(
         { error: 'Invalid CSRF token' },
         { status: 403 }
@@ -17,7 +20,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Verify authentication
+    console.log('[Upload Course Material] Verifying authentication');
     const session = await requireUserType('instructor');
+    console.log('[Upload Course Material] User authenticated:', session.id);
 
     // 3. Get form data
     const formData = await request.formData();
@@ -64,6 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!supabaseAdmin) {
+      console.error('[Upload Course Material] supabaseAdmin is null. Check environment variables:', {
+        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+      });
       return NextResponse.json(
         { error: 'Storage service not configured' },
         { status: 500 }
@@ -82,6 +91,12 @@ export async function POST(request: NextRequest) {
       : `course-materials/${courseId}/${storageFilename}`;
 
     // 7. Upload to Supabase Storage (course-materials bucket)
+    console.log('[Upload Course Material] Preparing file for upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      filePath
+    });
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
@@ -93,12 +108,18 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
+      console.error('[Upload Course Material] Supabase upload error:', {
+        error: uploadError,
+        message: uploadError.message,
+        statusCode: uploadError.statusCode
+      });
       return NextResponse.json(
-        { error: 'Failed to upload file' },
+        { error: `Failed to upload file: ${uploadError.message}` },
         { status: 500 }
       );
     }
+
+    console.log('[Upload Course Material] File uploaded successfully to Supabase');
 
     // 8. Get public URL
     const { data: publicUrlData } = supabaseAdmin.storage
@@ -110,6 +131,13 @@ export async function POST(request: NextRequest) {
     // 9. Insert into database
     const finalDisplayFilename = displayFilename || sanitizedFilename;
     const fileType = validation.documentType || extension || 'unknown';
+
+    console.log('[Upload Course Material] Inserting into database:', {
+      courseId,
+      sessionId,
+      fileType,
+      fileSize: file.size
+    });
 
     const [material] = await sql`
       INSERT INTO course_materials (
@@ -135,6 +163,8 @@ export async function POST(request: NextRequest) {
       )
       RETURNING *
     `;
+
+    console.log('[Upload Course Material] Material saved successfully:', material.id);
 
     return NextResponse.json({
       success: true,
