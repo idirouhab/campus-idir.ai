@@ -124,6 +124,7 @@ export async function createSessionAction(sessionData: {
   durationMinutes: number;
   timezone: string;
   meetingUrl?: string;
+  recordingLink?: string;
   displayOrder: number;
 }): Promise<{ success: boolean; data?: CourseSession; error?: string }> {
   try {
@@ -164,7 +165,8 @@ export async function createSessionAction(sessionData: {
         duration_minutes,
         display_order,
         timezone,
-        meeting_url
+        meeting_url,
+        recording_link
       ) VALUES (
         ${sessionData.courseId},
         ${sessionData.title},
@@ -173,7 +175,8 @@ export async function createSessionAction(sessionData: {
         ${sessionData.durationMinutes},
         ${sessionData.displayOrder},
         ${sessionData.timezone},
-        ${sessionData.meetingUrl || null}
+        ${sessionData.meetingUrl || null},
+        ${sessionData.recordingLink || null}
       )
       RETURNING *
     `;
@@ -203,6 +206,7 @@ export async function updateSessionAction(
     durationMinutes?: number;
     timezone?: string;
     meetingUrl?: string;
+    recordingLink?: string;
     displayOrder?: number;
   }
 ): Promise<{ success: boolean; data?: CourseSession; error?: string }> {
@@ -259,6 +263,7 @@ export async function updateSessionAction(
     const duration_minutes = sessionData.durationMinutes !== undefined ? sessionData.durationMinutes : current.duration_minutes;
     const timezone = sessionData.timezone !== undefined ? sessionData.timezone : current.timezone;
     const meeting_url = sessionData.meetingUrl !== undefined ? sessionData.meetingUrl : current.meeting_url;
+    const recording_link = sessionData.recordingLink !== undefined ? sessionData.recordingLink : current.recording_link;
     const display_order = sessionData.displayOrder !== undefined ? sessionData.displayOrder : current.display_order;
 
     // Update session with all fields
@@ -271,6 +276,7 @@ export async function updateSessionAction(
         duration_minutes = ${duration_minutes},
         timezone = ${timezone},
         meeting_url = ${meeting_url},
+        recording_link = ${recording_link},
         display_order = ${display_order},
         updated_at = NOW()
       WHERE id = ${sessionId}

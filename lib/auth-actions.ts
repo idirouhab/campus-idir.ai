@@ -106,7 +106,7 @@ export async function signUpAction(
       // Create new user
       const result = await sql`
         INSERT INTO users (email, password_hash, first_name, last_name, birthday, timezone, is_active, email_verified)
-        VALUES (${normalizedEmail}, ${passwordHash}, ${validatedData.firstName}, ${validatedData.lastName}, ${validatedData.dateOfBirth}, ${validatedData.timezone}, true, false)
+        VALUES (${normalizedEmail}, ${passwordHash}, ${validatedData.firstName}, ${validatedData.lastName}, ${validatedData.dateOfBirth}, ${validatedData.timezone}, true, true)
         RETURNING id, email, first_name, last_name, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       `;
 

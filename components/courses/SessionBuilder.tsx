@@ -92,6 +92,7 @@ interface SessionFormData {
   duration_minutes: number;
   timezone: string;
   meeting_url: string;
+  recording_link: string;
   display_order: number;
   isExpanded: boolean;
 }
@@ -123,6 +124,7 @@ export default function SessionBuilder({
         duration_minutes: session.duration_minutes,
         timezone: session.timezone,
         meeting_url: session.meeting_url || '',
+        recording_link: session.recording_link || '',
         display_order: session.display_order,
         isExpanded: index === 0, // First session expanded by default
       };
@@ -144,6 +146,7 @@ export default function SessionBuilder({
       duration_minutes: form.duration_minutes,
       timezone: form.timezone,
       meeting_url: form.meeting_url || undefined,
+      recording_link: form.recording_link || undefined,
       display_order: index,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -165,6 +168,7 @@ export default function SessionBuilder({
       duration_minutes: 120, // Default to 2 hours
       timezone: defaultTimezone,
       meeting_url: '',
+      recording_link: '',
       display_order: formSessions.length,
       isExpanded: true,
     };
@@ -568,6 +572,15 @@ export default function SessionBuilder({
                     onChange={(value) => handleUpdateSession(index, 'meeting_url', value)}
                     type="url"
                     placeholder="https://meet.google.com/... or https://zoom.us/..."
+                  />
+
+                  {/* Recording Link */}
+                  <InputField
+                    label="Recording Link (Optional)"
+                    value={session.recording_link}
+                    onChange={(value) => handleUpdateSession(index, 'recording_link', value)}
+                    type="url"
+                    placeholder="https://youtu.be/... or https://vimeo.com/... or https://drive.google.com/..."
                   />
 
                   {/* Session Materials Section - Only show for saved sessions */}

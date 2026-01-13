@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
-import { Calendar, Clock, FileText, Download, Video } from 'lucide-react';
+import { Calendar, Clock, FileText, Download, Video, Play } from 'lucide-react';
 import { formatSessionDateLong, formatDuration } from '@/lib/timezone-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -130,17 +130,26 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
               <p className="text-gray-700 mb-4 leading-relaxed">{session.description}</p>
             )}
 
-            {/* Meeting URL */}
-            {session.meeting_url && (
+            {/* Session Link - Priority: Recording > Meeting URL */}
+            {(session.recording_link || session.meeting_url) && (
               <div className="mb-4">
                 <a
-                  href={session.meeting_url}
+                  href={session.recording_link || session.meeting_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold text-base min-h-[48px] shadow-sm hover:shadow-md"
                 >
-                  <Video size={18} />
-                  {t('course.joinVideoSession')}
+                  {session.recording_link ? (
+                    <>
+                      <Play size={18} />
+                      {t('course.watchRecording')}
+                    </>
+                  ) : (
+                    <>
+                      <Video size={18} />
+                      {t('course.joinVideoSession')}
+                    </>
+                  )}
                 </a>
               </div>
             )}

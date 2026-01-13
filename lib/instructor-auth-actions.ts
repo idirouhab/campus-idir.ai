@@ -119,7 +119,7 @@ export async function instructorSignUpAction(
           ${dateOfBirth},
           ${timezone},
           true,
-          false
+          true
         )
         RETURNING id, email, first_name, last_name, country, timezone, is_active, email_verified, created_at, updated_at, last_login_at
       `;

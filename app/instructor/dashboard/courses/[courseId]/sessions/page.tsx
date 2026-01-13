@@ -108,6 +108,7 @@ export default function ManageCourseSessionsPage() {
           durationMinutes: session.duration_minutes,
           timezone: session.timezone,
           meetingUrl: session.meeting_url,
+          recordingLink: session.recording_link,
           displayOrder: session.display_order,
         });
 
@@ -127,6 +128,7 @@ export default function ManageCourseSessionsPage() {
           durationMinutes: session.duration_minutes,
           timezone: session.timezone,
           meetingUrl: session.meeting_url,
+          recordingLink: session.recording_link,
           displayOrder: session.display_order,
         });
 
