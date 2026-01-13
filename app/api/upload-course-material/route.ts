@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       console.error('[Upload Course Material] Supabase upload error:', {
         error: uploadError,
         message: uploadError.message,
-        statusCode: uploadError.statusCode
+          status: (uploadError as any).status || 'Unknown Status'
       });
       return NextResponse.json(
         { error: `Failed to upload file: ${uploadError.message}` },
