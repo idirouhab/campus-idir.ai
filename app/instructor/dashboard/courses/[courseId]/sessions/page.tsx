@@ -121,6 +121,7 @@ export default function ManageCourseSessionsPage() {
 
       // Update existing sessions
       for (const session of toUpdate) {
+          console.log(session.title, session.meeting_url);
         const result = await updateSessionAction(session.id, {
           title: session.title,
           description: session.description,

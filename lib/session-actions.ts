@@ -262,8 +262,8 @@ export async function updateSessionAction(
     const session_date = sessionData.sessionDate !== undefined ? sessionData.sessionDate : current.session_date;
     const duration_minutes = sessionData.durationMinutes !== undefined ? sessionData.durationMinutes : current.duration_minutes;
     const timezone = sessionData.timezone !== undefined ? sessionData.timezone : current.timezone;
-    const meeting_url = sessionData.meetingUrl !== undefined ? sessionData.meetingUrl : current.meeting_url;
-    const recording_link = sessionData.recordingLink !== undefined ? sessionData.recordingLink : current.recording_link;
+    const meeting_url = sessionData.meetingUrl !== undefined ? sessionData.meetingUrl : "";
+    const recording_link = sessionData.recordingLink !== undefined ? sessionData.recordingLink : "";
     const display_order = sessionData.displayOrder !== undefined ? sessionData.displayOrder : current.display_order;
 
     // Update session with all fields

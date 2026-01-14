@@ -143,7 +143,7 @@ export default function SessionBuilder({
 
   // Convert form data back to sessions format
   const formDataToSessions = useCallback((formData: SessionFormData[]): CourseSession[] => {
-    return formData.map((form, index) => ({
+      return formData.map((form, index) => ({
       id: form.id || `temp-${index}`,
       course_id: courseId,
       title: form.title,
