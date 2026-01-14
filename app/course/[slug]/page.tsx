@@ -419,99 +419,6 @@ export default function CoursePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - Left Column (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Course Overview */}
-            <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('course.courseOverview')}</h2>
-              {course.course_data?.long_description ? (
-                <div className="prose prose-sm max-w-none">
-                  <MarkdownContent content={course.course_data.long_description} />
-                </div>
-              ) : course.short_description ? (
-                <p className="text-gray-600">{course.short_description}</p>
-              ) : (
-                <p className="text-gray-500 italic">{t('course.noDescription')}</p>
-              )}
-
-              {/* Forum Call-to-Action */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-gray-600 mb-4">
-                        {t('forum.subtitle')}
-                      </p>
-                      <Link
-                        href={`/course/${slug}/forum`}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white text-base font-bold rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                        </svg>
-                        {t('forum.accessForum')}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Instructor Contact Information (For Students) */}
-              {isStudent && courseInstructors.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">{t('course.yourInstructors')}</h3>
-                  <div className="space-y-4">
-                    {courseInstructors.map((inst) => (
-                      <div
-                        key={inst.id}
-                        className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        {/* Instructor Avatar */}
-                        <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                          {inst.profile?.picture_url ? (
-                            <img
-                              src={inst.profile.picture_url}
-                              alt={`${inst.first_name} ${inst.last_name}`}
-                              className="w-full h-full rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-base font-semibold text-[#10b981]">
-                              {inst.first_name[0]}{inst.last_name[0]}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Instructor Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-bold text-gray-900">
-                            {inst.first_name} {inst.last_name}
-                          </p>
-                          <p className="text-base text-gray-600 capitalize mb-3">
-                            {inst.instructor_role.replace('_', ' ')}
-                          </p>
-                          <a
-                            href={`mailto:${inst.email}`}
-                            className="inline-flex items-center gap-2 px-5 py-3 bg-[#10b981] text-white text-base font-semibold rounded-lg hover:bg-[#059669] transition-colors min-h-[44px]"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            {t('course.contactInstructor')}
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Show message if no instructors for students */}
-              {isStudent && courseInstructors.length === 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <p className="text-base text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
-                    {t('course.noInstructorsInfo')}
-                  </p>
-                </div>
-              )}
-            </div>
 
             {/* Course Materials Section - Only for Students - Only course-level materials */}
             {isStudent && materials.filter(m => !m.session_id).length > 0 && (
@@ -632,6 +539,20 @@ export default function CoursePage() {
 
           {/* Sidebar - Right Column (1/3) */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Course Overview */}
+            <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 animate-fade-in shadow-sm">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('course.courseOverview')}</h2>
+              {course.course_data?.long_description ? (
+                <div className="prose prose-sm max-w-none">
+                  <MarkdownContent content={course.course_data.long_description} />
+                </div>
+              ) : course.short_description ? (
+                <p className="text-gray-600">{course.short_description}</p>
+              ) : (
+                <p className="text-gray-500 italic">{t('course.noDescription')}</p>
+              )}
+            </div>
+
             {/* Instructor note */}
             {isInstructor && (
               <div className="bg-emerald-50 border border-[#10b981] rounded-lg p-4">
@@ -854,6 +775,52 @@ export default function CoursePage() {
                     <div>
                       <p className="font-semibold text-gray-900">{t('course.enrolledStudents')}</p>
                       <p className="text-gray-600">{course.enrollment_count} {t('course.studentsCount')}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Forum Link - Compact */}
+                <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
+                  <svg className="w-4 h-4 mt-0.5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 mb-1">{t('forum.title')}</p>
+                    <Link
+                      href={`/course/${slug}/forum`}
+                      className="text-purple-600 hover:text-purple-700 font-medium text-sm underline"
+                    >
+                      {t('forum.accessForum')}
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Instructor Info - Compact (For Students) */}
+                {isStudent && courseInstructors.length > 0 && (
+                  <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
+                    <svg className="w-4 h-4 mt-0.5 text-[#10b981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 mb-2">{t('course.yourInstructors')}</p>
+                      <div className="space-y-2">
+                        {courseInstructors.map((inst) => (
+                          <div key={inst.id} className="text-sm">
+                            <p className="font-medium text-gray-900">
+                              {inst.first_name} {inst.last_name}
+                            </p>
+                            <p className="text-gray-600 text-xs capitalize mb-1">
+                              {inst.instructor_role.replace('_', ' ')}
+                            </p>
+                            <a
+                              href={`mailto:${inst.email}`}
+                              className="text-[#10b981] hover:text-[#059669] font-medium underline text-xs"
+                            >
+                              {inst.email}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
