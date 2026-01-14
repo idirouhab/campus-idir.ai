@@ -122,13 +122,15 @@ export interface CourseMaterial {
   course_id: string;
   session_id?: string; // NULL = course-level material, NOT NULL = session-specific material
   uploaded_by: string;
-  original_filename: string;
+  original_filename: string | null; // Nullable for link resources
   display_filename: string;
   file_url: string;
-  file_type: 'pdf' | 'docx' | 'pptx' | 'doc' | 'ppt';
-  file_size_bytes: number;
-  mime_type: string;
+  file_type: 'pdf' | 'docx' | 'pptx' | 'doc' | 'ppt' | 'link'; // Added 'link' type
+  file_size_bytes: number | null; // Nullable for link resources
+  mime_type: string | null; // Nullable for link resources
   display_order: number;
+  resource_type: 'file' | 'link'; // Distinguishes between uploaded files and external links
+  external_link_url: string | null; // Stores original Google Drive URL for link resources
   created_at: string;
   updated_at: string;
 }

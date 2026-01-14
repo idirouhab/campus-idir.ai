@@ -2,7 +2,7 @@
 
 import { useState, useCallback, memo, useEffect } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
-import { ChevronDown, ChevronUp, Trash2, Plus, GripVertical, FileText, Upload, X, Edit2, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Plus, GripVertical, FileText, Upload, X, Edit2, Check, Link2, ExternalLink, File, Presentation } from 'lucide-react';
 import { COMMON_TIMEZONES, utcToLocal, localToUTC } from '@/lib/timezone-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -111,6 +111,12 @@ export default function SessionBuilder({
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, Set<string>>>({});
   const [editingMaterial, setEditingMaterial] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+
+  // Link resource states
+  const [activeTab, setActiveTab] = useState<Record<string, 'upload' | 'link'>>({});
+  const [linkUrl, setLinkUrl] = useState<Record<string, string>>({});
+  const [linkDisplayName, setLinkDisplayName] = useState<Record<string, string>>({});
+  const [addingLink, setAddingLink] = useState<Record<string, boolean>>({});
   // Convert sessions to form data format with local date/time
   const sessionsToFormData = useCallback((sessions: CourseSession[]): SessionFormData[] => {
     return sessions.map((session, index) => {
@@ -305,6 +311,54 @@ export default function SessionBuilder({
     }
   };
 
+  // Handle adding link resource
+  const handleAddLink = async (sessionId: string) => {
+    const url = linkUrl[sessionId]?.trim();
+    if (!url || !csrfToken) {
+      alert('Please enter a Google Drive link');
+      return;
+    }
+
+    setAddingLink(prev => ({ ...prev, [sessionId]: true }));
+
+    try {
+      const response = await fetch('/api/add-course-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({
+          url,
+          displayName: linkDisplayName[sessionId]?.trim() || null,
+          courseId,
+          sessionId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to add link');
+      }
+
+      // Add to materials list
+      setSessionMaterials(prev => ({
+        ...prev,
+        [sessionId]: [...(prev[sessionId] || []), data.material]
+      }));
+
+      // Reset form
+      setLinkUrl(prev => ({ ...prev, [sessionId]: '' }));
+      setLinkDisplayName(prev => ({ ...prev, [sessionId]: '' }));
+    } catch (err: any) {
+      console.error('Add link error:', err);
+      alert(err.message || 'Failed to add link');
+    } finally {
+      setAddingLink(prev => ({ ...prev, [sessionId]: false }));
+    }
+  };
+
   // Handle material deletion
   const handleDeleteMaterial = async (sessionId: string, materialId: string) => {
     if (!confirm('Delete this file?') || !csrfToken) return;
@@ -334,10 +388,28 @@ export default function SessionBuilder({
   };
 
   // Format file size
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number | null) => {
+    if (bytes === null || bytes === undefined) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Get file type icon
+  const getFileTypeIcon = (fileType: string) => {
+    const type = fileType.toLowerCase();
+    switch (type) {
+      case 'pdf':
+        return <FileText size={20} className="text-red-600 flex-shrink-0" />;
+      case 'doc':
+      case 'docx':
+        return <File size={20} className="text-blue-600 flex-shrink-0" />;
+      case 'ppt':
+      case 'pptx':
+        return <Presentation size={20} className="text-orange-600 flex-shrink-0" />;
+      default:
+        return <FileText size={20} className="text-gray-600 flex-shrink-0" />;
+    }
   };
 
   // Handle start editing material name
@@ -443,7 +515,7 @@ export default function SessionBuilder({
                     {session.id && !session.id.startsWith('temp-') && sessionMaterials[session.id] && sessionMaterials[session.id].length > 0 && (
                       <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700 rounded-full">
                         <FileText size={12} />
-                        {sessionMaterials[session.id].length} {sessionMaterials[session.id].length === 1 ? 'file' : 'files'}
+                        {sessionMaterials[session.id].length} {sessionMaterials[session.id].length === 1 ? 'resource' : 'resources'}
                       </span>
                     )}
                   </div>
@@ -593,35 +665,112 @@ export default function SessionBuilder({
                         </h4>
                       </div>
 
-                      {/* Upload Button */}
-                      <div className="mb-4">
-                        <input
-                          type="file"
-                          multiple
-                          accept=".pdf,.doc,.docx,.ppt,.pptx"
-                          onChange={(e) => e.target.files && handleFileUpload(session.id!, e.target.files)}
-                          className="hidden"
-                          id={`file-upload-${session.id}`}
-                        />
-                        <label
-                          htmlFor={`file-upload-${session.id}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 cursor-pointer transition-colors"
+                      {/* Tabs */}
+                      <div className="flex gap-2 mb-4">
+                        <button
+                          onClick={() => setActiveTab(prev => ({ ...prev, [session.id!]: 'upload' }))}
+                          className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                            (activeTab[session.id!] || 'upload') === 'upload'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
                         >
-                          <Upload size={16} />
                           Upload Files
-                        </label>
-                        <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX, PPT, PPTX (max 10MB)</p>
+                        </button>
+                        <button
+                          onClick={() => setActiveTab(prev => ({ ...prev, [session.id!]: 'link' }))}
+                          className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                            activeTab[session.id!] === 'link'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          Add Link
+                        </button>
                       </div>
 
-                      {/* Uploading indicator */}
-                      {uploadingFiles[session.id!] && uploadingFiles[session.id!].size > 0 && (
-                        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-700 font-medium mb-1">Uploading...</p>
-                          <ul className="text-xs text-blue-600 list-disc list-inside">
-                            {Array.from(uploadingFiles[session.id!]).map((filename) => (
-                              <li key={filename}>{filename}</li>
-                            ))}
-                          </ul>
+                      {(activeTab[session.id!] || 'upload') === 'upload' ? (
+                        <>
+                          {/* Upload Button */}
+                          <div className="mb-4">
+                            <input
+                              type="file"
+                              multiple
+                              accept=".pdf,.doc,.docx,.ppt,.pptx"
+                              onChange={(e) => e.target.files && handleFileUpload(session.id!, e.target.files)}
+                              className="hidden"
+                              id={`file-upload-${session.id}`}
+                            />
+                            <label
+                              htmlFor={`file-upload-${session.id}`}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 cursor-pointer transition-colors"
+                            >
+                              <Upload size={16} />
+                              Upload Files
+                            </label>
+                            <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX, PPT, PPTX (max 10MB)</p>
+                          </div>
+
+                          {/* Uploading indicator */}
+                          {uploadingFiles[session.id!] && uploadingFiles[session.id!].size > 0 && (
+                            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <p className="text-sm text-blue-700 font-medium mb-1">Uploading...</p>
+                              <ul className="text-xs text-blue-600 list-disc list-inside">
+                                {Array.from(uploadingFiles[session.id!]).map((filename) => (
+                                  <li key={filename}>{filename}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        /* Link Input Form */
+                        <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                          <div className="mb-3">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Google Drive Link <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="url"
+                              value={linkUrl[session.id!] || ''}
+                              onChange={(e) => setLinkUrl(prev => ({ ...prev, [session.id!]: e.target.value }))}
+                              placeholder="https://drive.google.com/file/d/..."
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              disabled={addingLink[session.id!]}
+                            />
+                          </div>
+
+                          <div className="mb-3">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Display Name (optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={linkDisplayName[session.id!] || ''}
+                              onChange={(e) => setLinkDisplayName(prev => ({ ...prev, [session.id!]: e.target.value }))}
+                              placeholder="Leave empty to auto-detect"
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              disabled={addingLink[session.id!]}
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => handleAddLink(session.id!)}
+                            disabled={addingLink[session.id!] || !linkUrl[session.id!]?.trim()}
+                            className="w-full px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+                          >
+                            {addingLink[session.id!] ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                Adding Link...
+                              </>
+                            ) : (
+                              <>
+                                <Link2 size={16} />
+                                Add Link
+                              </>
+                            )}
+                          </button>
                         </div>
                       )}
 
@@ -639,7 +788,11 @@ export default function SessionBuilder({
                               className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors"
                             >
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <FileText size={20} className="text-emerald-600 flex-shrink-0" />
+                                {material.resource_type === 'link' ? (
+                                  <Link2 size={20} className="text-emerald-600 flex-shrink-0" />
+                                ) : (
+                                  getFileTypeIcon(material.file_type)
+                                )}
                                 <div className="flex-1 min-w-0">
                                   {editingMaterial === material.id ? (
                                     <input
@@ -659,7 +812,10 @@ export default function SessionBuilder({
                                     </p>
                                   )}
                                   <p className="text-xs text-gray-500">
-                                    {material.file_type.toUpperCase()} • {formatFileSize(material.file_size_bytes)}
+                                    {material.resource_type === 'link'
+                                      ? 'Google Drive Link'
+                                      : `${material.file_type.toUpperCase()} • ${formatFileSize(material.file_size_bytes!)}`
+                                    }
                                   </p>
                                 </div>
                               </div>

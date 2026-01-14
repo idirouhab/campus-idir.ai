@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
-import { Calendar, Clock, FileText, Download, Video, Play } from 'lucide-react';
+import { Calendar, Clock, FileText, Download, Video, Play, Link2, ExternalLink, File, Presentation, FileImage } from 'lucide-react';
 import { formatSessionDateLong, formatDuration } from '@/lib/timezone-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -12,7 +12,8 @@ interface SessionsListProps {
 }
 
 // Helper to format file size
-function formatFileSize(bytes: number): string {
+function formatFileSize(bytes: number | null): string {
+  if (bytes === null || bytes === undefined) return '';
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -28,6 +29,22 @@ function getFileTypeColor(fileType: string): string {
     pptx: 'text-orange-600 bg-orange-50',
   };
   return colors[fileType.toLowerCase()] || 'text-gray-600 bg-gray-50';
+}
+
+// Helper to get file type icon
+function getFileTypeIcon(fileType: string) {
+  const type = fileType?.toLowerCase() || '';
+
+  // Use distinct icons for each file type with color coding
+  if (type === 'pdf') {
+    return <FileText size={20} className="text-red-600" />;
+  } else if (type === 'doc' || type === 'docx') {
+    return <File size={20} className="text-blue-600" />;
+  } else if (type === 'ppt' || type === 'pptx') {
+    return <Presentation size={20} className="text-orange-600" />;
+  } else {
+    return <FileText size={20} className="text-gray-600" />;
+  }
 }
 
 export default function SessionsList({ sessions, courseId }: SessionsListProps) {
@@ -156,50 +173,68 @@ export default function SessionsList({ sessions, courseId }: SessionsListProps) 
 
             {/* Session Materials */}
             {loadingMaterials ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-emerald-600"></div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-emerald-600"></div>
                 {t('course.loadingMaterialsEllipsis')}
               </div>
             ) : sessionMaterials.length > 0 ? (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <FileText size={18} className="text-emerald-600" />
+              <div className="bg-gray-50 rounded p-2.5 border border-gray-200">
+                <h4 className="text-xs font-bold text-gray-900 mb-2 flex items-center gap-1.5">
+                  <FileText size={14} className="text-emerald-600" />
                   {t('course.sessionMaterials')} ({sessionMaterials.length})
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {sessionMaterials.map((material) => (
                     <a
                       key={material.id}
                       href={material.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-emerald-500 hover:shadow-sm transition-all group"
+                      className="flex items-center justify-between gap-2 p-2 bg-white rounded border border-gray-200 hover:border-emerald-500 hover:shadow-sm transition-all group"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div
-                          className={`p-2 rounded-lg ${getFileTypeColor(material.file_type)}`}
+                          className={`p-1 rounded ${
+                            material.resource_type === 'link'
+                              ? 'text-emerald-600 bg-emerald-50'
+                              : getFileTypeColor(material.file_type)
+                          }`}
                         >
-                          <FileText size={20} />
+                          {material.resource_type === 'link' ? (
+                            <Link2 size={14} />
+                          ) : (
+                            getFileTypeIcon(material.file_type)
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">
+                          <p className="text-xs font-semibold text-gray-900 truncate group-hover:text-emerald-600 transition-colors leading-tight">
                             {material.display_filename}
                           </p>
-                          <p className="text-sm text-gray-600 font-medium">
-                            {material.file_type.toUpperCase()} • {formatFileSize(material.file_size_bytes)}
+                          <p className="text-xs text-gray-600 leading-tight">
+                            {material.resource_type === 'link'
+                              ? 'Google Drive'
+                              : `${material.file_type.toUpperCase()} • ${formatFileSize(material.file_size_bytes)}`
+                            }
                           </p>
                         </div>
                       </div>
-                      <Download
-                        size={18}
-                        className="text-gray-400 group-hover:text-emerald-600 flex-shrink-0"
-                      />
+                      {material.resource_type === 'link' ? (
+                        <ExternalLink
+                          size={14}
+                          className="text-gray-400 group-hover:text-emerald-600 flex-shrink-0"
+                        />
+                      ) : (
+                        <Download
+                          size={14}
+                          className="text-gray-400 group-hover:text-emerald-600 flex-shrink-0"
+                        />
+                      )}
                     </a>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="text-base text-gray-600 italic">
+              <div className="text-xs text-gray-600 italic">
                 {t('course.noMaterialsForSession')}
               </div>
             )}

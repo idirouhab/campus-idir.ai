@@ -9,7 +9,7 @@ import Link from 'next/link';
 import MarkdownContent from '@/components/MarkdownContent';
 import Cookies from 'js-cookie';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
-import { getCourseByIdAction, getAllInstructorsAction } from '@/lib/course-actions';
+import { getAllInstructorsAction } from '@/lib/course-actions';
 import { Instructor, CourseMaterial, CourseSession } from '@/types/database';
 import { canViewAllCourses } from '@/lib/roles';
 import {
@@ -439,6 +439,15 @@ export default function CoursePage() {
                   <div className="space-y-3">
                     {materials.filter(m => !m.session_id).map((material) => {
                       const getFileIcon = () => {
+                        // Check if it's a link resource
+                        if (material.resource_type === 'link') {
+                          return (
+                            <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                          );
+                        }
+
                         switch (material.file_type.toLowerCase()) {
                           case 'pdf':
                             return (
@@ -469,7 +478,8 @@ export default function CoursePage() {
                         }
                       };
 
-                      const formatFileSize = (bytes: number) => {
+                      const formatFileSize = (bytes: number | null) => {
+                        if (bytes === null || bytes === undefined) return '';
                         if (bytes < 1024) return `${bytes} B`;
                         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
                         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -491,21 +501,35 @@ export default function CoursePage() {
                               {material.display_filename}
                             </p>
                             <p className="text-sm text-gray-600 font-medium">
-                              {formatFileSize(material.file_size_bytes)} • {material.file_type.toUpperCase()}
+                              {material.resource_type === 'link'
+                                ? 'Google Drive Link'
+                                : `${formatFileSize(material.file_size_bytes)} • ${material.file_type.toUpperCase()}`
+                              }
                             </p>
                           </div>
 
-                          {/* Download Button */}
+                          {/* Download/Open Link Button */}
                           <a
                             href={material.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-5 py-3 bg-[#10b981] text-white text-base font-bold rounded-lg hover:bg-[#059669] transition-colors flex items-center gap-2 flex-shrink-0 min-h-[44px]"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            {t('course.download')}
+                            {material.resource_type === 'link' ? (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                Open Link
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                {t('course.download')}
+                              </>
+                            )}
                           </a>
                         </div>
                       );
