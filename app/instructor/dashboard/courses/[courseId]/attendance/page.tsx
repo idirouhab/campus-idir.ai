@@ -234,7 +234,6 @@ export default function CourseAttendancePage() {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const selectedSession = sessions.find(s => s.id === selectedSessionId);
   const currentSummary = attendanceSummary.find(s => s.session_id === selectedSessionId);
 
   if (loading) {
