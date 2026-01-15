@@ -319,6 +319,12 @@ export default function ManageCourseMaterialsPage() {
                 {t('instructor.editCourse.tabs.students')}
               </button>
               <button
+                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/attendance`)}
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              >
+                Attendance
+              </button>
+              <button
                 onClick={() => {
                   // Navigate to forum using course slug - need to fetch it first
                   const fetchSlug = async () => {

@@ -117,6 +117,37 @@ export interface CourseSession {
   updated_at: string;
 }
 
+export interface SessionAttendance {
+  id: string;
+  session_id: string;
+  student_id: string;
+  signup_id: string;
+  attendance_status: 'present' | 'absent';
+  marked_by: string; // Instructor user ID
+  marked_at: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Extended type for UI with student details
+export interface AttendanceRecord extends SessionAttendance {
+  student_first_name: string;
+  student_last_name: string;
+  student_email: string;
+}
+
+// Summary type for session attendance statistics
+export interface SessionAttendanceSummary {
+  session_id: string;
+  session_title: string;
+  session_date: string;
+  total_students: number;
+  present_count: number;
+  absent_count: number;
+  attendance_percentage: number;
+}
+
 export interface CourseMaterial {
   id: string;
   course_id: string;
