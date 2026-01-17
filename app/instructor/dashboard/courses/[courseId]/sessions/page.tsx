@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useInstructorAuth } from '@/hooks/useInstructorAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CourseSession } from '@/types/database';
-import SessionBuilder from '@/components/courses/SessionBuilder';
 import {
   getCourseSessionsAction,
   createSessionAction,
@@ -17,6 +17,12 @@ import {
 import { getCourseByIdAction } from '@/lib/course-actions';
 import { Save } from 'lucide-react';
 import LoadingOverlay from '@/components/LoadingOverlay';
+
+// Dynamically import SessionBuilder to reduce initial bundle size
+const SessionBuilder = dynamic(() => import('@/components/courses/SessionBuilder'), {
+  loading: () => <LoadingOverlay fullScreen={false} />,
+  ssr: false, // SessionBuilder is client-only
+});
 
 export default function ManageCourseSessionsPage() {
   const router = useRouter();

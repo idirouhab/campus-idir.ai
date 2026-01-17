@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import CourseBuilder from '@/components/courses/CourseBuilder';
+import dynamic from 'next/dynamic';
 import { generateCourseSlug } from '@/lib/course-utils';
 import { updateCourseAction, getAllInstructorsAction, getCourseByIdAction } from '@/lib/course-actions';
 import { useInstructorAuth } from '@/hooks/useInstructorAuth';
@@ -11,6 +11,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
 import LoadingOverlay from '@/components/LoadingOverlay';
+
+// Dynamically import CourseBuilder to reduce initial bundle size
+const CourseBuilder = dynamic(() => import('@/components/courses/CourseBuilder'), {
+  loading: () => <LoadingOverlay fullScreen={false} />,
+  ssr: false, // CourseBuilder is client-only
+});
 
 export default function EditCoursePage() {
   const router = useRouter();

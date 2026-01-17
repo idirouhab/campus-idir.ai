@@ -2,10 +2,13 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useStudentCourses } from '@/hooks/useCourses';
+import { useQuery } from '@tanstack/react-query';
+import { fetchStudentCourses } from '@/lib/queries/course-queries';
+import { StudentCourseAccess } from '@/types/database';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 export default function DashboardPage() {
@@ -16,7 +19,16 @@ export default function DashboardPage() {
   console.log('[Dashboard] User object:', user);
   console.log('[Dashboard] User ID:', user?.id);
 
-  const { courses, loading: coursesLoading } = useStudentCourses(user?.id);
+  // Use React Query for data fetching with automatic caching
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+  } = useQuery<StudentCourseAccess[]>({
+    queryKey: ['student-courses', user?.id],
+    queryFn: () => fetchStudentCourses(user?.id),
+    enabled: !!user?.id, // Only fetch when user is authenticated
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -77,12 +89,20 @@ export default function DashboardPage() {
                 href={`/course/${course.slug}`}
                 className="group bg-white rounded-lg border border-gray-200 hover:border-[#10b981] transition-all overflow-hidden card-hover emerald-accent-left shadow-sm hover:shadow-md"
               >
-                {course.cover_image ? (
-                  <div className="h-48 bg-gray-100 overflow-hidden">
-                    <img
+                {course.cover_image && course.cover_image.trim() !== '' ? (
+                  <div className="h-48 bg-gray-100 overflow-hidden relative">
+                    <Image
                       src={course.cover_image}
                       alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      priority={false}
+                      unoptimized={course.cover_image.includes('127.0.0.1') || course.cover_image.includes('localhost')}
+                      onError={(e) => {
+                        console.error('Image load error for course:', course.title, 'URL:', course.cover_image);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   </div>
                 ) : (

@@ -18,20 +18,23 @@ export async function GET(
     await requireCourseForumAccess(session, courseId);
 
     // Fetch answers
+    // Optimized: Using LEFT JOIN instead of EXISTS subquery to eliminate N+1 pattern
     const answers = await sql`
       SELECT
-        fa.*,
+        fa.id,
+        fa.post_id,
+        fa.course_id,
+        fa.user_id,
+        fa.body,
+        fa.is_verified,
+        fa.created_at,
+        fa.updated_at,
         u.first_name as author_first_name,
         u.last_name as author_last_name,
-        CASE
-          WHEN EXISTS (
-            SELECT 1 FROM course_instructors ci
-            WHERE ci.course_id = fa.course_id AND ci.instructor_id = fa.user_id
-          ) THEN true
-          ELSE false
-        END as author_is_instructor
+        CASE WHEN ci.instructor_id IS NOT NULL THEN true ELSE false END as author_is_instructor
       FROM forum_answers fa
       JOIN users u ON fa.user_id = u.id
+      LEFT JOIN course_instructors ci ON ci.course_id = fa.course_id AND ci.instructor_id = fa.user_id
       WHERE fa.post_id = ${postId} AND fa.course_id = ${courseId}
       ORDER BY fa.is_verified DESC, fa.created_at ASC
     `;

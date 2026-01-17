@@ -11,7 +11,22 @@ export async function GET(
     const sql = getDb();
 
     const courses = await sql`
-      SELECT id, slug, title, language
+      SELECT
+        id,
+        slug,
+        title,
+        short_description,
+        course_data,
+        cover_image,
+        meta_title,
+        meta_description,
+        language,
+        status,
+        published_at,
+        enrollment_count,
+        view_count,
+        created_at,
+        updated_at
       FROM courses
       WHERE slug = ${slug}
       LIMIT 1

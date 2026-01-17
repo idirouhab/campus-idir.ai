@@ -167,7 +167,21 @@
     "watchRecording": "Ver Grabación",
     "completed": "Completado",
     "loadingMaterialsEllipsis": "Cargando materiales...",
-    "sessionMaterials": "Materiales de la Sesión"
+    "sessionMaterials": "Materiales de la Sesión",
+    "instructors": "Instructores",
+    "week": "semana",
+    "weeks": "semanas",
+    "totalTime": "Tiempo Total",
+    "mode": "Modalidad",
+    "courseForum": "Foro del Curso",
+    "forumDescription": "Haz preguntas y discute con los instructores",
+    "aboutCourse": "Acerca de Este Curso",
+    "courseMaterials": "Materiales del Curso",
+    "files": "archivos",
+    "language": "Idioma",
+    "enrolled": "Inscritos",
+    "session": "sesión",
+    "sessions": "sesiones"
   },
   "password": {
     "weak": "débil",

@@ -77,6 +77,23 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'www.googletagmanager.com',
       },
+      // DEVELOPMENT ONLY: Allow local Supabase instance
+      ...(process.env.NODE_ENV === 'development'
+        ? [
+            {
+              protocol: 'http' as const,
+              hostname: '127.0.0.1',
+              port: '54321',
+              pathname: '/storage/v1/object/public/**',
+            },
+            {
+              protocol: 'http' as const,
+              hostname: 'localhost',
+              port: '54321',
+              pathname: '/storage/v1/object/public/**',
+            },
+          ]
+        : []),
       // Add your specific trusted domains here
       // DO NOT use wildcard '**' - it's a security risk
     ],
