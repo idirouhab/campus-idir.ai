@@ -2,7 +2,7 @@
 
 import {useAuth} from '@/contexts/AuthContext';
 import {useLanguage} from '@/contexts/LanguageContext';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useRouter, useParams} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import Link from 'next/link';
@@ -22,13 +22,16 @@ import {
 import {getCourseSessionsAction} from '@/lib/session-actions';
 import SessionsList from '@/components/courses/SessionsList';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import CourseSkeleton from '@/components/skeletons/CourseSkeleton';
+import {formatDuration, formatStartDate, formatSchedule, calculateTotalHours} from '@/lib/course-utils';
 
 export default function CoursePage() {
     const {user, loading: authLoading} = useAuth();
-    const {t} = useLanguage();
+    const {t, language} = useLanguage();
     const router = useRouter();
     const params = useParams();
     const slug = params?.slug as string;
+    const queryClient = useQueryClient();
 
     // Instructor auth state
     const [instructor, setInstructor] = useState<Instructor | null>(null);
@@ -41,7 +44,6 @@ export default function CoursePage() {
         instructor_role: string;
         display_order: number
     }>>([]);
-    const [assignLoading, setAssignLoading] = useState(false);
     const [assignError, setAssignError] = useState('');
     const [assignSuccess, setAssignSuccess] = useState('');
 
@@ -212,80 +214,112 @@ export default function CoursePage() {
         }
     }, [user, instructor, authLoading, instructorLoading, router]);
 
+    // Mutations with optimistic updates for instructor assignment
+    const assignMutation = useMutation({
+        mutationFn: async (instructorId: string) => {
+            if (!course) throw new Error('No course');
+            const result = await assignInstructorToCourseAction(course.id, instructorId, 'instructor');
+            if (!result.success) throw new Error(result.error || 'Failed to assign instructor');
+            return result;
+        },
+        onMutate: async (instructorId) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['course-instructors', course?.id] });
+
+            // Snapshot previous value
+            const previousInstructors = queryClient.getQueryData(['course-instructors', course?.id]);
+
+            // Optimistically update to the new value
+            const instructorToAdd = allInstructors.find(i => i.id === instructorId);
+            if (instructorToAdd && course) {
+                queryClient.setQueryData(['course-instructors', course.id], (old: any) => [
+                    ...(old || []),
+                    { ...instructorToAdd, instructor_role: 'instructor', display_order: (old || []).length }
+                ]);
+            }
+
+            setAssignError('');
+            setAssignSuccess('');
+
+            return { previousInstructors };
+        },
+        onError: (error: any, _instructorId, context) => {
+            // Rollback on error
+            if (context?.previousInstructors) {
+                queryClient.setQueryData(['course-instructors', course?.id], context.previousInstructors);
+            }
+            setAssignError(error.message || t('course.instructorAssignedError'));
+        },
+        onSuccess: () => {
+            setAssignSuccess(t('course.instructorAssignedSuccess'));
+            setTimeout(() => setAssignSuccess(''), 3000);
+        },
+        onSettled: () => {
+            // Refetch to ensure consistency
+            queryClient.invalidateQueries({ queryKey: ['course-instructors', course?.id] });
+        },
+    });
+
+    const removeMutation = useMutation({
+        mutationFn: async (instructorId: string) => {
+            if (!course) throw new Error('No course');
+            const result = await removeInstructorFromCourseAction(course.id, instructorId);
+            if (!result.success) throw new Error(result.error || 'Failed to remove instructor');
+            return result;
+        },
+        onMutate: async (instructorId) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['course-instructors', course?.id] });
+
+            // Snapshot previous value
+            const previousInstructors = queryClient.getQueryData(['course-instructors', course?.id]);
+
+            // Optimistically remove from list
+            if (course) {
+                queryClient.setQueryData(['course-instructors', course.id], (old: any) =>
+                    (old || []).filter((i: any) => i.id !== instructorId)
+                );
+            }
+
+            setAssignError('');
+            setAssignSuccess('');
+
+            return { previousInstructors };
+        },
+        onError: (error: any, _instructorId, context) => {
+            // Rollback on error
+            if (context?.previousInstructors) {
+                queryClient.setQueryData(['course-instructors', course?.id], context.previousInstructors);
+            }
+            setAssignError(error.message || t('course.instructorRemovedError'));
+        },
+        onSuccess: () => {
+            setAssignSuccess(t('course.instructorRemovedSuccess'));
+            setTimeout(() => setAssignSuccess(''), 3000);
+        },
+        onSettled: () => {
+            // Refetch to ensure consistency
+            queryClient.invalidateQueries({ queryKey: ['course-instructors', course?.id] });
+        },
+    });
+
     // Show unified loading state while checking auth and loading course
     const isLoading = authLoading || instructorLoading || courseLoading || accessLoading;
 
     if (isLoading) {
-        return <LoadingOverlay fullScreen={false}/>;
+        return <CourseSkeleton />;
     }
 
     // Handler functions for instructor assignment
-    const handleAssignInstructor = async (instructorId: string) => {
+    const handleAssignInstructor = (instructorId: string) => {
         if (!instructor || !course) return;
-
-        setAssignLoading(true);
-        setAssignError('');
-        setAssignSuccess('');
-
-        try {
-            const result = await assignInstructorToCourseAction(
-                course.id,
-                instructorId,
-                'instructor'
-            );
-
-            if (result.success) {
-                setAssignSuccess(t('course.instructorAssignedSuccess'));
-
-                // Refresh course instructors
-                const refreshResult = await getCourseInstructorsAction(course.id);
-                if (refreshResult.success && refreshResult.data) {
-                    setCourseInstructors(refreshResult.data);
-                }
-
-                setTimeout(() => setAssignSuccess(''), 3000);
-            } else {
-                setAssignError(result.error || t('course.instructorAssignedError'));
-            }
-        } catch (error: any) {
-            setAssignError(error.message || t('course.errorOccurred'));
-        } finally {
-            setAssignLoading(false);
-        }
+        assignMutation.mutate(instructorId);
     };
 
-    const handleRemoveInstructor = async (instructorId: string) => {
+    const handleRemoveInstructor = (instructorId: string) => {
         if (!instructor || !course) return;
         if (!confirm(t('course.confirmRemoveInstructor'))) return;
-
-        setAssignLoading(true);
-        setAssignError('');
-        setAssignSuccess('');
-
-        try {
-            const result = await removeInstructorFromCourseAction(
-                course.id,
-                instructorId
-            );
-
-            if (result.success) {
-                setAssignSuccess(t('course.instructorRemovedSuccess'));
-
-                // Refresh course instructors
-                const refreshResult = await getCourseInstructorsAction(course.id);
-                if (refreshResult.success && refreshResult.data) {
-                    setCourseInstructors(refreshResult.data);
-                }
-
-                setTimeout(() => setAssignSuccess(''), 3000);
-            } else {
-                setAssignError(result.error || t('course.instructorRemovedError'));
-            }
-        } catch (error: any) {
-            setAssignError(error.message || t('course.errorOccurred'));
-        } finally {
-            setAssignLoading(false);
-        }
+        removeMutation.mutate(instructorId);
     };
 
 
@@ -666,7 +700,7 @@ export default function CoursePage() {
                                 )}
 
                                 {/* Starting Date */}
-                                {(course.course_data?.logistics?.startDate || (sessions.length > 0 && sessions[0]?.session_date)) && (
+                                {course.course_data?.logistics?.startDate && (
                                     <div className="flex items-start gap-3">
                                         <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
                                              stroke="currentColor" viewBox="0 0 24 24">
@@ -676,20 +710,14 @@ export default function CoursePage() {
                                         <div>
                                             <p className="text-sm font-semibold text-gray-900">{t('course.startDate')}</p>
                                             <p className="text-sm text-gray-700">
-                                                {course.course_data?.logistics?.startDate ||
-                                                    new Date(sessions[0].session_date).toLocaleDateString(course.language === 'es' ? 'es-ES' : 'en-US', {
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric'
-                                                    })
-                                                }
+                                                {formatStartDate(course.course_data.logistics.startDate, language)}
                                             </p>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Duration & Total Time */}
-                                {(course.course_data?.logistics?.duration || course.course_data?.logistics?.hours || sessions.length > 0) && (
+                                {course.course_data?.logistics?.duration && (
                                     <div className="flex items-start gap-3">
                                         <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
                                              stroke="currentColor" viewBox="0 0 24 24">
@@ -700,27 +728,14 @@ export default function CoursePage() {
                                             <p className="text-sm font-semibold text-gray-900">{t('course.duration')}</p>
                                             <p className="text-sm text-gray-700">
                                                 {(() => {
-                                                    const duration = course.course_data?.logistics?.duration || (sessions.length > 1 && sessions[0]?.session_date && sessions[sessions.length - 1]?.session_date ? (() => {
-                                                        const start = new Date(sessions[0].session_date);
-                                                        const end = new Date(sessions[sessions.length - 1].session_date);
-                                                        const weeks = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7));
-                                                        return `${weeks} ${weeks === 1 ? t('course.week') : t('course.weeks')}`;
-                                                    })() : null);
-
-                                                    const hours = course.course_data?.logistics?.hours || (sessions.length > 0 ? (() => {
-                                                        const totalMinutes = sessions.reduce((sum, session) => {
-                                                            return sum + (session.duration_minutes || 0);
-                                                        }, 0);
-                                                        const h = Math.floor(totalMinutes / 60);
-                                                        const m = totalMinutes % 60;
-                                                        if (h > 0 && m > 0) {
-                                                            return `${h}h ${m}min`;
-                                                        } else if (h > 0) {
-                                                            return `${h}h`;
-                                                        } else {
-                                                            return `${m}min`;
-                                                        }
-                                                    })() : null);
+                                                    const logistics = course.course_data.logistics;
+                                                    const duration = formatDuration(logistics.duration, t);
+                                                    const calculatedHours = calculateTotalHours(
+                                                        logistics.schedule.days_of_week,
+                                                        logistics.duration,
+                                                        logistics.session_duration_hours
+                                                    );
+                                                    const hours = calculatedHours ? `${calculatedHours}h` : null;
 
                                                     const parts = [];
                                                     if (duration) parts.push(duration);
@@ -748,11 +763,11 @@ export default function CoursePage() {
                                                     if (!modeValue) return '';
                                                     const mode = modeValue.toLowerCase();
                                                     if (mode === 'online' || mode === 'virtual') {
-                                                        return course.language === 'es' ? 'Virtual (Online)' : 'Virtual (Online)';
+                                                        return language === 'es' ? 'Virtual (Online)' : 'Virtual (Online)';
                                                     } else if (mode === 'presencial' || mode === 'onsite' || mode === 'on-site') {
-                                                        return course.language === 'es' ? 'Presencial (On-site)' : 'On-site (In-person)';
+                                                        return language === 'es' ? 'Presencial (On-site)' : 'On-site (In-person)';
                                                     } else if (mode === 'híbrido' || mode === 'hybrid') {
-                                                        return course.language === 'es' ? 'Híbrido (Hybrid)' : 'Hybrid';
+                                                        return language === 'es' ? 'Híbrido (Hybrid)' : 'Hybrid';
                                                     } else {
                                                         return modeValue;
                                                     }
@@ -763,7 +778,7 @@ export default function CoursePage() {
                                 )}
 
                                 {/* Schedule (Day and Time) */}
-                                {(course.course_data?.logistics?.schedule || course.course_data?.logistics?.scheduleDetail) && (
+                                {course.course_data?.logistics?.schedule && (
                                     <div className="flex items-start gap-3">
                                         <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
                                              stroke="currentColor" viewBox="0 0 24 24">
@@ -773,11 +788,10 @@ export default function CoursePage() {
                                         <div>
                                             <p className="text-sm font-semibold text-gray-900">{t('course.schedule')}</p>
                                             <p className="text-sm text-gray-700">
-                                                {course.course_data.logistics.schedule}
-                                                {course.course_data.logistics.scheduleDetail && (
-                                                    <span className="block text-gray-600">
-                                                        {course.course_data.logistics.scheduleDetail}
-                                                    </span>
+                                                {formatSchedule(
+                                                    course.course_data.logistics.schedule.days_of_week,
+                                                    course.course_data.logistics.scheduleDetail,
+                                                    language
                                                 )}
                                             </p>
                                         </div>
@@ -897,7 +911,7 @@ export default function CoursePage() {
                                                     </div>
                                                     <button
                                                         onClick={() => handleRemoveInstructor(inst.id)}
-                                                        disabled={assignLoading}
+                                                        disabled={removeMutation.isPending}
                                                         className="px-3 py-2 text-sm font-semibold rounded text-red-600 border border-red-200 hover:bg-red-50 transition-all disabled:opacity-50 flex-shrink-0 min-h-[44px]"
                                                     >
                                                         {t('course.remove')}
@@ -957,7 +971,7 @@ export default function CoursePage() {
                                                         </div>
                                                         <button
                                                             onClick={() => handleAssignInstructor(inst.id)}
-                                                            disabled={assignLoading}
+                                                            disabled={assignMutation.isPending}
                                                             className="px-3 py-2 text-sm font-semibold rounded text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 flex-shrink-0 min-h-[44px]"
                                                         >
                                                             {t('course.add')}

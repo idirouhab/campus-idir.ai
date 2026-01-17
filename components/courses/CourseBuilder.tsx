@@ -11,6 +11,7 @@ import {
   Layers, Component, Layout, Grid, Briefcase, GraduationCap,
   Trophy, Medal, Flame, ThumbsUp, HandMetal, Smile
 } from 'lucide-react';
+import { DayOfWeek, DurationUnit } from '@/types/database';
 
 type CourseBuilderProps = {
   initialData?: any;
@@ -200,10 +201,16 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
     },
     logistics: initialData?.logistics || {
       startDate: '',
-      schedule: '',
+      schedule: {
+        days_of_week: [],
+        time_display: '',
+      },
       scheduleDetail: '',
-      duration: '',
-      hours: '',
+      duration: {
+        value: 4,
+        unit: 'weeks',
+      },
+      session_duration_hours: 1.5,
       modality: '',
       tools: '',
       capacity: null,
@@ -585,49 +592,173 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
         <SectionHeader title="Logistics" section="logistics" icon="📅" />
         {sections.logistics && expanded.logistics && (
           <div className="space-y-4 p-4 bg-white/30 rounded-lg">
-            <div className="grid grid-cols-2 gap-4">
-              <InputField
-                label="Start Date"
-                value={courseData.logistics.startDate}
-                onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, startDate: val })}
-                placeholder="January 2026"
+            {/* Start Date (ISO format) */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={courseData.logistics.startDate || ''}
+                onChange={(e) => updateCourseData('logistics', { ...courseData.logistics, startDate: e.target.value })}
+                className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
               />
-              <InputField
-                label="Schedule"
-                value={courseData.logistics.schedule}
-                onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, schedule: val })}
-                placeholder="Tuesdays & Thursdays"
-              />
+              <p className="text-xs text-gray-500">Format: YYYY-MM-DD (e.g., 2025-01-15)</p>
             </div>
+
+            {/* Schedule - Days of Week */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                Days of Week
+              </label>
+              <div className="grid grid-cols-7 gap-2">
+                {[
+                  { label: 'Sun', value: 0 },
+                  { label: 'Mon', value: 1 },
+                  { label: 'Tue', value: 2 },
+                  { label: 'Wed', value: 3 },
+                  { label: 'Thu', value: 4 },
+                  { label: 'Fri', value: 5 },
+                  { label: 'Sat', value: 6 },
+                ].map((day) => {
+                  const isSelected = courseData.logistics.schedule.days_of_week.includes(day.value);
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => {
+                        const currentDays = courseData.logistics.schedule.days_of_week;
+                        const newDays = isSelected
+                          ? currentDays.filter((d: number) => d !== day.value)
+                          : [...currentDays, day.value].sort((a, b) => a - b);
+                        updateCourseData('logistics', {
+                          ...courseData.logistics,
+                          schedule: {
+                            ...courseData.logistics.schedule,
+                            days_of_week: newDays,
+                          },
+                        });
+                      }}
+                      className={`px-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-[#10b981] text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Schedule Time Detail */}
             <InputField
-              label="Schedule Detail"
-              value={courseData.logistics.scheduleDetail}
+              label="Schedule Time Detail"
+              value={courseData.logistics.scheduleDetail || ''}
               onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, scheduleDetail: val })}
               placeholder="7:00 PM - 9:00 PM EST"
             />
+
+            {/* Duration - Structured (number + unit) */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                Duration
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  value={courseData.logistics.duration.value || ''}
+                  onChange={(e) => {
+                    updateCourseData('logistics', {
+                      ...courseData.logistics,
+                      duration: {
+                        ...courseData.logistics.duration,
+                        value: parseInt(e.target.value, 10) || 0,
+                      },
+                    });
+                  }}
+                  placeholder="4"
+                  className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                />
+                <select
+                  value={courseData.logistics.duration.unit}
+                  onChange={(e) => {
+                    updateCourseData('logistics', {
+                      ...courseData.logistics,
+                      duration: {
+                        ...courseData.logistics.duration,
+                        unit: e.target.value as DurationUnit,
+                      },
+                    });
+                  }}
+                  className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                >
+                  <option value="weeks">Weeks</option>
+                  <option value="days">Days</option>
+                  <option value="hours">Hours</option>
+                </select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-3 gap-4">
-              <InputField
-                label="Duration"
-                value={courseData.logistics.duration}
-                onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, duration: val })}
-                placeholder="4 weeks"
-              />
-              <InputField
-                label="Total Hours"
-                value={courseData.logistics.hours}
-                onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, hours: val })}
-                placeholder="16 hours total"
-              />
+              {/* Session Duration Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  Hours per Session
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={courseData.logistics.session_duration_hours || ''}
+                  onChange={(e) => updateCourseData('logistics', {
+                    ...courseData.logistics,
+                    session_duration_hours: parseFloat(e.target.value) || 0
+                  })}
+                  placeholder="1.5"
+                  className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                />
+              </div>
+
+              {/* Calculated Total Hours (Display Only) */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  Total Hours
+                </label>
+                <div className="w-full px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-gray-900 flex items-center">
+                  {(() => {
+                    const daysPerWeek = courseData.logistics.schedule.days_of_week.length;
+                    const sessionHours = courseData.logistics.session_duration_hours;
+                    const duration = courseData.logistics.duration;
+
+                    if (duration.unit === 'weeks' && daysPerWeek > 0 && sessionHours > 0) {
+                      const totalHours = daysPerWeek * duration.value * sessionHours;
+                      return (
+                        <span className="text-emerald-700 font-semibold">
+                          {totalHours} hours
+                          <span className="text-xs text-emerald-600 ml-2">
+                            ({daysPerWeek} days × {duration.value} weeks × {sessionHours}h)
+                          </span>
+                        </span>
+                      );
+                    }
+                    return <span className="text-gray-400 text-sm">Configure schedule & duration</span>;
+                  })()}
+                </div>
+              </div>
+
               <InputField
                 label="Modality"
-                value={courseData.logistics.modality}
+                value={courseData.logistics.modality || ''}
                 onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, modality: val })}
                 placeholder="Virtual (Zoom)"
               />
             </div>
             <InputField
               label="Tools/Requirements"
-              value={courseData.logistics.tools}
+              value={courseData.logistics.tools || ''}
               onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, tools: val })}
               placeholder="Make.com, OpenAI API"
             />
@@ -924,16 +1055,27 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
                           }}
                           placeholder="firstName"
                         />
-                        <InputField
-                          label="Label"
-                          value={field.label}
-                          onChange={(val: string) => {
-                            const updated = [...courseData.form.fields];
-                            updated[index] = { ...updated[index], label: val };
-                            updateCourseData('form', { ...courseData.form, fields: updated });
-                          }}
-                          placeholder="First Name"
-                        />
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                            Label (Translation Key) <span className="text-red-600">*</span>
+                          </label>
+                          <select
+                            value={field.label_key || ''}
+                            onChange={(e) => {
+                              const updated = [...courseData.form.fields];
+                              updated[index] = { ...updated[index], label_key: e.target.value };
+                              updateCourseData('form', { ...courseData.form, fields: updated });
+                            }}
+                            className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                          >
+                            <option value="">Select translation key...</option>
+                            <option value="form.firstName">form.firstName (First Name/Nombre)</option>
+                            <option value="form.lastName">form.lastName (Last Name/Apellido)</option>
+                            <option value="form.email">form.email (Email)</option>
+                            <option value="form.country">form.country (Country/País)</option>
+                            <option value="form.birthYear">form.birthYear (Birth Year/Año de nacimiento)</option>
+                          </select>
+                        </div>
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-700">Type</label>
                           <select
@@ -1009,7 +1151,7 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
                         ...courseData.form,
                         fields: [
                           ...courseData.form.fields,
-                          { name: '', label: '', type: 'text', required: true, placeholder: '' },
+                          { name: '', label_key: '', type: 'text', required: true, placeholder: '' },
                         ],
                       });
                     }}

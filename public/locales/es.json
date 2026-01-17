@@ -183,6 +183,37 @@
     "session": "sesión",
     "sessions": "sesiones"
   },
+  "units": {
+    "week": "semana",
+    "weeks": "semanas",
+    "day": "día",
+    "days": "días",
+    "hour": "hora",
+    "hours": "horas"
+  },
+  "daysOfWeek": {
+    "sunday": "Domingo",
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado",
+    "sun": "Dom",
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mié",
+    "thu": "Jue",
+    "fri": "Vie",
+    "sat": "Sáb"
+  },
+  "form": {
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo electrónico",
+    "country": "País",
+    "birthYear": "Año de nacimiento"
+  },
   "password": {
     "weak": "débil",
     "medium": "medio",

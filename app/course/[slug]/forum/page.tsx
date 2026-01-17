@@ -13,6 +13,7 @@ import RoleBadge from '@/components/forum/RoleBadge';
 import { MessageSquare, Eye, CheckCircle, Plus } from 'lucide-react';
 // Cookies import was unused in the snippets, removed unless needed elsewhere
 import LoadingOverlay from '@/components/LoadingOverlay';
+import ForumSkeleton from '@/components/skeletons/ForumSkeleton';
 import { fetchForumPosts, createForumPost, ForumPost as ForumPostType } from '@/lib/queries/forum-queries';
 
 type ForumPost = ForumPostType;
@@ -95,7 +96,7 @@ export default function ForumPage() {
     // --- RENDER LOGIC ---
 
     if (!courseData || accessData === undefined) {
-        return <LoadingOverlay fullScreen={false} />;
+        return <ForumSkeleton />;
     }
 
     if (!hasAccess) {

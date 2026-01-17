@@ -220,7 +220,7 @@ export async function getCourseByIdAction(
         course.course_data = JSON.parse(course.course_data);
       } catch (e) {
         console.error('Error parsing course_data:', e);
-        course.course_data = null;
+        course.course_data = undefined;
       }
     }
 

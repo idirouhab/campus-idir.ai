@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -37,7 +38,7 @@ export default function DashboardPage() {
   }, [user, authLoading, router]);
 
   if (authLoading || coursesLoading) {
-    return <LoadingOverlay fullScreen={false} />;
+    return <DashboardSkeleton />;
   }
 
   if (!user) {

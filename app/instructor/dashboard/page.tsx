@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { verifyInstructorAction } from '@/lib/instructor-auth-actions';
 import { getInstructorCoursesAction, deleteCourseAction, getAllInstructorsWithStatsAction } from '@/lib/course-actions';
@@ -249,12 +250,15 @@ export default function InstructorDashboardPage() {
                       <div className="flex items-start gap-4">
                         {/* Profile Picture */}
                         <div className="flex-shrink-0">
-                          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center overflow-hidden">
+                          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center overflow-hidden relative">
                             {inst.picture_url ? (
-                              <img
+                              <Image
                                 src={inst.picture_url}
                                 alt={`${inst.first_name} ${inst.last_name}`}
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                                unoptimized={inst.picture_url.includes('127.0.0.1') || inst.picture_url.includes('localhost')}
                               />
                             ) : (
                               <span className="text-lg font-bold text-[#10b981]">
@@ -368,11 +372,14 @@ export default function InstructorDashboardPage() {
                     className="block hover:border-[#10b981] transition-all"
                   >
                     {course.cover_image && (
-                      <div className="aspect-video bg-gray-100 overflow-hidden">
-                        <img
+                      <div className="aspect-video bg-gray-100 overflow-hidden relative">
+                        <Image
                           src={course.cover_image}
                           alt={course.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          unoptimized={course.cover_image.includes('127.0.0.1') || course.cover_image.includes('localhost')}
                         />
                       </div>
                     )}
@@ -389,14 +396,17 @@ export default function InstructorDashboardPage() {
                             {course.instructors.slice(0, 3).map((inst) => (
                               <div
                                 key={inst.id}
-                                className="w-6 h-6 rounded-full bg-emerald-50 border-2 border-white flex items-center justify-center"
+                                className="w-6 h-6 rounded-full bg-emerald-50 border-2 border-white flex items-center justify-center relative overflow-hidden"
                                 title={`${inst.first_name} ${inst.last_name}`}
                               >
                                 {inst.picture_url ? (
-                                  <img
+                                  <Image
                                     src={inst.picture_url}
                                     alt={inst.first_name}
-                                    className="w-full h-full rounded-full object-cover"
+                                    fill
+                                    sizes="24px"
+                                    className="rounded-full object-cover"
+                                    unoptimized={inst.picture_url.includes('127.0.0.1') || inst.picture_url.includes('localhost')}
                                   />
                                 ) : (
                                   <span className="text-xs font-semibold text-[#10b981]">

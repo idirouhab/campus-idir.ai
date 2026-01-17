@@ -1,5 +1,95 @@
 // Database types for courses platform
 
+// ==========================================
+// Course Data Types (Language-Agnostic)
+// ==========================================
+
+export type DurationUnit = 'weeks' | 'days' | 'hours';
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday, 6 = Saturday
+
+export interface CourseDuration {
+  value: number;
+  unit: DurationUnit;
+}
+
+export interface CourseLogistics {
+  session_duration_hours: number; // Hours per session (e.g., 1.5) - REQUIRED
+  tools?: string;
+  capacity?: {
+    number?: string;
+    reason?: string;
+    waitlistText?: string;
+  };
+  duration: CourseDuration; // Structured duration - REQUIRED
+  modality?: string;
+  schedule: {
+    days_of_week: DayOfWeek[]; // Array of day indices (0-6) - REQUIRED
+    time_display?: string; // For display purposes
+  };
+  startDate: string; // ISO 8601 date string (YYYY-MM-DD) - REQUIRED
+  scheduleDetail?: string; // Time detail (e.g., "7:00 PM - 8:00 PM CET")
+}
+
+export interface CourseFormField {
+  name: string;
+  type: 'text' | 'email' | 'number' | 'select';
+  label_key: string; // Translation key (e.g., 'form.firstName') - REQUIRED
+  required?: boolean;
+  placeholder?: string;
+  options?: string[];
+}
+
+export interface CourseForm {
+  fields: CourseFormField[];
+  enabled: boolean;
+  endpoint?: string;
+  requiresTerms?: boolean;
+  requiresCommitment?: boolean;
+}
+
+export interface CourseHero {
+  badge?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+}
+
+export interface CoursePricing {
+  badge?: string;
+  amount?: number;
+  isFree?: boolean;
+  currency?: string;
+  discountPrice?: number | null;
+}
+
+export interface CourseBenefit {
+  icon?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface CourseDonation {
+  link?: string;
+  text?: string;
+  label?: string;
+  linkText?: string;
+}
+
+export interface CourseData {
+  form?: CourseForm;
+  hero?: CourseHero;
+  pricing?: CoursePricing;
+  benefits?: CourseBenefit[];
+  donation?: CourseDonation;
+  logistics?: CourseLogistics;
+  mode?: string; // Legacy field for backwards compatibility
+  long_description?: string; // Markdown content
+}
+
+// ==========================================
+// User Types
+// ==========================================
+
 export interface User {
   id: string;
   email: string;
@@ -56,7 +146,7 @@ export interface Course {
   slug: string;
   title: string;
   short_description?: string;
-  course_data?: any;
+  course_data?: CourseData;
   cover_image?: string;
   meta_title?: string;
   meta_description?: string;

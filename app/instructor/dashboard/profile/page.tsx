@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useInstructorAuth } from '@/hooks/useInstructorAuth';
 import { updateInstructorProfileAction, updateInstructorPasswordAction } from '@/lib/instructor-auth-actions';
@@ -346,18 +347,24 @@ export default function InstructorProfilePage() {
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Current/Preview Picture */}
             <div className="flex-shrink-0 mx-auto md:mx-0">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 relative">
                 {picturePreview ? (
-                  <img
+                  <Image
                     src={picturePreview}
                     alt="Preview"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                    unoptimized
                   />
                 ) : pictureUrl ? (
-                  <img
+                  <Image
                     src={pictureUrl}
                     alt={`${instructor?.first_name} ${instructor?.last_name}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                    unoptimized={pictureUrl.includes('127.0.0.1') || pictureUrl.includes('localhost')}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-emerald-50">
