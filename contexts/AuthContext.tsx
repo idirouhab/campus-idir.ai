@@ -41,7 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Migration: Clear old localStorage session
     const oldStudent = localStorage.getItem('student');
     if (oldStudent) {
-      console.log('[AuthContext] Clearing old localStorage session');
       localStorage.removeItem('student');
     }
 
@@ -64,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const data = await response.json();
-        console.log('[AuthContext] Session data:', data);
 
         if (data.user) {
           // Populate dual-role state
@@ -97,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setInstructorRole(null);
         }
       } catch (err) {
-        console.error('[AuthContext] Error during auth check:', err);
         setUser(null);
         setCsrfToken(null);
         setHasStudentProfile(false);
@@ -243,7 +240,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setInstructorRole(null);
       }
     } catch (err) {
-      console.error('[AuthContext] Error during refresh:', err);
       setUser(null);
       setCsrfToken(null);
       setHasStudentProfile(false);
@@ -280,7 +276,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push('/instructor/dashboard');
       }
     } catch (err: any) {
-      console.error('[AuthContext] Error switching view:', err);
       throw err;
     }
   };
