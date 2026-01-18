@@ -10,8 +10,6 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Add Course Link] Starting link addition process');
-
     // 1. Verify CSRF token
     const isValidCSRF = await verifyCSRF(request);
     if (!isValidCSRF) {
@@ -23,20 +21,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Verify authentication
-    console.log('[Add Course Link] Verifying authentication');
     const session = await requireUserType('instructor');
-    console.log('[Add Course Link] User authenticated:', session.id);
 
     // 3. Parse request body
     const body = await request.json();
     const { url, displayName, courseId, sessionId } = body;
-
-    console.log('[Add Course Link] Request data:', {
-      url: url?.substring(0, 50),
-      displayName,
-      courseId,
-      sessionId,
-    });
 
     // 4. Validation
     if (!url || !courseId) {
@@ -73,15 +62,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Fetch Google Drive metadata
-    console.log('[Add Course Link] Fetching Google Drive metadata');
     let metadata;
     try {
       metadata = await fetchGoogleDriveMetadata(url);
-      console.log('[Add Course Link] Metadata fetched:', {
-        fileId: metadata.fileId,
-        fileName: metadata.fileName,
-        fileType: metadata.fileType,
-      });
     } catch (error: any) {
       console.error('[Add Course Link] Metadata fetch failed:', error.message);
       return NextResponse.json(

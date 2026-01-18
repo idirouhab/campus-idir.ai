@@ -17,9 +17,6 @@ export default function DashboardPage() {
   const { t } = useLanguage();
   const router = useRouter();
 
-  console.log('[Dashboard] User object:', user);
-  console.log('[Dashboard] User ID:', user?.id);
-
   // Use React Query for data fetching with automatic caching
   const {
     data: courses = [],

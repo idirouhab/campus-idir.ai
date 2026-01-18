@@ -69,8 +69,6 @@ export default function InstructorDashboardPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('[Dashboard] Starting auth check...');
-
       try {
         // Check session using the same method as Navigation
         const response = await fetch('/api/auth/session', {
@@ -78,13 +76,11 @@ export default function InstructorDashboardPage() {
         });
 
         if (!response.ok) {
-          console.log('[Dashboard] Session API failed, redirecting to login');
           router.push('/instructor/login');
           return;
         }
 
         const data = await response.json();
-        console.log('[Dashboard] Session data:', data);
 
         if (!data.user || data.user.userType !== 'instructor') {
           console.log('[Dashboard] Not an instructor session, redirecting to login');
@@ -93,11 +89,9 @@ export default function InstructorDashboardPage() {
         }
 
         // Fetch full instructor profile data
-        console.log('[Dashboard] Fetching instructor profile for:', data.user.id);
         const instructorResult = await verifyInstructorAction(data.user.id);
 
         if (instructorResult.success && instructorResult.data) {
-          console.log('[Dashboard] Auth successful:', instructorResult.data);
           setInstructor(instructorResult.data);
         } else {
           console.error('[Dashboard] Failed to fetch instructor profile:', instructorResult.error);
@@ -108,7 +102,6 @@ export default function InstructorDashboardPage() {
         router.push('/instructor/login');
       } finally {
         setLoading(false);
-        console.log('[Dashboard] Auth check complete');
       }
     };
 
@@ -119,19 +112,14 @@ export default function InstructorDashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       if (!instructor) {
-        console.log('[Dashboard] No instructor loaded yet, skipping data fetch');
         return;
       }
-
-      console.log('[Dashboard] Starting data fetch for instructor:', instructor.id);
 
       // Fetch courses
       setCoursesLoading(true);
       try {
-        console.log('[Dashboard] Fetching courses...');
         const coursesResult = await getInstructorCoursesAction();
         if (coursesResult.success && coursesResult.data) {
-          console.log('[Dashboard] Courses fetched successfully:', coursesResult.data.length);
           setCourses(coursesResult.data);
         } else {
           console.error('[Dashboard] Failed to fetch courses:', coursesResult.error);
@@ -145,15 +133,12 @@ export default function InstructorDashboardPage() {
 
       // Fetch instructors only for admins
       const isAdmin = permissions.canViewAllCourses();
-      console.log('[Dashboard] Is admin?', isAdmin);
 
       if (isAdmin) {
         setInstructorsLoading(true);
         try {
-          console.log('[Dashboard] Fetching instructors...');
           const instructorsResult = await getAllInstructorsWithStatsAction();
           if (instructorsResult.success && instructorsResult.data) {
-            console.log('[Dashboard] Instructors fetched successfully:', instructorsResult.data.length);
             setInstructors(instructorsResult.data);
           } else {
             console.error('[Dashboard] Failed to fetch instructors:', instructorsResult.error);
@@ -162,11 +147,9 @@ export default function InstructorDashboardPage() {
           console.error('[Dashboard] Error fetching instructors:', error);
         } finally {
           setInstructorsLoading(false);
-          console.log('[Dashboard] Instructors loading complete');
         }
       } else {
         setInstructorsLoading(false);
-        console.log('[Dashboard] Not admin, skipping instructors fetch');
       }
     };
 

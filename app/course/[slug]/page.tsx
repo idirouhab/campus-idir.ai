@@ -334,24 +334,6 @@ export default function CoursePage() {
     // Grant access if user has EITHER student access OR instructor access (supports dual-role users)
     const userHasAccess = hasAccess || instructorHasAccess;
 
-    // Debug logging
-    console.log('[CoursePage] Access Debug:', {
-        user: !!user,
-        instructor: !!instructor,
-        hasAccess,
-        instructorHasAccess,
-        userHasAccess,
-        accessData,
-        instructorAccessData,
-    });
-
-    console.log('[CoursePage] Course Data:', {
-        course,
-        course_data: course?.course_data,
-        long_description: course?.course_data?.long_description,
-        short_description: course?.short_description,
-    });
-
     if (!course) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
