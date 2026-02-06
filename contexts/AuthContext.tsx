@@ -10,6 +10,7 @@ import { getCSRFTokenFromCookie } from '@/lib/client-cookies';
 interface AuthContextType {
   user: Student | null;
   loading: boolean;
+  initialCheckDone: boolean;
   csrfToken: string | null;
   hasStudentProfile: boolean;
   hasInstructorProfile: boolean;
@@ -283,6 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     loading,
+    initialCheckDone,
     csrfToken,
     hasStudentProfile,
     hasInstructorProfile,

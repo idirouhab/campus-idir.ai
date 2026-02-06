@@ -5,7 +5,7 @@ import Script from 'next/script';
 import NextTopLoader from 'nextjs-toploader';
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import Navigation from "@/components/Navigation";
+import AuthGate from "@/components/AuthGate";
 import { LanguageWrapper } from "@/components/LanguageWrapper";
 import { Analytics } from "@/components/Analytics";
 import { AnalyticsUserWrapper } from "@/components/AnalyticsUserWrapper";
@@ -131,8 +131,7 @@ export default function RootLayout({
         )}
         <Providers>
           <LanguageWrapper>
-            <Navigation />
-            {children}
+            <AuthGate>{children}</AuthGate>
             {GA_MEASUREMENT_ID && (
               <>
                   <Suspense fallback={null}>
