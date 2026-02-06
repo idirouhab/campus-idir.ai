@@ -37,6 +37,7 @@ export default function NewCoursePage() {
     cover_image: '',
     language: 'en' as 'en' | 'es',
     status: 'draft' as 'draft' | 'published',
+    is_private: false,
     meta_title: '',
     meta_description: '',
   });
@@ -504,6 +505,23 @@ export default function NewCoursePage() {
                     <option value="published">{t('instructor.editCourse.published')}</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                  Visibility *
+                </label>
+                <select
+                  value={formData.is_private ? 'private' : 'public'}
+                  onChange={(e) => setFormData({ ...formData, is_private: e.target.value === 'private' })}
+                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                >
+                  <option value="public">Public (visible on website)</option>
+                  <option value="private">Private (only accessible via direct link)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Private courses are hidden from public course listings and are typically used for corporate or custom training.
+                </p>
               </div>
               </div>
             )}
