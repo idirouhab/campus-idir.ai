@@ -376,6 +376,7 @@ export async function createCourseAction(
     meta_description?: string;
     language: 'en' | 'es';
     status: 'draft' | 'published';
+    is_private?: boolean;
     published_at?: string;
   },
   instructors: Array<{
@@ -415,6 +416,7 @@ export async function createCourseAction(
         meta_description,
         language,
         status,
+        is_private,
         published_at,
         enrollment_count,
         view_count
@@ -428,6 +430,7 @@ export async function createCourseAction(
         ${courseData.meta_description || null},
         ${courseData.language},
         ${courseData.status},
+        ${courseData.is_private || false},
         ${courseData.published_at || null},
         0,
         0
@@ -484,6 +487,7 @@ export async function updateCourseAction(
     meta_description?: string;
     language: 'en' | 'es';
     status: 'draft' | 'published';
+    is_private?: boolean;
   },
   instructors: Array<{
     instructor_id: string;
@@ -543,6 +547,7 @@ export async function updateCourseAction(
         meta_description = ${courseData.meta_description || null},
         language = ${courseData.language},
         status = ${courseData.status},
+        is_private = ${courseData.is_private !== undefined ? courseData.is_private : false},
         published_at = ${publishedAt || null},
         updated_at = NOW()
       WHERE id = ${courseId}

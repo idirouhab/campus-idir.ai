@@ -152,6 +152,7 @@ export interface Course {
   meta_description?: string;
   language: 'en' | 'es';
   status: 'draft' | 'published';
+  is_private: boolean;
   published_at?: string;
   enrollment_count: number;
   view_count: number;
