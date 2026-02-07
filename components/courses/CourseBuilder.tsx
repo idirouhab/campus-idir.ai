@@ -763,7 +763,7 @@ export default function CourseBuilder({
                     Set total hours and hours per session to generate sessions.
                   </div>
                 ) : (
-                  (courseData.logistics.sessions || []).map((session, index) => (
+                  (courseData.logistics.sessions || []).map((session: { date: string; start_time: string; end_time: string }, index: number) => (
                     <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
                       <input
                         type="text"

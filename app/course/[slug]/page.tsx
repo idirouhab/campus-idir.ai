@@ -797,7 +797,7 @@ export default function CoursePage() {
                                         <div>
                                             <p className="text-sm font-semibold text-gray-900">{t('course.schedule')}</p>
                                             <div className="text-sm text-gray-700 space-y-1">
-                                                {(course.course_data?.logistics?.sessions || []).map((s, idx) => (
+                                                {(course.course_data?.logistics?.sessions || []).map((s: { date: string; start_time: string; end_time: string }, idx: number) => (
                                                     <div key={`${s.date}-${s.start_time}-${idx}`}>
                                                         {s.date} • {s.start_time}-{s.end_time}
                                                     </div>
