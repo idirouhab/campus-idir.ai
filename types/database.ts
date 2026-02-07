@@ -39,6 +39,7 @@ export interface CourseLogistics {
 export interface CourseFormField {
   name: string;
   type: 'text' | 'email' | 'number' | 'select';
+  label?: string;
   label_key: string; // Translation key (e.g., 'form.firstName') - REQUIRED
   required?: boolean;
   placeholder?: string;

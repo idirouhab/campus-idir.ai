@@ -116,6 +116,14 @@ const AVAILABLE_ICONS: Record<string, LucideIcon> = {
   Clock,
 };
 
+const FORM_LABELS: Record<string, string> = {
+  'form.firstName': 'First Name',
+  'form.lastName': 'Last Name',
+  'form.email': 'Email',
+  'form.country': 'Country',
+  'form.birthYear': 'Birth Year',
+};
+
 // Icon Picker Component
 const IconPicker = memo(({ value, onChange }: { value: string; onChange: (icon: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -303,16 +311,10 @@ export default function CourseBuilder({
   // Propagate changes to parent with useEffect to avoid re-renders during typing
   useEffect(() => {
     if (onDataChange) {
-      const filtered: any = {};
-      Object.keys(sections).forEach(key => {
-        if (sections[key as keyof typeof sections]) {
-          filtered[key] = courseData[key as keyof typeof courseData];
-        }
-      });
-      onDataChange(filtered);
+      onDataChange(courseData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseData, sections]);
+  }, [courseData]);
 
   const updateCourseData = useCallback((section: string, data: any) => {
     setCourseData(prev => ({ ...prev, [section]: data }));
@@ -1162,7 +1164,12 @@ export default function CourseBuilder({
                             value={field.label_key || ''}
                             onChange={(e) => {
                               const updated = [...courseData.form.fields];
-                              updated[index] = { ...updated[index], label_key: e.target.value };
+                              const nextKey = e.target.value;
+                              updated[index] = {
+                                ...updated[index],
+                                label_key: nextKey,
+                                label: updated[index].label || FORM_LABELS[nextKey] || updated[index].label,
+                              };
                               updateCourseData('form', { ...courseData.form, fields: updated });
                             }}
                             className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
@@ -1175,6 +1182,16 @@ export default function CourseBuilder({
                             <option value="form.birthYear">form.birthYear (Birth Year/Año de nacimiento)</option>
                           </select>
                         </div>
+                        <InputField
+                          label="Label (Text)"
+                          value={field.label || ''}
+                          onChange={(val: string) => {
+                            const updated = [...courseData.form.fields];
+                            updated[index] = { ...updated[index], label: val };
+                            updateCourseData('form', { ...courseData.form, fields: updated });
+                          }}
+                          placeholder="Nombre"
+                        />
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-700">Type</label>
                           <select
@@ -1250,7 +1267,7 @@ export default function CourseBuilder({
                         ...courseData.form,
                         fields: [
                           ...courseData.form.fields,
-                          { name: '', label_key: '', type: 'text', required: true, placeholder: '' },
+                          { name: '', label: '', label_key: '', type: 'text', required: true, placeholder: '' },
                         ],
                       });
                     }}
