@@ -14,7 +14,7 @@ import {
   deleteSessionAction,
   reorderSessionsAction,
 } from '@/lib/session-actions';
-import { getCourseByIdAction } from '@/lib/course-actions';
+import { getCourseByIdAction, forceResyncCourseSessionsAction } from '@/lib/course-actions';
 import { Save } from 'lucide-react';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
@@ -36,6 +36,7 @@ export default function ManageCourseSessionsPage() {
   const [originalSessions, setOriginalSessions] = useState<CourseSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -176,6 +177,36 @@ export default function ManageCourseSessionsPage() {
     }
   };
 
+  const handleForceResync = async () => {
+    const confirmed = confirm(
+      'This will delete existing sessions for this course and recreate them from Logistics. Continue?'
+    );
+    if (!confirmed) return;
+
+    setResyncing(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await forceResyncCourseSessionsAction(courseId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to resync sessions');
+      }
+
+      const sessionsResult = await getCourseSessionsAction(courseId);
+      if (sessionsResult.success && sessionsResult.data) {
+        setSessions(sessionsResult.data);
+        setOriginalSessions(JSON.parse(JSON.stringify(sessionsResult.data)));
+      }
+
+      setSuccess(`Resynced ${result.count} sessions from logistics.`);
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err: any) {
+      setError(err.message || t('instructor.sessions.errorMessage'));
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   if (authLoading || loading) {
     return <LoadingOverlay fullScreen={false} />;
   }
@@ -284,7 +315,15 @@ export default function ManageCourseSessionsPage() {
       </div>
 
       {/* Save Button */}
-      <div className="sticky bottom-4 flex justify-end gap-4 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+      <div className="sticky bottom-4 flex flex-wrap justify-end gap-4 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+        <button
+          type="button"
+          onClick={handleForceResync}
+          disabled={resyncing}
+          className="px-4 py-3 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium border border-amber-200"
+        >
+          {resyncing ? 'Resyncing...' : 'Force Resync from Logistics'}
+        </button>
         <button
           type="button"
           onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/edit`)}

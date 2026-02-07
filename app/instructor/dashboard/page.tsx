@@ -48,19 +48,6 @@ export default function InstructorDashboardPage() {
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const permissions = useInstructorPermissions(instructor);
 
-  // Helper function to calculate age from birthday
-  const calculateAge = (birthday?: string): number | null => {
-    if (!birthday) return null;
-    const today = new Date();
-    const birth = new Date(birthday);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
   // Helper function to format date
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -203,259 +190,212 @@ export default function InstructorDashboardPage() {
           </p>
         </div>
 
-        {/* Instructors Section - Only visible to admins */}
-        {permissions.canViewAllCourses() && (
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">{t('instructor.dashboard.allInstructors')}</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Courses Section */}
+          <div className="lg:col-span-3 bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {permissions.canViewAllCourses() ? t('instructor.dashboard.allCourses') : t('instructor.dashboard.myCourses')}
+                </h2>
+                {permissions.canCreateCourses() && (
+                  <Link
+                    href="/instructor/dashboard/courses/new"
+                    className="w-full sm:w-auto px-3 py-2 bg-[#10b981] text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-[#059669] transition-all uppercase tracking-wide flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    {t('instructor.dashboard.createCourse')}
+                  </Link>
+                )}
+              </div>
               <span className="text-sm text-gray-600">
-                {instructors.length} {instructors.length === 1 ? t('instructor.dashboard.instructor') : t('instructor.dashboard.instructors')}
+                {courses.length} {courses.length === 1 ? t('instructor.dashboard.course') : t('instructor.dashboard.courses')}
               </span>
             </div>
 
-            {instructorsLoading ? (
+            {coursesLoading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
               </div>
-            ) : instructors.length === 0 ? (
+            ) : courses.length === 0 ? (
               <div className="text-center py-8">
                 <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
-                <p className="text-gray-600 font-semibold">{t('instructor.dashboard.noInstructorsFound')}</p>
+                <p className="text-gray-600 font-semibold">{t('instructor.dashboard.noCourses')}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {permissions.canViewAllCourses()
+                    ? t('instructor.dashboard.noCoursesCreated')
+                    : t('instructor.dashboard.notAssignedToCourses')}
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {instructors.map((inst) => {
-                  const age = calculateAge(inst.birthday);
-                  return (
-                    <div key={inst.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#10b981] transition-all">
-                      <div className="flex items-start gap-4">
-                        {/* Profile Picture */}
-                        <div className="flex-shrink-0">
-                          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center overflow-hidden relative">
-                            {inst.picture_url ? (
-                              <Image
-                                src={inst.picture_url}
-                                alt={`${inst.first_name} ${inst.last_name}`}
-                                fill
-                                sizes="64px"
-                                className="object-cover"
-                                unoptimized={inst.picture_url.includes('127.0.0.1') || inst.picture_url.includes('localhost')}
-                              />
-                            ) : (
-                              <span className="text-lg font-bold text-[#10b981]">
-                                {inst.first_name[0]}{inst.last_name[0]}
-                              </span>
-                            )}
-                          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {courses.map((course) => (
+                  <div key={course.id} className="relative border border-gray-200 rounded-lg overflow-hidden group">
+                    <Link
+                      href={`/instructor/dashboard/courses/${course.id}/edit`}
+                      className="block hover:border-[#10b981] transition-all"
+                    >
+                      {course.cover_image && (
+                        <div className="aspect-[16/8] sm:aspect-[16/7] bg-gray-100 overflow-hidden relative">
+                          <Image
+                            src={course.cover_image}
+                            alt={course.title}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            unoptimized={course.cover_image.includes('127.0.0.1') || course.cover_image.includes('localhost')}
+                          />
                         </div>
+                      )}
+                      <div className="p-3">
+                        <h3 className="font-bold text-gray-900 mb-1.5 line-clamp-2 text-sm sm:text-base">
+                          {course.title}
+                        </h3>
+                        {course.short_description && (
+                          <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">
+                            {course.short_description}
+                          </p>
+                        )}
 
-                        {/* Instructor Info */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-900 truncate">
-                            {inst.first_name} {inst.last_name}
-                          </h3>
-                          <p className="text-sm text-gray-600 truncate mb-2">{inst.email}</p>
-
-                          {/* Stats Grid */}
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <svg className="w-4 h-4 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                              </svg>
-                              <span className="text-sm font-semibold text-gray-700">
-                                {inst.course_count} {inst.course_count === 1 ? t('instructor.dashboard.course') : t('instructor.dashboard.courses')}
-                              </span>
+                        {/* Instructors */}
+                        {course.instructors && course.instructors.length > 0 && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="hidden sm:flex -space-x-2">
+                              {course.instructors.slice(0, 3).map((inst) => (
+                                <div
+                                  key={inst.id}
+                                  className="w-6 h-6 rounded-full bg-emerald-50 border-2 border-white flex items-center justify-center relative overflow-hidden"
+                                  title={`${inst.first_name} ${inst.last_name}`}
+                                >
+                                  {inst.picture_url ? (
+                                    <Image
+                                      src={inst.picture_url}
+                                      alt={inst.first_name}
+                                      fill
+                                      sizes="24px"
+                                      className="rounded-full object-cover"
+                                      unoptimized={inst.picture_url.includes('127.0.0.1') || inst.picture_url.includes('localhost')}
+                                    />
+                                  ) : (
+                                    <span className="text-xs font-semibold text-[#10b981]">
+                                      {inst.first_name[0]}{inst.last_name[0]}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-
-                            {age !== null && (
-                              <div className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span className="text-sm text-gray-600">{age} {t('instructor.dashboard.yearsOld')}</span>
-                              </div>
-                            )}
-
-                            {inst.country && (
-                              <div className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span className="text-sm text-gray-600">{inst.country}</span>
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-2">
-                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <span className="text-sm text-gray-600">
-                                {t('instructor.dashboard.joined')} {formatDate(inst.created_at)}
-                              </span>
-                            </div>
+                            <span className="text-xs text-gray-500">
+                              {course.instructors.length} {course.instructors.length === 1 ? t('instructor.dashboard.instructor') : t('instructor.dashboard.instructors')}
+                            </span>
                           </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                          <span className={`px-2 py-1 rounded ${
+                            course.status === 'published'
+                              ? 'bg-emerald-50 text-[#10b981]'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {course.status === 'published' ? t('instructor.editCourse.published') : t('instructor.editCourse.draft')}
+                          </span>
+                          <span>{course.language.toUpperCase()}</span>
                         </div>
                       </div>
+                    </Link>
+                    {/* Action Buttons */}
+                    <div className="px-3 pb-3 pt-0 border-t border-gray-100">
+                      <Link
+                        href={`/instructor/dashboard/courses/${course.id}/edit`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-bold rounded-lg text-[#10b981] bg-emerald-50 hover:bg-emerald-100 transition-all uppercase tracking-wide"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        {t('instructor.dashboard.manageCourse')}
+                      </Link>
                     </div>
-                  );
-                })}
+
+                    {/* Delete Button - Only for admins */}
+                    {permissions.canCreateCourses() && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeleteCourse(course.id, course.title);
+                        }}
+                        disabled={deletingCourseId === course.id}
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg z-10"
+                        title="Delete course"
+                      >
+                        {deletingCourseId === course.id ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        )}
 
-        {/* Courses Section */}
-        <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left p-6 shadow-sm mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold text-gray-900">
-                {permissions.canViewAllCourses() ? t('instructor.dashboard.allCourses') : t('instructor.dashboard.myCourses')}
-              </h2>
-              {permissions.canCreateCourses() && (
-                <Link
-                  href="/instructor/dashboard/courses/new"
-                  className="px-4 py-2 bg-[#10b981] text-white text-sm font-bold rounded-lg hover:bg-[#059669] transition-all uppercase tracking-wide flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          {/* Instructors Section - Only visible to admins */}
+          {permissions.canViewAllCourses() && (
+            <aside className="lg:col-span-1 bg-white rounded-lg border border-gray-200 p-6 shadow-sm h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">{t('instructor.dashboard.allInstructors')}</h2>
+                <span className="text-sm text-gray-600">
+                  {instructors.length} {instructors.length === 1 ? t('instructor.dashboard.instructor') : t('instructor.dashboard.instructors')}
+                </span>
+              </div>
+
+              {instructorsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
+                </div>
+              ) : instructors.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
-                  {t('instructor.dashboard.createCourse')}
-                </Link>
-              )}
-            </div>
-            <span className="text-sm text-gray-600">
-              {courses.length} {courses.length === 1 ? t('instructor.dashboard.course') : t('instructor.dashboard.courses')}
-            </span>
-          </div>
-
-          {coursesLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10b981]"></div>
-            </div>
-          ) : courses.length === 0 ? (
-            <div className="text-center py-8">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <p className="text-gray-600 font-semibold">{t('instructor.dashboard.noCourses')}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                {permissions.canViewAllCourses()
-                  ? t('instructor.dashboard.noCoursesCreated')
-                  : t('instructor.dashboard.notAssignedToCourses')}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <div key={course.id} className="relative border border-gray-200 rounded-lg overflow-hidden group">
-                  <Link
-                    href={`/instructor/dashboard/courses/${course.id}/edit`}
-                    className="block hover:border-[#10b981] transition-all"
-                  >
-                    {course.cover_image && (
-                      <div className="aspect-video bg-gray-100 overflow-hidden relative">
-                        <Image
-                          src={course.cover_image}
-                          alt={course.title}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          unoptimized={course.cover_image.includes('127.0.0.1') || course.cover_image.includes('localhost')}
-                        />
+                  <p className="text-gray-600 font-semibold">{t('instructor.dashboard.noInstructorsFound')}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {instructors.map((inst) => (
+                    <div key={inst.id} className="border border-gray-200 rounded-lg p-3 hover:border-[#10b981] transition-all">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-bold text-gray-900 truncate">
+                          {inst.first_name} {inst.last_name}
+                        </h3>
+                        <span className="text-xs text-gray-500 shrink-0">
+                          {inst.course_count} {inst.course_count === 1 ? t('instructor.dashboard.course') : t('instructor.dashboard.courses')}
+                        </span>
                       </div>
-                    )}
-                    <div className="p-4">
-                      <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
-                      {course.short_description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{course.short_description}</p>
-                      )}
+                      <p className="text-xs text-gray-600 truncate mb-2">{inst.email}</p>
 
-                      {/* Instructors */}
-                      {course.instructors && course.instructors.length > 0 && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex -space-x-2">
-                            {course.instructors.slice(0, 3).map((inst) => (
-                              <div
-                                key={inst.id}
-                                className="w-6 h-6 rounded-full bg-emerald-50 border-2 border-white flex items-center justify-center relative overflow-hidden"
-                                title={`${inst.first_name} ${inst.last_name}`}
-                              >
-                                {inst.picture_url ? (
-                                  <Image
-                                    src={inst.picture_url}
-                                    alt={inst.first_name}
-                                    fill
-                                    sizes="24px"
-                                    className="rounded-full object-cover"
-                                    unoptimized={inst.picture_url.includes('127.0.0.1') || inst.picture_url.includes('localhost')}
-                                  />
-                                ) : (
-                                  <span className="text-xs font-semibold text-[#10b981]">
-                                    {inst.first_name[0]}{inst.last_name[0]}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {course.instructors.length} {course.instructors.length === 1 ? t('instructor.dashboard.instructor') : t('instructor.dashboard.instructors')}
-                          </span>
+                      {inst.country && (
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs text-gray-600">{inst.country}</span>
                         </div>
                       )}
-
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                        <span className={`px-2 py-1 rounded ${
-                          course.status === 'published'
-                            ? 'bg-emerald-50 text-[#10b981]'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {course.status === 'published' ? t('instructor.editCourse.published') : t('instructor.editCourse.draft')}
-                        </span>
-                        <span>{course.language.toUpperCase()}</span>
-                      </div>
                     </div>
-                  </Link>
-                  {/* Action Buttons */}
-                  <div className="px-4 pb-4 pt-0 border-t border-gray-100">
-                    <Link
-                      href={`/instructor/dashboard/courses/${course.id}/edit`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-bold rounded-lg text-[#10b981] bg-emerald-50 hover:bg-emerald-100 transition-all uppercase tracking-wide"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      {t('instructor.dashboard.manageCourse')}
-                    </Link>
-                  </div>
-
-                  {/* Delete Button - Only for admins */}
-                  {permissions.canCreateCourses() && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDeleteCourse(course.id, course.title);
-                      }}
-                      disabled={deletingCourseId === course.id}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg z-10"
-                      title="Delete course"
-                    >
-                      {deletingCourseId === course.id ? (
-                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      )}
-                    </button>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </aside>
           )}
         </div>
       </main>

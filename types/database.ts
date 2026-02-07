@@ -13,20 +13,26 @@ export interface CourseDuration {
 }
 
 export interface CourseLogistics {
-  session_duration_hours: number; // Hours per session (e.g., 1.5) - REQUIRED
+  total_hours?: number; // Total course hours (e.g., 6)
+  session_duration_hours?: number; // Hours per session (e.g., 1.5)
   tools?: string;
   capacity?: {
     number?: string;
     reason?: string;
     waitlistText?: string;
   };
-  duration: CourseDuration; // Structured duration - REQUIRED
+  sessions?: Array<{
+    date: string; // DD/MM/YYYY
+    start_time: string; // HH:MM (24h)
+    end_time: string; // HH:MM (24h)
+  }>;
+  duration?: CourseDuration; // Legacy duration
   modality?: string;
-  schedule: {
-    days_of_week: DayOfWeek[]; // Array of day indices (0-6) - REQUIRED
+  schedule?: {
+    days_of_week: DayOfWeek[]; // Array of day indices (0-6)
     time_display?: string; // For display purposes
   };
-  startDate: string; // ISO 8601 date string (YYYY-MM-DD) - REQUIRED
+  startDate?: string; // ISO 8601 date string (YYYY-MM-DD)
   scheduleDetail?: string; // Time detail (e.g., "7:00 PM - 8:00 PM CET")
 }
 

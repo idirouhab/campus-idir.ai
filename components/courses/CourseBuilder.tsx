@@ -2,20 +2,27 @@
 
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import {
-  ChevronDown, ChevronUp, Plus, Trash2, Eye, EyeOff,
-  Rocket, Sparkles, Target, Zap, Code, Database,
-  Clock, CheckCircle, Award, BookOpen, Users, TrendingUp,
-  Lightbulb, Shield, Heart, Star, Cpu, Globe,
-  BarChart, MessageSquare, Settings, Search, LucideIcon,
-  Brain, BrainCircuit, Blocks, Puzzle, Wand2, Package,
-  Layers, Component, Layout, Grid, Briefcase, GraduationCap,
-  Trophy, Medal, Flame, ThumbsUp, HandMetal, Smile
+    ChevronDown, ChevronUp, Plus, Trash2, Eye, EyeOff,
+    Rocket, Sparkles, Target, Zap, Code, Database,
+    Clock, CheckCircle, Award, BookOpen, Users, TrendingUp,
+    Lightbulb, Shield, Heart, Star, Cpu, Globe,
+    BarChart, MessageSquare, Settings, Search, LucideIcon,
+    Brain, BrainCircuit, Blocks, Puzzle, Wand2, Package,
+    Layers, Component, Layout, Grid, Briefcase, GraduationCap,
+    Trophy, Medal, Flame, ThumbsUp, HandMetal, Smile, Workflow,
+    GitBranch, ShieldCheck
 } from 'lucide-react';
-import { DayOfWeek, DurationUnit } from '@/types/database';
 
 type CourseBuilderProps = {
   initialData?: any;
   onDataChange?: (data: any) => void;
+  visibleSections?: Array<
+    'hero' | 'benefits' | 'curriculum' | 'logistics' | 'outcomes' | 'pricing' | 'commitment' | 'donation' | 'form'
+  >;
+  advancedSections?: Array<
+    'hero' | 'benefits' | 'curriculum' | 'logistics' | 'outcomes' | 'pricing' | 'commitment' | 'donation' | 'form'
+  >;
+  showAdvancedToggle?: boolean;
 };
 
 // Memoized input components to prevent re-renders and focus loss
@@ -84,6 +91,8 @@ const AVAILABLE_ICONS: Record<string, LucideIcon> = {
   Component,
   Layout,
   Grid,
+  Workflow,
+  GitBranch,
 
   // People & Collaboration
   Users,
@@ -98,6 +107,7 @@ const AVAILABLE_ICONS: Record<string, LucideIcon> = {
   Shield,
   Heart,
   Star,
+  ShieldCheck,
 
   // Tools & Search
   BarChart,
@@ -159,19 +169,51 @@ export const BenefitIcon = ({ iconName, className = 'w-6 h-6' }: { iconName: str
   return <Icon className={className} />;
 };
 
-export default function CourseBuilder({ initialData, onDataChange }: CourseBuilderProps) {
+export default function CourseBuilder({
+  initialData,
+  onDataChange,
+  visibleSections,
+  advancedSections,
+  showAdvancedToggle = true,
+}: CourseBuilderProps) {
   // Section visibility toggles
-  const [sections, setSections] = useState({
-    hero: initialData?.hero ? true : false,
-    benefits: initialData?.benefits ? true : false,
-    curriculum: initialData?.curriculum ? true : false,
-    logistics: initialData?.logistics ? true : false,
-    outcomes: initialData?.outcomes ? true : false,
-    pricing: initialData?.pricing ? true : false,
-    commitment: initialData?.commitment ? true : false,
-    donation: initialData?.donation ? true : false,
-    form: initialData?.form ? true : true,
+  const [sections, setSections] = useState(() => {
+    const base = {
+      hero: initialData?.hero ? true : false,
+      benefits: initialData?.benefits ? true : false,
+      curriculum: initialData?.curriculum ? true : false,
+      logistics: initialData?.logistics ? true : false,
+      outcomes: initialData?.outcomes ? true : false,
+      pricing: initialData?.pricing ? true : false,
+      commitment: initialData?.commitment ? true : false,
+      donation: initialData?.donation ? true : false,
+      form: initialData?.form ? true : true,
+    };
+    if (visibleSections && visibleSections.length > 0) {
+      (Object.keys(base) as Array<keyof typeof base>).forEach((key) => {
+        base[key] = visibleSections.includes(key);
+      });
+    }
+    return base;
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const allowedSections = useMemo(() => {
+    const all = ['hero', 'benefits', 'curriculum', 'logistics', 'outcomes', 'pricing', 'commitment', 'donation', 'form'] as const;
+    return (visibleSections && visibleSections.length > 0) ? visibleSections : [...all];
+  }, [visibleSections]);
+
+  const advancedSet = useMemo(() => new Set(advancedSections || []), [advancedSections]);
+
+  const isAllowed = useCallback((section: keyof typeof sections) => {
+    return allowedSections.includes(section);
+  }, [allowedSections]);
+
+  const shouldRender = useCallback((section: keyof typeof sections) => {
+    if (!isAllowed(section)) return false;
+    if (advancedSet.has(section) && !showAdvanced) return false;
+    return true;
+  }, [isAllowed, advancedSet, showAdvanced]);
 
   // Expanded sections
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
@@ -182,9 +224,27 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
     outcomes: true,
     pricing: true,
     commitment: true,
-    donation: false,
+    donation: true,
     form: true,
   });
+
+  useEffect(() => {
+    // Ensure sections/expanded are disabled for sections outside the allowed list
+    setSections(prev => {
+      const next = { ...prev } as typeof prev;
+      (Object.keys(next) as Array<keyof typeof next>).forEach((key) => {
+        if (!isAllowed(key)) next[key] = false;
+      });
+      return next;
+    });
+    setExpanded(prev => {
+      const next = { ...prev };
+      (Object.keys(next) as Array<keyof typeof sections>).forEach((key) => {
+        if (!isAllowed(key)) next[key] = false;
+      });
+      return next;
+    });
+  }, [isAllowed]);
 
   // Course data
   const [courseData, setCourseData] = useState({
@@ -200,17 +260,9 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
       items: [],
     },
     logistics: initialData?.logistics || {
-      startDate: '',
-      schedule: {
-        days_of_week: [],
-        time_display: '',
-      },
-      scheduleDetail: '',
-      duration: {
-        value: 4,
-        unit: 'weeks',
-      },
-      session_duration_hours: 1.5,
+      total_hours: 6,
+      session_duration_hours: 2,
+      sessions: [],
       modality: '',
       tools: '',
       capacity: null,
@@ -379,6 +431,37 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
     requiresCommitment: (value: boolean) => updateFormField('requiresCommitment', value),
   }), [updateFormField]);
 
+  const hasAdvancedAllowed = useMemo(() => {
+    if (!advancedSections || advancedSections.length === 0) return false;
+    return advancedSections.some((section) => isAllowed(section as keyof typeof sections));
+  }, [advancedSections, isAllowed]);
+
+  // Auto-generate session slots based on total hours and hours per session
+  useEffect(() => {
+    const total = Number(courseData.logistics.total_hours || 0);
+    const perSession = Number(courseData.logistics.session_duration_hours || 0);
+    if (!total || !perSession) return;
+
+    const desiredCount = Math.max(0, Math.ceil(total / perSession));
+    setCourseData(prev => {
+      const current = prev.logistics.sessions || [];
+      if (current.length === desiredCount) {
+        return prev;
+      }
+      const next = current.slice(0, desiredCount);
+      while (next.length < desiredCount) {
+        next.push({ date: '', start_time: '', end_time: '' });
+      }
+      return {
+        ...prev,
+        logistics: {
+          ...prev.logistics,
+          sessions: next,
+        },
+      };
+    });
+  }, [courseData.logistics.total_hours, courseData.logistics.session_duration_hours]);
+
   const toggleSection = (section: keyof typeof sections) => {
     setSections({ ...sections, [section]: !sections[section] });
   };
@@ -422,6 +505,7 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
   return (
     <div className="space-y-6">
       {/* Hero Section */}
+      {shouldRender('hero') && (
       <div>
         <SectionHeader title="Hero Section" section="hero" icon="🎯" />
         {sections.hero && expanded.hero && (
@@ -447,8 +531,10 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Benefits Section */}
+      {shouldRender('benefits') && (
       <div>
         <SectionHeader title="Benefits" section="benefits" icon="✨" />
         {sections.benefits && expanded.benefits && (
@@ -513,8 +599,10 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Curriculum Section */}
+      {shouldRender('curriculum') && (
       <div>
         <SectionHeader title="Curriculum" section="curriculum" icon="📚" />
         {sections.curriculum && expanded.curriculum && (
@@ -586,183 +674,156 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Logistics Section */}
+      {shouldRender('logistics') && (
       <div>
         <SectionHeader title="Logistics" section="logistics" icon="📅" />
         {sections.logistics && expanded.logistics && (
           <div className="space-y-4 p-4 bg-white/30 rounded-lg">
-            {/* Start Date (ISO format) */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={courseData.logistics.startDate || ''}
-                onChange={(e) => updateCourseData('logistics', { ...courseData.logistics, startDate: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500">Format: YYYY-MM-DD (e.g., 2025-01-15)</p>
-            </div>
-
-            {/* Schedule - Days of Week */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
-                Days of Week
-              </label>
-              <div className="grid grid-cols-7 gap-2">
-                {[
-                  { label: 'Sun', value: 0 },
-                  { label: 'Mon', value: 1 },
-                  { label: 'Tue', value: 2 },
-                  { label: 'Wed', value: 3 },
-                  { label: 'Thu', value: 4 },
-                  { label: 'Fri', value: 5 },
-                  { label: 'Sat', value: 6 },
-                ].map((day) => {
-                  const isSelected = courseData.logistics.schedule.days_of_week.includes(day.value);
-                  return (
-                    <button
-                      key={day.value}
-                      type="button"
-                      onClick={() => {
-                        const currentDays = courseData.logistics.schedule.days_of_week;
-                        const newDays = isSelected
-                          ? currentDays.filter((d: number) => d !== day.value)
-                          : [...currentDays, day.value].sort((a, b) => a - b);
-                        updateCourseData('logistics', {
-                          ...courseData.logistics,
-                          schedule: {
-                            ...courseData.logistics.schedule,
-                            days_of_week: newDays,
-                          },
-                        });
-                      }}
-                      className={`px-2 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-[#10b981] text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {day.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Schedule Time Detail */}
-            <InputField
-              label="Schedule Time Detail"
-              value={courseData.logistics.scheduleDetail || ''}
-              onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, scheduleDetail: val })}
-              placeholder="7:00 PM - 9:00 PM EST"
-            />
-
-            {/* Duration - Structured (number + unit) */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
-                Duration
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Total Hours + Session Duration */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                  Total Course Hours
+                </label>
                 <input
                   type="number"
                   min="1"
-                  value={courseData.logistics.duration.value || ''}
-                  onChange={(e) => {
+                  step="0.5"
+                  value={courseData.logistics.total_hours || ''}
+                  onChange={(e) =>
                     updateCourseData('logistics', {
                       ...courseData.logistics,
-                      duration: {
-                        ...courseData.logistics.duration,
-                        value: parseInt(e.target.value, 10) || 0,
-                      },
-                    });
-                  }}
-                  placeholder="4"
+                      total_hours: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="6"
                   className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                 />
-                <select
-                  value={courseData.logistics.duration.unit}
-                  onChange={(e) => {
-                    updateCourseData('logistics', {
-                      ...courseData.logistics,
-                      duration: {
-                        ...courseData.logistics.duration,
-                        unit: e.target.value as DurationUnit,
-                      },
-                    });
-                  }}
-                  className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                >
-                  <option value="weeks">Weeks</option>
-                  <option value="days">Days</option>
-                  <option value="hours">Hours</option>
-                </select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              {/* Session Duration Input */}
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
                   Hours per Session
                 </label>
                 <input
                   type="number"
-                  min="0"
+                  min="0.5"
                   step="0.5"
                   value={courseData.logistics.session_duration_hours || ''}
-                  onChange={(e) => updateCourseData('logistics', {
-                    ...courseData.logistics,
-                    session_duration_hours: parseFloat(e.target.value) || 0
-                  })}
-                  placeholder="1.5"
+                  onChange={(e) =>
+                    updateCourseData('logistics', {
+                      ...courseData.logistics,
+                      session_duration_hours: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="2"
                   className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
                 />
               </div>
 
-              {/* Calculated Total Hours (Display Only) */}
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
-                  Total Hours
+                  Sessions
                 </label>
                 <div className="w-full px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-gray-900 flex items-center">
                   {(() => {
-                    const daysPerWeek = courseData.logistics.schedule.days_of_week.length;
-                    const sessionHours = courseData.logistics.session_duration_hours;
-                    const duration = courseData.logistics.duration;
-
-                    if (duration.unit === 'weeks' && daysPerWeek > 0 && sessionHours > 0) {
-                      const totalHours = daysPerWeek * duration.value * sessionHours;
-                      return (
-                        <span className="text-emerald-700 font-semibold">
-                          {totalHours} hours
-                          <span className="text-xs text-emerald-600 ml-2">
-                            ({daysPerWeek} days × {duration.value} weeks × {sessionHours}h)
-                          </span>
-                        </span>
-                      );
+                    const total = Number(courseData.logistics.total_hours || 0);
+                    const perSession = Number(courseData.logistics.session_duration_hours || 0);
+                    if (!total || !perSession) {
+                      return <span className="text-gray-400 text-sm">Set total & session hours</span>;
                     }
-                    return <span className="text-gray-400 text-sm">Configure schedule & duration</span>;
+                    const count = Math.ceil(total / perSession);
+                    const remainder = total % perSession;
+                    return (
+                      <span className="text-emerald-700 font-semibold">
+                        {count} sessions
+                        {remainder !== 0 && (
+                          <span className="text-xs text-emerald-600 ml-2">
+                            (last session {remainder.toFixed(1)}h)
+                          </span>
+                        )}
+                      </span>
+                    );
                   })()}
                 </div>
               </div>
+            </div>
 
+            {/* Sessions List (Auto-generated count) */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide">
+                Session Dates & Times (DD/MM/YYYY, 24h)
+              </label>
+              <div className="space-y-2">
+                {(courseData.logistics.sessions || []).length === 0 ? (
+                  <div className="text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    Set total hours and hours per session to generate sessions.
+                  </div>
+                ) : (
+                  (courseData.logistics.sessions || []).map((session, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="DD/MM/YYYY"
+                        value={session.date}
+                        onChange={(e) => {
+                          const updated = [...(courseData.logistics.sessions || [])];
+                          updated[index] = { ...updated[index], date: e.target.value };
+                          updateCourseData('logistics', { ...courseData.logistics, sessions: updated });
+                        }}
+                        className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="HH:MM"
+                        value={session.start_time}
+                        onChange={(e) => {
+                          const updated = [...(courseData.logistics.sessions || [])];
+                          updated[index] = { ...updated[index], start_time: e.target.value };
+                          updateCourseData('logistics', { ...courseData.logistics, sessions: updated });
+                        }}
+                        className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="HH:MM"
+                        value={session.end_time}
+                        onChange={(e) => {
+                          const updated = [...(courseData.logistics.sessions || [])];
+                          updated[index] = { ...updated[index], end_time: e.target.value };
+                          updateCourseData('logistics', { ...courseData.logistics, sessions: updated });
+                        }}
+                        className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      />
+                      <div className="text-sm text-gray-500">
+                        Session {index + 1}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField
                 label="Modality"
                 value={courseData.logistics.modality || ''}
                 onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, modality: val })}
                 placeholder="Virtual (Zoom)"
               />
+              <InputField
+                label="Tools/Requirements"
+                value={courseData.logistics.tools || ''}
+                onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, tools: val })}
+                placeholder="Make.com, OpenAI API"
+              />
             </div>
-            <InputField
-              label="Tools/Requirements"
-              value={courseData.logistics.tools || ''}
-              onChange={(val: string) => updateCourseData('logistics', { ...courseData.logistics, tools: val })}
-              placeholder="Make.com, OpenAI API"
-            />
-
             {/* Capacity */}
             <div className="mt-6 p-4 bg-gray-100/50 rounded-lg">
               <div className="flex items-center justify-between mb-4">
@@ -820,8 +881,10 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Outcomes Section */}
+      {shouldRender('outcomes') && (
       <div>
         <SectionHeader title="Learning Outcomes" section="outcomes" icon="🎯" />
         {sections.outcomes && expanded.outcomes && (
@@ -878,8 +941,10 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Pricing Section */}
+      {shouldRender('pricing') && (
       <div>
         <SectionHeader title="Pricing" section="pricing" icon="💰" />
         {sections.pricing && expanded.pricing && (
@@ -934,8 +999,38 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
+
+      {hasAdvancedAllowed && showAdvancedToggle && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setShowAdvanced((prev) => {
+                const next = !prev;
+                if (next && advancedSections && advancedSections.length > 0) {
+                  setSections((current) => {
+                    const updated = { ...current };
+                    advancedSections.forEach((key) => {
+                      if (isAllowed(key as keyof typeof sections)) {
+                        updated[key as keyof typeof sections] = true;
+                      }
+                    });
+                    return updated;
+                  });
+                }
+                return next;
+              });
+            }}
+            className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+          >
+            {showAdvanced ? 'Hide Advanced' : 'Show Advanced'}
+          </button>
+        </div>
+      )}
 
       {/* Commitment Section */}
+      {shouldRender('commitment') && (
       <div>
         <SectionHeader title="Commitment" section="commitment" icon="🤝" />
         {sections.commitment && expanded.commitment && (
@@ -967,8 +1062,10 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Donation Section */}
+      {shouldRender('donation') && (
       <div>
         <SectionHeader title="Donation" section="donation" icon="💚" />
         {sections.donation && expanded.donation && (
@@ -1000,8 +1097,10 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
 
       {/* Form Section */}
+      {shouldRender('form') && (
       <div>
         <SectionHeader title="Registration Form" section="form" icon="📝" />
         {sections.form && expanded.form && (
@@ -1186,6 +1285,7 @@ export default function CourseBuilder({ initialData, onDataChange }: CourseBuild
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

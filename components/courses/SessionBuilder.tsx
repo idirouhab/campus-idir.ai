@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, memo, useEffect } from 'react';
+import { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { CourseSession, CourseMaterial } from '@/types/database';
 import { ChevronDown, ChevronUp, Trash2, Plus, GripVertical, FileText, Upload, X, Edit2, Check, Link2, ExternalLink, File, Presentation } from 'lucide-react';
 import { COMMON_TIMEZONES, utcToLocal, localToUTC } from '@/lib/timezone-utils';
@@ -140,6 +140,7 @@ export default function SessionBuilder({
   const [formSessions, setFormSessions] = useState<SessionFormData[]>(
     sessions.length > 0 ? sessionsToFormData(sessions) : []
   );
+  const skipNextSyncRef = useRef(false);
 
   // Convert form data back to sessions format
   const formDataToSessions = useCallback((formData: SessionFormData[]): CourseSession[] => {
@@ -161,9 +162,19 @@ export default function SessionBuilder({
 
   // Update parent whenever form sessions change
   const updateParent = useCallback((newFormSessions: SessionFormData[]) => {
+    skipNextSyncRef.current = true;
     setFormSessions(newFormSessions);
     onChange(formDataToSessions(newFormSessions));
   }, [onChange, formDataToSessions]);
+
+  // Sync when parent sessions change (e.g., after save/resync)
+  useEffect(() => {
+    if (skipNextSyncRef.current) {
+      skipNextSyncRef.current = false;
+      return;
+    }
+    setFormSessions(sessions.length > 0 ? sessionsToFormData(sessions) : []);
+  }, [sessions, sessionsToFormData]);
 
   const handleAddSession = () => {
     const newSession: SessionFormData = {

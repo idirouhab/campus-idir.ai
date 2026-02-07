@@ -50,14 +50,8 @@ export default function NewCoursePage() {
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverCompressing, setCoverCompressing] = useState(false);
   const [coverUploadSuccess, setCoverUploadSuccess] = useState(false);
-
-  // Collapsible sections state
-  const [sectionsExpanded, setSectionsExpanded] = useState({
-    basic: true,
-    seo: false,
-    content: false,
-    instructors: false,
-  });
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   // Check authentication and redirect if needed
   useEffect(() => {
@@ -136,9 +130,11 @@ export default function NewCoursePage() {
     setCourseData(data);
   }, []);
 
-  const toggleSection = (section: keyof typeof sectionsExpanded) => {
-    setSectionsExpanded(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  const steps = [
+    { title: 'Basics', subtitle: 'Title, description, cover' },
+    { title: 'Content', subtitle: 'Hero, benefits, curriculum' },
+    { title: 'Logistics', subtitle: 'Schedule & pricing' },
+  ];
 
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -295,459 +291,433 @@ export default function NewCoursePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('basic')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.basic ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+          {/* Stepper */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {steps.map((step, index) => (
+                <button
+                  key={step.title}
+                  type="button"
+                  onClick={() => setCurrentStep(index)}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg border transition-colors ${
+                    currentStep === index
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    currentStep === index ? 'bg-[#10b981] text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {index + 1}
+                  </span>
+                  <span className="text-left">
+                    <div className="text-sm font-bold">{step.title}</div>
+                    <div className="text-xs text-gray-500">{step.subtitle}</div>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {sectionsExpanded.basic && (
-              <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder="Course Title"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Slug * <span className="text-gray-500 normal-case">(auto-generated)</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent font-mono"
-                  placeholder="course-slug"
-                />
-                <p className="text-xs text-gray-500 mt-1">URL: /course/{formData.slug}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Short Description *
-                </label>
-                <textarea
-                  required
-                  value={formData.short_description}
-                  onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
-                  placeholder="Brief description of the course..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Cover Image
-                </label>
-
-                <div className="space-y-3">
-                  {/* Success Message */}
-                  {coverUploadSuccess && (
-                    <div className="rounded-md bg-emerald-50 border border-[#10b981] p-3">
-                      <p className="text-sm text-[#10b981] font-semibold">Image uploaded successfully!</p>
-                    </div>
-                  )}
-
-                  {/* File Input */}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCoverChange}
-                    className="block w-full text-sm text-gray-900 border border-gray-200 rounded-lg cursor-pointer bg-gray-100 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={coverUploading || coverCompressing}
-                  />
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG, GIF up to 5MB. Images over 1MB will be automatically compressed.
-                  </p>
-
-                  {/* Compressing indicator */}
-                  {coverCompressing && (
-                    <p className="text-xs text-[#10b981] font-semibold flex items-center">
-                      <svg className="animate-spin h-3 w-3 mr-2" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Compressing image...
-                    </p>
-                  )}
-
-                  {/* Preview and Upload button */}
-                  {coverPreview && !coverCompressing && (
-                    <div className="space-y-3">
-                      <img
-                        src={coverPreview}
-                        alt="Cover preview"
-                        className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={handleCoverUpload}
-                          disabled={coverUploading}
-                          className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
-                        >
-                          {coverUploading ? 'Uploading...' : 'Upload Image'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCoverPreview('');
-                            setCoverFile(null);
-                            setCoverCompressing(false);
-                          }}
-                          disabled={coverUploading}
-                          className="px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Current uploaded image */}
-                  {formData.cover_image && !coverPreview && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-600 font-semibold">Current Cover Image:</p>
-                      <img
-                        key={formData.cover_image}
-                        src={formData.cover_image}
-                        alt="Current cover"
-                        className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({ ...formData, cover_image: '' });
-                          setCoverUploadSuccess(false);
-                        }}
-                        className="text-xs text-red-600 hover:text-red-700 font-semibold"
-                      >
-                        Remove Image
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Manual URL input (alternative) */}
-                  <div className="pt-2">
-                    <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">
-                      Or Enter Image URL
+          {/* Step 1: Basics */}
+          {currentStep === 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm p-6 space-y-4">
+                  <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Title *
                     </label>
                     <input
-                      type="url"
-                      value={formData.cover_image}
-                      onChange={(e) => {
-                        setFormData({ ...formData, cover_image: e.target.value });
-                        setCoverUploadSuccess(false);
-                      }}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                      placeholder="https://example.com/image.jpg"
+                      type="text"
+                      required
+                      value={formData.title}
+                      onChange={(e) => handleTitleChange(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      placeholder="Course Title"
                     />
-                    {formData.cover_image && (
-                      <p className="text-xs text-gray-500 mt-1 break-all">
-                        <span className="font-semibold">Current URL:</span> {formData.cover_image}
-                      </p>
-                    )}
                   </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    {t('instructor.editCourse.language')} *
-                  </label>
-                  <select
-                    value={formData.language}
-                    onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'es' })}
-                    className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  >
-                    <option value="en">{t('instructor.editCourse.english')}</option>
-                    <option value="es">{t('instructor.editCourse.spanish')}</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Slug * <span className="text-gray-500 normal-case">(auto-generated)</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent font-mono"
+                      placeholder="course-slug"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">URL: /course/{formData.slug}</p>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    {t('instructor.editCourse.status')} *
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
-                    className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  >
-                    <option value="draft">{t('instructor.editCourse.draft')}</option>
-                    <option value="published">{t('instructor.editCourse.published')}</option>
-                  </select>
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Short Description *
+                    </label>
+                    <textarea
+                      required
+                      value={formData.short_description}
+                      onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
+                      placeholder="Brief description of the course..."
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Visibility *
-                </label>
-                <select
-                  value={formData.is_private ? 'private' : 'public'}
-                  onChange={(e) => setFormData({ ...formData, is_private: e.target.value === 'private' })}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                >
-                  <option value="public">Public (visible on website)</option>
-                  <option value="private">Private (only accessible via direct link)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Private courses are hidden from public course listings and are typically used for corporate or custom training.
-                </p>
-              </div>
-              </div>
-            )}
-          </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Cover Image
+                    </label>
 
-          {/* SEO */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('seo')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <h2 className="text-xl font-bold text-gray-900">SEO (Optional)</h2>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.seo ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.seo && (
-              <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Meta Title
-                </label>
-                <input
-                  type="text"
-                  value={formData.meta_title}
-                  onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder="Course Title | Platform Name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Meta Description
-                </label>
-                <textarea
-                  value={formData.meta_description}
-                  onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
-                  rows={2}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
-                  placeholder="SEO description..."
-                />
-              </div>
-              </div>
-            )}
-          </div>
-
-          {/* Course Content Builder */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('content')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <h2 className="text-xl font-bold text-gray-900">Course Content Builder (Optional)</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Use the visual builder below to create your course structure
-                </p>
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ml-4 ${sectionsExpanded.content ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.content && (
-              <div className="px-6 pb-6 border-t border-gray-100">
-                <div className="pt-6">
-                  <CourseBuilder onDataChange={handleCourseDataChange} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Instructors */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('instructors')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <h2 className="text-xl font-bold text-gray-900">Assign Instructors (Optional)</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  You can assign one or multiple instructors to this course
-                </p>
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ml-4 ${sectionsExpanded.instructors ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.instructors && (
-              <div className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
-
-            {/* Selected Instructors */}
-            {selectedInstructors.length > 0 && (
-              <div className="mb-4 space-y-2">
-                <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">Selected Instructors:</p>
-                {selectedInstructors.map((si) => {
-                  const instructor = allInstructors.find(i => i.id === si.instructor_id);
-                  if (!instructor) return null;
-                  return (
-                    <div key={si.instructor_id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {instructor.profile?.picture_url ? (
-                          <img
-                            src={instructor.profile?.picture_url}
-                            alt={`${instructor.first_name} ${instructor.last_name}`}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <span className="text-sm font-bold text-[#10b981]">
-                              {instructor.first_name[0]}{instructor.last_name[0]}
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {instructor.first_name} {instructor.last_name}
-                          </p>
-                          <p className="text-xs text-gray-500">{instructor.email}</p>
+                    <div className="space-y-3">
+                      {coverUploadSuccess && (
+                        <div className="rounded-md bg-emerald-50 border border-[#10b981] p-3">
+                          <p className="text-sm text-[#10b981] font-semibold">Image uploaded successfully!</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={si.instructor_role}
-                          onChange={(e) => handleUpdateRole(si.instructor_id, e.target.value)}
-                          className="px-3 py-1 border border-gray-200 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
-                        >
-                          <option value="instructor">Instructor</option>
-                          <option value="lead_instructor">Lead Instructor</option>
-                          <option value="teaching_assistant">Teaching Assistant</option>
-                          <option value="guest_instructor">Guest Instructor</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInstructor(si.instructor_id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      )}
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverChange}
+                        className="block w-full text-sm text-gray-900 border border-gray-200 rounded-lg cursor-pointer bg-gray-100 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={coverUploading || coverCompressing}
+                      />
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 5MB. Images over 1MB will be automatically compressed.
+                      </p>
+
+                      {coverCompressing && (
+                        <p className="text-xs text-[#10b981] font-semibold flex items-center">
+                          <svg className="animate-spin h-3 w-3 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                        </button>
+                          Compressing image...
+                        </p>
+                      )}
+
+                      {coverPreview && !coverCompressing && (
+                        <div className="space-y-3">
+                          <img
+                            src={coverPreview}
+                            alt="Cover preview"
+                            className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleCoverUpload}
+                              disabled={coverUploading}
+                              className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                            >
+                              {coverUploading ? 'Uploading...' : 'Upload Image'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCoverPreview('');
+                                setCoverFile(null);
+                                setCoverCompressing(false);
+                              }}
+                              disabled={coverUploading}
+                              className="px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-2">
+                        <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">
+                          Or enter image URL
+                        </label>
+                        <input
+                          type="url"
+                          value={formData.cover_image}
+                          onChange={(e) => {
+                            setFormData({ ...formData, cover_image: e.target.value });
+                            setCoverUploadSuccess(false);
+                          }}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                          placeholder="https://example.com/image.jpg"
+                        />
+                        {formData.cover_image && (
+                          <p className="text-xs text-gray-500 mt-1 break-all">
+                            <span className="font-semibold">Current URL:</span> {formData.cover_image}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        Language *
+                      </label>
+                      <select
+                        value={formData.language}
+                        onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'es' })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      >
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        Status *
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Visibility *
+                    </label>
+                    <select
+                      value={formData.is_private ? 'private' : 'public'}
+                      onChange={(e) => setFormData({ ...formData, is_private: e.target.value === 'private' })}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                    >
+                      <option value="public">Public (visible on website)</option>
+                      <option value="private">Private (only accessible via direct link)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Private courses are hidden from public course listings and are typically used for corporate or custom training.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900">Assign Instructors (Optional)</h3>
+                  {selectedInstructors.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">Selected Instructors:</p>
+                      {selectedInstructors.map((si) => {
+                        const instructor = allInstructors.find(i => i.id === si.instructor_id);
+                        if (!instructor) return null;
+                        return (
+                          <div key={si.instructor_id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              {instructor.profile?.picture_url ? (
+                                <img
+                                  src={instructor.profile?.picture_url}
+                                  alt={`${instructor.first_name} ${instructor.last_name}`}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                                  <span className="text-sm font-bold text-[#10b981]">
+                                    {instructor.first_name[0]}{instructor.last_name[0]}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {instructor.first_name} {instructor.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500">{instructor.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={si.instructor_role}
+                                onChange={(e) => handleUpdateRole(si.instructor_id, e.target.value)}
+                                className="px-3 py-1 border border-gray-200 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+                              >
+                                <option value="instructor">Instructor</option>
+                                <option value="lead_instructor">Lead Instructor</option>
+                                <option value="teaching_assistant">Teaching Assistant</option>
+                                <option value="guest_instructor">Guest Instructor</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveInstructor(si.instructor_id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Add Instructor
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAddInstructor(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                    >
+                      <option value="">Select an instructor...</option>
+                      {allInstructors
+                        .filter(i => !selectedInstructors.find(si => si.instructor_id === i.id))
+                        .map(instructor => (
+                          <option key={instructor.id} value={instructor.id}>
+                            {instructor.first_name} {instructor.last_name} ({instructor.email})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedFields((prev) => !prev)}
+                  className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  {showAdvancedFields ? 'Hide Advanced' : 'Show Advanced'}
+                </button>
+
+                {showAdvancedFields && (
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900">SEO (Optional)</h3>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        Meta Title
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.meta_title}
+                        onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                        placeholder="SEO title..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        Meta Description
+                      </label>
+                      <textarea
+                        value={formData.meta_description}
+                        onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
+                        rows={2}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
+                        placeholder="SEO description..."
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Available Instructors */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                Add Instructor
-              </label>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleAddInstructor(e.target.value);
-                    e.target.value = '';
-                  }
-                }}
-                className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-              >
-                <option value="">Select an instructor...</option>
-                {allInstructors
-                  .filter(i => !selectedInstructors.find(si => si.instructor_id === i.id))
-                  .map(instructor => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.first_name} {instructor.last_name} ({instructor.email})
-                    </option>
-                  ))}
-              </select>
+              <aside className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 h-fit">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">Course Summary</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div><span className="font-semibold text-gray-800">Title:</span> {formData.title || '—'}</div>
+                  <div><span className="font-semibold text-gray-800">Slug:</span> {formData.slug || '—'}</div>
+                  <div><span className="font-semibold text-gray-800">Status:</span> {formData.status}</div>
+                  <div><span className="font-semibold text-gray-800">Language:</span> {formData.language.toUpperCase()}</div>
+                  <div><span className="font-semibold text-gray-800">Visibility:</span> {formData.is_private ? 'Private' : 'Public'}</div>
+                  <div><span className="font-semibold text-gray-800">Instructors:</span> {selectedInstructors.length || 0}</div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Progress</div>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div>Step 1: {formData.title && formData.short_description ? 'Complete' : 'In progress'}</div>
+                    <div>Step 2: {courseData?.curriculum?.items?.length ? 'Started' : 'Not started'}</div>
+                    <div>Step 3: {courseData?.logistics?.sessions?.length ? 'Started' : 'Not started'}</div>
+                  </div>
+                </div>
+              </aside>
             </div>
+          )}
+          {/* Step 2: Content */}
+          {currentStep === 1 && (
+            <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Course Content</h2>
+              <CourseBuilder
+                onDataChange={handleCourseDataChange}
+                visibleSections={['hero', 'benefits', 'curriculum', 'outcomes']}
+                showAdvancedToggle={false}
+              />
             </div>
-            )}
-          </div>
+          )}
 
-          {/* Error */}
+          {/* Step 3: Logistics */}
+          {currentStep === 2 && (
+            <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Logistics & Pricing</h2>
+              <CourseBuilder
+                onDataChange={handleCourseDataChange}
+                visibleSections={['logistics', 'pricing', 'commitment', 'donation', 'form']}
+                advancedSections={['commitment', 'donation', 'form']}
+                showAdvancedToggle
+              />
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 border border-red-500 rounded-lg p-4 text-red-600">
               {error}
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-colors uppercase tracking-wide"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-[#10b981] text-white font-bold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-2"
-            >
-              {loading && (
-                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
-              {loading ? 'Creating...' : 'Create Course'}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
+                className="px-4 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-colors uppercase tracking-wide"
+                disabled={currentStep === 0}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => Math.min(steps.length - 1, prev + 1))}
+                className="px-4 py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-black transition-colors uppercase tracking-wide"
+                disabled={currentStep === steps.length - 1}
+              >
+                Next
+              </button>
+            </div>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-colors uppercase tracking-wide"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-3 bg-[#10b981] text-white font-bold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-2"
+              >
+                {loading && (
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {loading ? 'Creating...' : 'Create Course'}
+              </button>
+            </div>
           </div>
         </form>
       </main>

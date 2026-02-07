@@ -46,3 +46,6 @@ next-env.d.ts
 .env.sentry-build-plugin
 
 scripts
+
+# Local Netlify folder
+.netlify

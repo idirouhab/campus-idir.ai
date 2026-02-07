@@ -681,8 +681,8 @@ export default function CoursePage() {
                                     </div>
                                 )}
 
-                                {/* Starting Date */}
-                                {course.course_data?.logistics?.startDate && (
+                                {/* Starting Date (Legacy) */}
+                                {course.course_data?.logistics?.startDate && !(course.course_data?.logistics?.sessions || []).length && (
                                     <div className="flex items-start gap-3">
                                         <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
                                              stroke="currentColor" viewBox="0 0 24 24">
@@ -698,8 +698,8 @@ export default function CoursePage() {
                                     </div>
                                 )}
 
-                                {/* Duration & Total Time */}
-                                {course.course_data?.logistics?.duration && (
+                                {/* Total Hours & Sessions */}
+                                {course.course_data?.logistics?.total_hours && course.course_data?.logistics?.session_duration_hours && (
                                     <div className="flex items-start gap-3">
                                         <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
                                              stroke="currentColor" viewBox="0 0 24 24">
@@ -710,12 +710,39 @@ export default function CoursePage() {
                                             <p className="text-sm font-semibold text-gray-900">{t('course.duration')}</p>
                                             <p className="text-sm text-gray-700">
                                                 {(() => {
-                                                    const logistics = course.course_data.logistics;
-                                                    const duration = formatDuration(logistics.duration, t);
+                                                    const logistics = course.course_data!.logistics!;
+                                                    const total = logistics.total_hours || 0;
+                                                    const per = logistics.session_duration_hours || 0;
+                                                    const count = logistics.sessions?.length || 0;
+                                                    const parts = [];
+                                                    if (total) parts.push(`${total}h total`);
+                                                    if (per) parts.push(`${per}h/session`);
+                                                    if (count) parts.push(`${count} sessions`);
+                                                    return parts.join(' • ');
+                                                })()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Duration & Total Time (Legacy) */}
+                                {course.course_data?.logistics?.duration && !course.course_data?.logistics?.total_hours && (
+                                    <div className="flex items-start gap-3">
+                                        <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
+                                             stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900">{t('course.duration')}</p>
+                                            <p className="text-sm text-gray-700">
+                                                {(() => {
+                                                    const logistics = course.course_data!.logistics!;
+                                                    const duration = formatDuration(logistics.duration!, t);
                                                     const calculatedHours = calculateTotalHours(
-                                                        logistics.schedule.days_of_week,
-                                                        logistics.duration,
-                                                        logistics.session_duration_hours
+                                                        logistics.schedule?.days_of_week || [],
+                                                        logistics.duration!,
+                                                        logistics.session_duration_hours || 0
                                                     );
                                                     const hours = calculatedHours ? `${calculatedHours}h` : null;
 
@@ -759,8 +786,29 @@ export default function CoursePage() {
                                     </div>
                                 )}
 
-                                {/* Schedule (Day and Time) */}
-                                {course.course_data?.logistics?.schedule && (
+                                {/* Schedule (Custom Sessions) */}
+                                {(course.course_data?.logistics?.sessions || []).length > 0 && (
+                                    <div className="flex items-start gap-3">
+                                        <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
+                                             stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900">{t('course.schedule')}</p>
+                                            <div className="text-sm text-gray-700 space-y-1">
+                                                {(course.course_data?.logistics?.sessions || []).map((s, idx) => (
+                                                    <div key={`${s.date}-${s.start_time}-${idx}`}>
+                                                        {s.date} • {s.start_time}-{s.end_time}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Schedule (Legacy) */}
+                                {course.course_data?.logistics?.schedule && !(course.course_data?.logistics?.sessions || []).length && (
                                     <div className="flex items-start gap-3">
                                         <svg className="w-5 h-5 text-[#10b981] mt-0.5 flex-shrink-0" fill="none"
                                              stroke="currentColor" viewBox="0 0 24 24">

@@ -4,6 +4,7 @@ import { getDb } from '@/lib/db';
 import { Course, Instructor } from '@/types/database';
 import { canViewAllCourses, canCreateCourses } from '@/lib/roles';
 import { requireUserType, requireAdmin } from '@/lib/session';
+import { getInstructorTimezone, localToUTC } from '@/lib/timezone-utils';
 
 interface CourseWithInstructors extends Course {
   instructors?: Array<{
@@ -15,6 +16,170 @@ interface CourseWithInstructors extends Course {
     instructor_role: string;
     display_order: number;
   }>;
+}
+
+async function getInstructorById(instructorId: string): Promise<Instructor | null> {
+  const sql = getDb();
+  const rows = await sql`
+    SELECT
+      u.id, u.email, u.first_name, u.last_name, u.country, u.birthday, u.timezone,
+      u.is_active, u.email_verified, u.created_at, u.updated_at, u.last_login_at,
+      ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
+      ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url,
+      ip.role, ip.preferred_language,
+      ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+    FROM users u
+    INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+    WHERE u.id = ${instructorId}
+  `;
+
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+  const instructor: Instructor = {
+    id: row.id,
+    email: row.email,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    country: row.country || undefined,
+    birthday: row.birthday || undefined,
+    timezone: row.timezone || undefined,
+    is_active: row.is_active,
+    email_verified: row.email_verified,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    last_login_at: row.last_login_at || undefined,
+    profile: {
+      user_id: row.profile_user_id,
+      title: row.title || undefined,
+      description: row.description || undefined,
+      picture_url: row.picture_url || undefined,
+      linkedin_url: row.linkedin_url || undefined,
+      x_url: row.x_url || undefined,
+      youtube_url: row.youtube_url || undefined,
+      website_url: row.website_url || undefined,
+      role: row.role,
+      preferred_language: row.preferred_language,
+      created_at: row.profile_created_at,
+      updated_at: row.profile_updated_at,
+    },
+  };
+
+  return instructor;
+}
+
+function parseEuropeanDateToISO(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // Accept ISO (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Accept DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  const parts = trimmed.split(/[\/\-.]/);
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts.map((p) => p.trim());
+  if (!day || !month || !year) return null;
+  if (year.length !== 4) return null;
+  const dd = day.padStart(2, '0');
+  const mm = month.padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+function durationMinutesFromTimes(startTime: string, endTime?: string, fallbackMinutes?: number): number | null {
+  const normalize = (value: string) => {
+    const v = value.trim();
+    if (/^\d{1,2}$/.test(v)) return `${v.padStart(2, '0')}:00`;
+    return v;
+  };
+  const toMinutes = (value: string) => {
+    const normalized = normalize(value);
+    const [h, m] = normalized.split(':').map((v) => Number(v));
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return h * 60 + m;
+  };
+  const start = toMinutes(startTime);
+  if (start === null) return null;
+  if (!endTime) return fallbackMinutes ?? null;
+  const end = toMinutes(endTime);
+  if (end === null) return fallbackMinutes ?? null;
+  const diff = end - start;
+  if (diff <= 0) return fallbackMinutes ?? null;
+  return diff;
+}
+
+async function syncCourseSessionsFromLogistics(
+  courseId: string,
+  courseData: any,
+  instructorId: string,
+  overwrite: boolean = false
+): Promise<number> {
+  const sessions = courseData?.logistics?.sessions;
+  if (!Array.isArray(sessions) || sessions.length === 0) return 0;
+
+  const instructor = await getInstructorById(instructorId);
+  const timezone = instructor ? getInstructorTimezone(instructor) : 'Europe/Berlin';
+  const fallbackMinutes = Math.round((courseData?.logistics?.session_duration_hours || 0) * 60);
+
+  const normalized = sessions
+    .map((session: any, i: number) => {
+      if (!session?.date || !session?.start_time) return null;
+      const isoDate = parseEuropeanDateToISO(session.date);
+      if (!isoDate) return null;
+      const durationMinutes = durationMinutesFromTimes(
+        session.start_time,
+        session.end_time,
+        fallbackMinutes
+      );
+      if (!durationMinutes || durationMinutes <= 0) return null;
+      return {
+        displayOrder: i,
+        sessionDate: localToUTC(isoDate, session.start_time, timezone),
+        durationMinutes,
+      };
+    })
+    .filter(Boolean) as Array<{ displayOrder: number; sessionDate: string; durationMinutes: number }>;
+
+  if (normalized.length === 0) return 0;
+
+  const sql = getDb();
+  if (!overwrite) {
+    const existing = await sql`SELECT id FROM course_sessions WHERE course_id = ${courseId} LIMIT 1`;
+    if (existing.length > 0) return 0;
+  } else {
+    await sql`DELETE FROM course_sessions WHERE course_id = ${courseId}`;
+  }
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    const session = normalized[i];
+    await sql`
+      INSERT INTO course_sessions (
+        course_id,
+        title,
+        description,
+        session_date,
+        duration_minutes,
+        display_order,
+        timezone,
+        meeting_url,
+        recording_link
+      ) VALUES (
+        ${courseId},
+        ${`Session ${i + 1}`},
+        ${null},
+        ${session.sessionDate},
+        ${session.durationMinutes},
+        ${session.displayOrder},
+        ${timezone},
+        ${null},
+        ${null}
+      )
+    `;
+  }
+
+  return normalized.length;
 }
 
 /**
@@ -459,6 +624,8 @@ export async function createCourseAction(
       }
     }
 
+    await syncCourseSessionsFromLogistics(newCourse.id, courseData.course_data, session.id);
+
     return {
       success: true,
       data: newCourse,
@@ -578,6 +745,8 @@ export async function updateCourseAction(
       }
     }
 
+    await syncCourseSessionsFromLogistics(courseId, courseData.course_data, session.id);
+
     return {
       success: true,
       data: updatedCourse,
@@ -588,6 +757,63 @@ export async function updateCourseAction(
       success: false,
       error: error.message || 'Failed to update course',
     };
+  }
+}
+
+export async function forceResyncCourseSessionsAction(courseId: string): Promise<{
+  success: boolean;
+  count?: number;
+  error?: string;
+}> {
+  try {
+    const session = await requireUserType('instructor');
+    const sql = getDb();
+
+    const instructor = await getInstructorById(session.id);
+    if (!instructor) {
+      return { success: false, error: 'Instructor not found' };
+    }
+
+    if (!canViewAllCourses(instructor)) {
+      const courseInstructors = await sql`
+        SELECT * FROM course_instructors
+        WHERE course_id = ${courseId} AND instructor_id = ${session.id}
+      `;
+      if (courseInstructors.length === 0) {
+        return { success: false, error: 'Access denied' };
+      }
+    }
+
+    const courses = await sql`
+      SELECT course_data FROM courses WHERE id = ${courseId}
+    `;
+    if (courses.length === 0) {
+      return { success: false, error: 'Course not found' };
+    }
+
+    let courseData = courses[0].course_data as any;
+    if (courseData && typeof courseData === 'string') {
+      try {
+        courseData = JSON.parse(courseData);
+      } catch {
+        return { success: false, error: 'Invalid course_data JSON' };
+      }
+    }
+
+    const sessions = courseData?.logistics?.sessions;
+    if (!Array.isArray(sessions) || sessions.length === 0) {
+      return { success: false, error: 'No logistics sessions to sync' };
+    }
+
+    const inserted = await syncCourseSessionsFromLogistics(courseId, courseData, session.id, true);
+    if (inserted === 0) {
+      return { success: false, error: 'No valid sessions to insert' };
+    }
+
+    return { success: true, count: inserted };
+  } catch (error: any) {
+    console.error('Error force resyncing sessions:', error);
+    return { success: false, error: error.message || 'Failed to resync sessions' };
   }
 }
 

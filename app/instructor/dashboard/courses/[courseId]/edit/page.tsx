@@ -55,14 +55,8 @@ export default function EditCoursePage() {
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverCompressing, setCoverCompressing] = useState(false);
   const [coverUploadSuccess, setCoverUploadSuccess] = useState(false);
-
-  // Collapsible sections state
-  const [sectionsExpanded, setSectionsExpanded] = useState({
-    basic: true,
-    seo: false,
-    content: false,
-    instructors: false,
-  });
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   // Check authentication and redirect if needed
   useEffect(() => {
@@ -175,8 +169,7 @@ export default function EditCoursePage() {
       setSuccess(t('instructor.editCourse.successMessage'));
       setTimeout(() => setSuccess(null), 3000);
 
-      // Redirect to dashboard after 3.5 seconds
-      setTimeout(() => router.push('/instructor/dashboard'), 3500);
+      // Stay on page after save (no redirect)
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -197,9 +190,11 @@ export default function EditCoursePage() {
     setCourseData(data);
   }, []);
 
-  const toggleSection = (section: keyof typeof sectionsExpanded) => {
-    setSectionsExpanded(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  const steps = [
+    { title: 'Basics', subtitle: 'Title, description, cover' },
+    { title: 'Content', subtitle: 'Hero, benefits, curriculum' },
+    { title: 'Logistics', subtitle: 'Schedule & pricing' },
+  ];
 
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -360,52 +355,41 @@ export default function EditCoursePage() {
           {/* Tab Navigation */}
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
-              <button
-                type="button"
-                className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]"
-              >
+              <span className="border-b-2 border-[#10b981] py-4 px-1 text-sm font-medium text-[#10b981]">
                 {t('instructor.editCourse.tabs.editCourse')}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/materials`)}
+              </span>
+              <Link
+                href={`/instructor/dashboard/courses/${courseId}/materials`}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
                 {t('instructor.editCourse.tabs.materials')}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/sessions`)}
+              </Link>
+              <Link
+                href={`/instructor/dashboard/courses/${courseId}/sessions`}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
                 {t('instructor.editCourse.tabs.sessions')}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/students`)}
+              </Link>
+              <Link
+                href={`/instructor/dashboard/courses/${courseId}/students`}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
                 {t('instructor.editCourse.tabs.students')}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push(`/instructor/dashboard/courses/${courseId}/attendance`)}
+              </Link>
+              <Link
+                href={`/instructor/dashboard/courses/${courseId}/attendance`}
                 className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
                 Attendance
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  // Navigate to forum using course slug
-                  if (formData.slug) {
-                    router.push(`/course/${formData.slug}/forum`);
-                  }
-                }}
-                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
-              >
-                Forum
-              </button>
+              </Link>
+              {formData.slug && (
+                <Link
+                  href={`/course/${formData.slug}/forum`}
+                  className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+                >
+                  Forum
+                </Link>
+              )}
             </nav>
           </div>
         </div>
@@ -420,7 +404,7 @@ export default function EditCoursePage() {
                 </svg>
                 <div>
                   <p className="text-sm text-[#10b981] font-semibold">{success}</p>
-                  <p className="text-xs text-gray-600 mt-1">{t('instructor.editCourse.redirectingMessage')}</p>
+                  <p className="text-xs text-gray-600 mt-1">Changes saved</p>
                 </div>
               </div>
             </div>
@@ -428,440 +412,423 @@ export default function EditCoursePage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* Basic Info */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('basic')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.basicInformation')}</h2>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.basic ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.basic && (
-              <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  {t('instructor.editCourse.titleLabel')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder={t('instructor.editCourse.courseTitlePlaceholder')}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  {t('instructor.editCourse.slugLabel')} * {originalStatus !== 'published' && <span className="text-gray-500 normal-case">{t('instructor.editCourse.autoGenerated')}</span>}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  disabled={originalStatus === 'published'}
-                  className={`w-full px-4 py-3 border border-gray-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent ${
-                    originalStatus === 'published'
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-900'
+          {/* Stepper */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {steps.map((step, index) => (
+                <button
+                  key={step.title}
+                  type="button"
+                  onClick={() => setCurrentStep(index)}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg border transition-colors ${
+                    currentStep === index
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
-                  placeholder={t('instructor.editCourse.slugPlaceholder')}
-                />
-                <p className="text-xs text-gray-500 mt-1">{t('instructor.editCourse.urlPreview').replace('{slug}', formData.slug)}</p>
-                {originalStatus === 'published' && (
-                  <p className="text-xs text-orange-600 mt-1 font-semibold">
-                    {t('instructor.editCourse.slugChangeWarning')}
-                  </p>
-                )}
-              </div>
+                >
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    currentStep === index ? 'bg-[#10b981] text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {index + 1}
+                  </span>
+                  <span className="text-left">
+                    <div className="text-sm font-bold">{step.title}</div>
+                    <div className="text-xs text-gray-500">{step.subtitle}</div>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  {t('instructor.editCourse.shortDescriptionLabel')} *
-                </label>
-                <textarea
-                  required
-                  value={formData.short_description}
-                  onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
-                  placeholder={t('instructor.editCourse.shortDescriptionPlaceholder')}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  {t('instructor.editCourse.coverImageLabel')}
-                </label>
-
-                <div className="space-y-3">
-                  {/* Success Message */}
-                  {coverUploadSuccess && (
-                    <div className="rounded-md bg-emerald-50 border border-[#10b981] p-3">
-                      <p className="text-sm text-[#10b981] font-semibold">{t('instructor.editCourse.imageUploadedSuccess')}</p>
-                    </div>
-                  )}
-
-                  {/* File Input */}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCoverChange}
-                    className="block w-full text-sm text-gray-900 border border-gray-200 rounded-lg cursor-pointer bg-gray-100 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={coverUploading || coverCompressing}
-                  />
-                  <p className="text-xs text-gray-500">
-                    {t('instructor.editCourse.imageUploadHint')}
-                  </p>
-
-                  {/* Compressing indicator */}
-                  {coverCompressing && (
-                    <p className="text-xs text-[#10b981] font-semibold flex items-center">
-                      <svg className="animate-spin h-3 w-3 mr-2" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {t('instructor.editCourse.compressingImage')}
-                    </p>
-                  )}
-
-                  {/* Preview and Upload button */}
-                  {coverPreview && !coverCompressing && (
-                    <div className="space-y-3">
-                      <img
-                        src={coverPreview}
-                        alt={t('instructor.editCourse.coverPreviewAlt')}
-                        className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={handleCoverUpload}
-                          disabled={coverUploading}
-                          className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
-                        >
-                          {coverUploading ? t('instructor.editCourse.uploadingButton') : t('instructor.editCourse.uploadImageButton')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCoverPreview('');
-                            setCoverFile(null);
-                            setCoverCompressing(false);
-                          }}
-                          disabled={coverUploading}
-                          className="px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
-                        >
-                          {t('instructor.common.cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Current uploaded image */}
-                  {formData.cover_image && !coverPreview && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-600 font-semibold">{t('instructor.editCourse.currentCoverImage')}</p>
-                      <img
-                        key={formData.cover_image}
-                        src={formData.cover_image}
-                        alt={t('instructor.editCourse.currentCoverAlt')}
-                        className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({ ...formData, cover_image: '' });
-                          setCoverUploadSuccess(false);
-                        }}
-                        className="text-xs text-red-600 hover:text-red-700 font-semibold"
-                      >
-                        {t('instructor.editCourse.removeImageButton')}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Manual URL input (alternative) */}
-                  <div className="pt-2">
-                    <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">
-                      {t('instructor.editCourse.orEnterImageUrl')}
+          {/* Step 1: Basics */}
+          {currentStep === 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm p-6 space-y-4">
+                  <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.basicInformation')}</h2>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      {t('instructor.editCourse.titleLabel')} *
                     </label>
                     <input
-                      type="url"
-                      value={formData.cover_image}
-                      onChange={(e) => {
-                        setFormData({ ...formData, cover_image: e.target.value });
-                        setCoverUploadSuccess(false);
-                      }}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                      placeholder={t('instructor.editCourse.imageUrlPlaceholder')}
+                      type="text"
+                      required
+                      value={formData.title}
+                      onChange={(e) => handleTitleChange(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      placeholder={t('instructor.editCourse.courseTitlePlaceholder')}
                     />
-                    {formData.cover_image && (
-                      <p className="text-xs text-gray-500 mt-1 break-all">
-                        <span className="font-semibold">{t('instructor.editCourse.currentUrl')}</span> {formData.cover_image}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      {t('instructor.editCourse.slugLabel')} * {originalStatus !== 'published' && <span className="text-gray-500 normal-case">{t('instructor.editCourse.autoGenerated')}</span>}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      disabled={originalStatus === 'published'}
+                      className={`w-full px-4 py-3 border border-gray-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent ${
+                        originalStatus === 'published'
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}
+                      placeholder={t('instructor.editCourse.slugPlaceholder')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{t('instructor.editCourse.urlPreview').replace('{slug}', formData.slug)}</p>
+                    {originalStatus === 'published' && (
+                      <p className="text-xs text-orange-600 mt-1 font-semibold">
+                        {t('instructor.editCourse.slugChangeWarning')}
                       </p>
                     )}
                   </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    {t('instructor.editCourse.language')} *
-                  </label>
-                  <select
-                    value={formData.language}
-                    onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'es' })}
-                    className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  >
-                    <option value="en">{t('instructor.editCourse.english')}</option>
-                    <option value="es">{t('instructor.editCourse.spanish')}</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      {t('instructor.editCourse.shortDescriptionLabel')} *
+                    </label>
+                    <textarea
+                      required
+                      value={formData.short_description}
+                      onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
+                      placeholder={t('instructor.editCourse.shortDescriptionPlaceholder')}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                    {t('instructor.editCourse.status')} *
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
-                    className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  >
-                    <option value="draft">{t('instructor.editCourse.draft')}</option>
-                    <option value="published">{t('instructor.editCourse.published')}</option>
-                  </select>
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      {t('instructor.editCourse.coverImageLabel')}
+                    </label>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  Visibility *
-                </label>
-                <select
-                  value={formData.is_private ? 'private' : 'public'}
-                  onChange={(e) => setFormData({ ...formData, is_private: e.target.value === 'private' })}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                >
-                  <option value="public">Public (visible on website)</option>
-                  <option value="private">Private (only accessible via direct link)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Private courses are hidden from public course listings and are typically used for corporate or custom training.
-                </p>
-              </div>
-              </div>
-            )}
-          </div>
-
-          {/* SEO */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('seo')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.seoSectionTitle')}</h2>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform ${sectionsExpanded.seo ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.seo && (
-              <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  {t('instructor.editCourse.metaTitleLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.meta_title}
-                  onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-                  placeholder={t('instructor.editCourse.metaTitlePlaceholder')}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                  {t('instructor.editCourse.metaDescriptionLabel')}
-                </label>
-                <textarea
-                  value={formData.meta_description}
-                  onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
-                  rows={2}
-                  className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
-                  placeholder={t('instructor.editCourse.metaDescriptionPlaceholder')}
-                />
-              </div>
-              </div>
-            )}
-          </div>
-
-          {/* Course Content Builder */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('content')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.courseContentBuilderTitle')}</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {t('instructor.editCourse.courseContentBuilderDescription')}
-                </p>
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ml-4 ${sectionsExpanded.content ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.content && (
-              <div className="px-6 pb-6 border-t border-gray-100">
-                <div className="pt-6">
-                  <CourseBuilder initialData={courseData} onDataChange={handleCourseDataChange} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Instructors */}
-          <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm">
-            <button
-              type="button"
-              onClick={() => toggleSection('instructors')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <h2 className="text-xl font-bold text-gray-900">{t('instructor.editCourse.assignInstructorsTitle')}</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {t('instructor.editCourse.assignInstructorsDescription')}
-                </p>
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ml-4 ${sectionsExpanded.instructors ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {sectionsExpanded.instructors && (
-              <div className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
-
-            {/* Selected Instructors */}
-            {selectedInstructors.length > 0 && (
-              <div className="mb-4 space-y-2">
-                <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">{t('instructor.editCourse.selectedInstructors')}</p>
-                {selectedInstructors.map((si) => {
-                  const instructor = allInstructors.find(i => i.id === si.instructor_id);
-                  if (!instructor) return null;
-                  return (
-                    <div key={si.instructor_id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {instructor.profile?.picture_url ? (
-                          <img
-                            src={instructor.profile?.picture_url}
-                            alt={`${instructor.first_name} ${instructor.last_name}`}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <span className="text-sm font-bold text-[#10b981]">
-                              {instructor.first_name[0]}{instructor.last_name[0]}
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {instructor.first_name} {instructor.last_name}
-                          </p>
-                          <p className="text-xs text-gray-500">{instructor.email}</p>
+                    <div className="space-y-3">
+                      {coverUploadSuccess && (
+                        <div className="rounded-md bg-emerald-50 border border-[#10b981] p-3">
+                          <p className="text-sm text-[#10b981] font-semibold">{t('instructor.editCourse.imageUploadedSuccess')}</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={si.instructor_role}
-                          onChange={(e) => handleUpdateRole(si.instructor_id, e.target.value)}
-                          className="px-3 py-1 border border-gray-200 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
-                        >
-                          <option value="instructor">{t('instructor.editCourse.roleInstructor')}</option>
-                          <option value="lead_instructor">{t('instructor.editCourse.roleLeadInstructor')}</option>
-                          <option value="teaching_assistant">{t('instructor.editCourse.roleTeachingAssistant')}</option>
-                          <option value="guest_instructor">{t('instructor.editCourse.roleGuestInstructor')}</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInstructor(si.instructor_id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      )}
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverChange}
+                        className="block w-full text-sm text-gray-900 border border-gray-200 rounded-lg cursor-pointer bg-gray-100 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={coverUploading || coverCompressing}
+                      />
+                      <p className="text-xs text-gray-500">
+                        {t('instructor.editCourse.imageUploadHint')}
+                      </p>
+
+                      {coverCompressing && (
+                        <p className="text-xs text-[#10b981] font-semibold flex items-center">
+                          <svg className="animate-spin h-3 w-3 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                        </button>
+                          {t('instructor.editCourse.compressingImage')}
+                        </p>
+                      )}
+
+                      {coverPreview && !coverCompressing && (
+                        <div className="space-y-3">
+                          <img
+                            src={coverPreview}
+                            alt={t('instructor.editCourse.coverPreviewAlt')}
+                            className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleCoverUpload}
+                              disabled={coverUploading}
+                              className="px-4 py-2 text-sm font-bold rounded-lg text-white bg-[#10b981] hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                            >
+                              {coverUploading ? t('instructor.editCourse.uploadingButton') : t('instructor.editCourse.uploadImageButton')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCoverPreview('');
+                                setCoverFile(null);
+                                setCoverCompressing(false);
+                              }}
+                              disabled={coverUploading}
+                              className="px-4 py-2 text-sm font-bold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                            >
+                              {t('instructor.common.cancel')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.cover_image && !coverPreview && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-600 font-semibold">{t('instructor.editCourse.currentCoverImage')}</p>
+                          <img
+                            key={formData.cover_image}
+                            src={formData.cover_image}
+                            alt={t('instructor.editCourse.currentCoverAlt')}
+                            className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, cover_image: '' });
+                              setCoverUploadSuccess(false);
+                            }}
+                            className="text-xs text-red-600 hover:text-red-700 font-semibold"
+                          >
+                            {t('instructor.editCourse.removeImageButton')}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="pt-2">
+                        <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">
+                          {t('instructor.editCourse.orEnterImageUrl')}
+                        </label>
+                        <input
+                          type="url"
+                          value={formData.cover_image}
+                          onChange={(e) => {
+                            setFormData({ ...formData, cover_image: e.target.value });
+                            setCoverUploadSuccess(false);
+                          }}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                          placeholder={t('instructor.editCourse.imageUrlPlaceholder')}
+                        />
+                        {formData.cover_image && (
+                          <p className="text-xs text-gray-500 mt-1 break-all">
+                            <span className="font-semibold">{t('instructor.editCourse.currentUrl')}</span> {formData.cover_image}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
 
-            {/* Available Instructors */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-                {t('instructor.editCourse.addInstructorLabel')}
-              </label>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleAddInstructor(e.target.value);
-                    e.target.value = '';
-                  }
-                }}
-                className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
-              >
-                <option value="">{t('instructor.editCourse.selectInstructorPlaceholder')}</option>
-                {allInstructors
-                  .filter(i => !selectedInstructors.find(si => si.instructor_id === i.id))
-                  .map(instructor => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.first_name} {instructor.last_name} ({instructor.email})
-                    </option>
-                  ))}
-              </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        {t('instructor.editCourse.language')} *
+                      </label>
+                      <select
+                        value={formData.language}
+                        onChange={(e) => setFormData({ ...formData, language: e.target.value as 'en' | 'es' })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      >
+                        <option value="en">{t('instructor.editCourse.english')}</option>
+                        <option value="es">{t('instructor.editCourse.spanish')}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        {t('instructor.editCourse.status')} *
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      >
+                        <option value="draft">{t('instructor.editCourse.draft')}</option>
+                        <option value="published">{t('instructor.editCourse.published')}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      Visibility *
+                    </label>
+                    <select
+                      value={formData.is_private ? 'private' : 'public'}
+                      onChange={(e) => setFormData({ ...formData, is_private: e.target.value === 'private' })}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                    >
+                      <option value="public">Public (visible on website)</option>
+                      <option value="private">Private (only accessible via direct link)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Private courses are hidden from public course listings and are typically used for corporate or custom training.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900">{t('instructor.editCourse.assignInstructorsTitle')}</h3>
+                  {selectedInstructors.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">{t('instructor.editCourse.selectedInstructors')}</p>
+                      {selectedInstructors.map((si) => {
+                        const instructor = allInstructors.find(i => i.id === si.instructor_id);
+                        if (!instructor) return null;
+                        return (
+                          <div key={si.instructor_id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              {instructor.profile?.picture_url ? (
+                                <img
+                                  src={instructor.profile?.picture_url}
+                                  alt={`${instructor.first_name} ${instructor.last_name}`}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                                  <span className="text-sm font-bold text-[#10b981]">
+                                    {instructor.first_name[0]}{instructor.last_name[0]}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {instructor.first_name} {instructor.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500">{instructor.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={si.instructor_role}
+                                onChange={(e) => handleUpdateRole(si.instructor_id, e.target.value)}
+                                className="px-3 py-1 border border-gray-200 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+                              >
+                                <option value="instructor">{t('instructor.editCourse.roleInstructor')}</option>
+                                <option value="lead_instructor">{t('instructor.editCourse.roleLeadInstructor')}</option>
+                                <option value="teaching_assistant">{t('instructor.editCourse.roleTeachingAssistant')}</option>
+                                <option value="guest_instructor">{t('instructor.editCourse.roleGuestInstructor')}</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveInstructor(si.instructor_id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      {t('instructor.editCourse.addInstructorLabel')}
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAddInstructor(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                    >
+                      <option value="">{t('instructor.editCourse.selectInstructorPlaceholder')}</option>
+                      {allInstructors
+                        .filter(i => !selectedInstructors.find(si => si.instructor_id === i.id))
+                        .map(instructor => (
+                          <option key={instructor.id} value={instructor.id}>
+                            {instructor.first_name} {instructor.last_name} ({instructor.email})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedFields((prev) => !prev)}
+                  className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  {showAdvancedFields ? 'Hide Advanced' : 'Show Advanced'}
+                </button>
+
+                {showAdvancedFields && (
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900">{t('instructor.editCourse.seoSectionTitle')}</h3>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        {t('instructor.editCourse.metaTitleLabel')}
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.meta_title}
+                        onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                        placeholder={t('instructor.editCourse.metaTitlePlaceholder')}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                        {t('instructor.editCourse.metaDescriptionLabel')}
+                      </label>
+                      <textarea
+                        value={formData.meta_description}
+                        onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
+                        rows={2}
+                        className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent resize-none"
+                        placeholder={t('instructor.editCourse.metaDescriptionPlaceholder')}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <aside className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 h-fit">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3">Course Summary</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div><span className="font-semibold text-gray-800">Title:</span> {formData.title || '—'}</div>
+                  <div><span className="font-semibold text-gray-800">Slug:</span> {formData.slug || '—'}</div>
+                  <div><span className="font-semibold text-gray-800">Status:</span> {formData.status}</div>
+                  <div><span className="font-semibold text-gray-800">Language:</span> {formData.language.toUpperCase()}</div>
+                  <div><span className="font-semibold text-gray-800">Visibility:</span> {formData.is_private ? 'Private' : 'Public'}</div>
+                  <div><span className="font-semibold text-gray-800">Instructors:</span> {selectedInstructors.length || 0}</div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Progress</div>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div>Step 1: {formData.title && formData.short_description ? 'Complete' : 'In progress'}</div>
+                    <div>Step 2: {courseData?.curriculum?.items?.length ? 'Started' : 'Not started'}</div>
+                    <div>Step 3: {courseData?.logistics?.sessions?.length ? 'Started' : 'Not started'}</div>
+                  </div>
+                </div>
+              </aside>
             </div>
+          )}
+          {/* Step 2: Content */}
+          {currentStep === 1 && (
+            <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('instructor.editCourse.courseContentBuilderTitle')}</h2>
+              <CourseBuilder
+                initialData={courseData}
+                onDataChange={handleCourseDataChange}
+                visibleSections={['hero', 'benefits', 'curriculum', 'outcomes']}
+                showAdvancedToggle={false}
+              />
             </div>
-            )}
-          </div>
+          )}
+
+          {/* Step 3: Logistics */}
+          {currentStep === 2 && (
+            <div className="bg-white rounded-lg border border-gray-200 emerald-accent-left shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Logistics & Pricing</h2>
+              <CourseBuilder
+                initialData={courseData}
+                onDataChange={handleCourseDataChange}
+                visibleSections={['logistics', 'pricing', 'commitment', 'donation', 'form']}
+                advancedSections={['commitment', 'donation', 'form']}
+                showAdvancedToggle
+              />
+            </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -871,7 +838,25 @@ export default function EditCoursePage() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
+                className="px-4 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-colors uppercase tracking-wide"
+                disabled={currentStep === 0}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => Math.min(steps.length - 1, prev + 1))}
+                className="px-4 py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-black transition-colors uppercase tracking-wide"
+                disabled={currentStep === steps.length - 1}
+              >
+                Next
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => router.back()}
