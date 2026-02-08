@@ -31,6 +31,7 @@ export default function Navigation() {
     hasInstructorProfile,
     isDualRole,
     instructorRole,
+    isSuperAdmin,
     signOut,
     switchView,
   } = useAuth();
@@ -302,6 +303,18 @@ export default function Navigation() {
                                 {t('navigation.manageInstructors')}
                               </Link>
                             )}
+                            {isSuperAdmin && (
+                              <Link
+                                href="/instructor/dashboard/users"
+                                onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4a4 4 0 100 8 4 4 0 000-8zm0 10c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5zm8-7h-3m1.5-1.5v3" />
+                                </svg>
+                                {t('navigation.manageUsers')}
+                              </Link>
+                            )}
                             <Link
                               href="/instructor/dashboard/profile"
                               onClick={() => setDropdownOpen(false)}
@@ -335,6 +348,18 @@ export default function Navigation() {
                               </svg>
                               {t('navigation.myProfile')}
                             </Link>
+                            {isSuperAdmin && (
+                              <Link
+                                href="/instructor/dashboard/users"
+                                onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4a4 4 0 100 8 4 4 0 000-8zm0 10c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5zm8-7h-3m1.5-1.5v3" />
+                                </svg>
+                                {t('navigation.manageUsers')}
+                              </Link>
+                            )}
                           </>
                         )}
 
@@ -521,10 +546,23 @@ export default function Navigation() {
                         pathname === '/instructor/dashboard/manage-instructors'
                           ? 'text-[#10b981] bg-emerald-50 border-l-2 border-[#10b981]'
                           : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
+                    }`}
                       onClick={() => setIsOpen(false)}
                     >
                       {t('navigation.manageInstructors')}
+                    </Link>
+                  )}
+                  {isSuperAdmin && (
+                    <Link
+                      href="/instructor/dashboard/users"
+                      className={`block px-4 py-3 text-sm font-bold transition-all uppercase tracking-wide rounded-lg ${
+                        pathname === '/instructor/dashboard/users'
+                          ? 'text-[#10b981] bg-emerald-50 border-l-2 border-[#10b981]'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {t('navigation.manageUsers')}
                     </Link>
                   )}
 
@@ -562,6 +600,19 @@ export default function Navigation() {
                   >
                     {t('profile.title')}
                   </Link>
+                  {isSuperAdmin && (
+                    <Link
+                      href="/instructor/dashboard/users"
+                      className={`block px-4 py-3 text-sm font-bold transition-all uppercase tracking-wide rounded-lg ${
+                        pathname === '/instructor/dashboard/users'
+                          ? 'text-[#10b981] bg-emerald-50 border-l-2 border-[#10b981]'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {t('navigation.manageUsers')}
+                    </Link>
+                  )}
 
                   <button
                     onClick={() => {

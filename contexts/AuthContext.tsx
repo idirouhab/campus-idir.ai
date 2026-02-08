@@ -17,6 +17,7 @@ interface AuthContextType {
   isDualRole: boolean;
   currentView: 'student' | 'instructor' | null;
   instructorRole: 'instructor' | 'admin' | null;
+  isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, timezone?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [hasInstructorProfile, setHasInstructorProfile] = useState(false);
   const [currentView, setCurrentView] = useState<'student' | 'instructor' | null>(null);
   const [instructorRole, setInstructorRole] = useState<'instructor' | 'admin' | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const router = useRouter();
 
@@ -59,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasInstructorProfile(false);
           setCurrentView(null);
           setInstructorRole(null);
+          setIsSuperAdmin(false);
           setLoading(false);
           return;
         }
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 ? 'instructor'
                 : null;
           setInstructorRole(derivedRole);
+          setIsSuperAdmin(roles.includes('super_admin'));
 
           // Convert SessionUser to Student format
           const studentUser: Student = {
@@ -101,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasInstructorProfile(false);
           setCurrentView(null);
           setInstructorRole(null);
+          setIsSuperAdmin(false);
         }
       } catch (err) {
         setUser(null);
@@ -109,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setHasInstructorProfile(false);
         setCurrentView(null);
         setInstructorRole(null);
+        setIsSuperAdmin(false);
       } finally {
         setLoading(false);
         setInitialCheckDone(true);
@@ -147,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 ? 'instructor'
                 : null;
           setInstructorRole(derivedRole);
+          setIsSuperAdmin(roles.includes('super_admin'));
 
           const studentUser: Student = {
             id: data.user.id,
@@ -207,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasInstructorProfile(false);
     setCurrentView(null);
     setInstructorRole(null);
+    setIsSuperAdmin(false);
   };
 
   const refreshUser = async () => {
@@ -230,6 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 ? 'instructor'
                 : null;
           setInstructorRole(derivedRole);
+          setIsSuperAdmin(roles.includes('super_admin'));
 
           const studentUser: Student = {
             id: data.user.id,
@@ -252,6 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasInstructorProfile(false);
           setCurrentView(null);
           setInstructorRole(null);
+          setIsSuperAdmin(false);
         }
       } else {
         setUser(null);
@@ -260,6 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setHasInstructorProfile(false);
         setCurrentView(null);
         setInstructorRole(null);
+        setIsSuperAdmin(false);
       }
     } catch (err) {
       setUser(null);
@@ -312,6 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isDualRole: hasStudentProfile && hasInstructorProfile,
     currentView,
     instructorRole,
+    isSuperAdmin,
     signIn,
     signUp,
     signOut,

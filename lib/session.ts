@@ -132,3 +132,14 @@ export async function requireAdmin(): Promise<SessionUser> {
   }
   return session;
 }
+
+/**
+ * Require super admin role
+ */
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (!session.roles.includes('super_admin')) {
+    throw new Error('Forbidden: Super admin access required');
+  }
+  return session;
+}
