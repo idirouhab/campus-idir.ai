@@ -37,7 +37,7 @@ export async function assignInstructorToCourseAction(
     const instructors = await sql`
       SELECT u.id, u.is_active
       FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
       WHERE u.id = ${instructorId}
     `;
 
@@ -243,23 +243,20 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
         u.created_at,
         u.updated_at,
         u.last_login_at,
-        ip.user_id as profile_user_id,
-        ip.title,
-        ip.description,
-        ip.picture_url,
-        ip.linkedin_url,
-        ip.x_url,
-        ip.youtube_url,
-        ip.website_url,
-        ip.role,
-        ip.preferred_language,
-        ip.created_at as profile_created_at,
-        ip.updated_at as profile_updated_at,
+        u.title,
+        u.description,
+        u.picture_url,
+        u.linkedin_url,
+        u.x_url,
+        u.youtube_url,
+        u.website_url,
+        u.role as profile_role,
+        u.preferred_language as profile_preferred_language,
         ci.instructor_role,
         ci.display_order
       FROM course_instructors ci
       INNER JOIN users u ON ci.instructor_id = u.id
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
       WHERE ci.course_id = ${courseId}
       ORDER BY ci.display_order ASC
     `;
@@ -281,23 +278,20 @@ export async function getCourseInstructorsAction(courseId: string): Promise<{
         display_order: row.display_order,
       };
 
-      // Add profile if exists
-      if (row.profile_user_id) {
-        instructor.profile = {
-          user_id: row.profile_user_id,
-          title: row.title,
-          description: row.description,
-          picture_url: row.picture_url,
-          linkedin_url: row.linkedin_url,
-          x_url: row.x_url,
-          youtube_url: row.youtube_url,
-          website_url: row.website_url,
-          role: row.role,
-          preferred_language: row.preferred_language,
-          created_at: row.profile_created_at,
-          updated_at: row.profile_updated_at,
-        };
-      }
+      instructor.profile = {
+        user_id: row.id,
+        title: row.title,
+        description: row.description,
+        picture_url: row.picture_url,
+        linkedin_url: row.linkedin_url,
+        x_url: row.x_url,
+        youtube_url: row.youtube_url,
+        website_url: row.website_url,
+        role: row.profile_role || 'instructor',
+        preferred_language: row.profile_preferred_language || 'en',
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      };
 
       return instructor;
     });

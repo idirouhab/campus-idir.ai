@@ -15,12 +15,11 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
     SELECT
       u.id, u.email, u.first_name, u.last_name, u.country, u.birthday, u.timezone,
       u.is_active, u.email_verified, u.created_at, u.updated_at, u.last_login_at,
-      ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-      ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url,
-      ip.role, ip.preferred_language,
-      ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+      u.title, u.description, u.picture_url,
+      u.linkedin_url, u.x_url, u.youtube_url, u.website_url,
+      u.role, u.preferred_language
     FROM users u
-    INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+    INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
     WHERE u.id = ${instructorId}
   `;
 
@@ -43,7 +42,7 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
     updated_at: row.updated_at,
     last_login_at: row.last_login_at || undefined,
     profile: {
-      user_id: row.profile_user_id,
+      user_id: row.id,
       title: row.title || undefined,
       description: row.description || undefined,
       picture_url: row.picture_url || undefined,
@@ -51,10 +50,10 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
       x_url: row.x_url || undefined,
       youtube_url: row.youtube_url || undefined,
       website_url: row.website_url || undefined,
-      role: row.role,
-      preferred_language: row.preferred_language,
-      created_at: row.profile_created_at,
-      updated_at: row.profile_updated_at,
+      role: row.role || 'instructor',
+      preferred_language: row.preferred_language || 'en',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
     },
   };
 

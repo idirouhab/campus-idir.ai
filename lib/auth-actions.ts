@@ -76,7 +76,7 @@ export async function signUpAction(
       const user = existingUser[0];
 
       const existingProfile = await sql`
-        SELECT user_id FROM student_profiles WHERE user_id = ${user.id}
+        SELECT user_id FROM user_roles WHERE user_id = ${user.id} AND role = 'student'
       `;
 
       if (existingProfile.length > 0) {
@@ -94,10 +94,18 @@ export async function signUpAction(
         WHERE id = ${userId}
       `;
 
-      // Create student profile
+      // Set student preferred language on users
       await sql`
-        INSERT INTO student_profiles (user_id, preferred_language)
-        VALUES (${userId}, 'en')
+        UPDATE users
+        SET preferred_language = COALESCE(preferred_language, 'en')
+        WHERE id = ${userId}
+      `;
+
+      // Ensure RBAC role exists
+      await sql`
+        INSERT INTO user_roles (user_id, role)
+        VALUES (${userId}, 'student')
+        ON CONFLICT (user_id, role) DO NOTHING
       `;
     } else {
       // New user - create account
@@ -117,10 +125,18 @@ export async function signUpAction(
 
       userId = result[0].id;
 
-      // Create student profile with default preferred_language
+      // Set student preferred language on users
       await sql`
-        INSERT INTO student_profiles (user_id, preferred_language)
-        VALUES (${userId}, 'en')
+        UPDATE users
+        SET preferred_language = COALESCE(preferred_language, 'en')
+        WHERE id = ${userId}
+      `;
+
+      // Ensure RBAC role exists
+      await sql`
+        INSERT INTO user_roles (user_id, role)
+        VALUES (${userId}, 'student')
+        ON CONFLICT (user_id, role) DO NOTHING
       `;
     }
 
@@ -186,10 +202,18 @@ export async function signInAction(
     const result = await sql`
       SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.password_hash,
-             sp.user_id as has_student_profile
+             EXISTS(
+               SELECT 1 FROM user_roles ur2
+               WHERE ur2.user_id = u.id AND ur2.role = 'student'
+             ) as has_student_profile,
+             COALESCE(
+               ARRAY_REMOVE(ARRAY_AGG(ur.role), NULL),
+               ARRAY[]::app_role[]
+             ) as roles
       FROM users u
-      LEFT JOIN student_profiles sp ON sp.user_id = u.id
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
       WHERE u.email = ${normalizedEmail}
+      GROUP BY u.id
     `;
 
     if (result.length === 0) {
@@ -224,10 +248,18 @@ export async function signInAction(
     }
 
     // Generate JWT token
+    const roles =
+      user.roles && user.roles.length > 0
+        ? user.roles
+        : user.has_student_profile
+          ? ['student']
+          : [];
+
     const token = await generateAccessToken(
       user.id,
       'student',
-      user.email
+      user.email,
+      roles
     );
 
     // Set secure httpOnly cookie
@@ -296,12 +328,22 @@ export async function unifiedSignInAction(
     const result = await sql`
       SELECT u.id, u.email, u.first_name, u.last_name, u.birthday, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.password_hash,
-             sp.user_id as has_student_profile,
-             ip.user_id as has_instructor_profile, ip.role
+             EXISTS(
+               SELECT 1 FROM user_roles ur2
+               WHERE ur2.user_id = u.id AND ur2.role = 'student'
+             ) as has_student_profile,
+             EXISTS(
+               SELECT 1 FROM user_roles ur3
+               WHERE ur3.user_id = u.id AND ur3.role = 'instructor'
+             ) as has_instructor_profile,
+             COALESCE(
+               ARRAY_REMOVE(ARRAY_AGG(ur.role), NULL),
+               ARRAY[]::app_role[]
+             ) as roles
       FROM users u
-      LEFT JOIN student_profiles sp ON sp.user_id = u.id
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
       WHERE u.email = ${normalizedEmail}
+      GROUP BY u.id
     `;
 
     if (result.length === 0) {
@@ -337,23 +379,27 @@ export async function unifiedSignInAction(
     // Priority: Instructor > Student
     let userType: 'student' | 'instructor';
     let currentView: 'student' | 'instructor';
-    let role: 'instructor' | 'admin' | undefined;
-
     if (hasInstructorProfile) {
       userType = 'instructor';
       currentView = 'instructor';
-      role = user.role || 'instructor';
     } else {
       userType = 'student';
       currentView = 'student';
     }
 
     // Generate JWT token with dual-role support
+    const roles =
+      user.roles && user.roles.length > 0
+        ? user.roles
+        : [
+            ...(hasStudentProfile ? ['student'] : []),
+            ...(hasInstructorProfile ? ['instructor'] : []),
+          ];
     const token = await generateAccessToken(
       user.id,
       userType,
       user.email,
-      role,
+      roles,
       hasStudentProfile,
       hasInstructorProfile,
       currentView
@@ -397,7 +443,7 @@ export async function verifyStudentAction(studentId: string): Promise<AuthRespon
 
     // Verify user has student profile
     const profileCheck = await sql`
-      SELECT user_id FROM student_profiles WHERE user_id = ${studentId}
+      SELECT user_id FROM user_roles WHERE user_id = ${studentId} AND role = 'student'
     `;
 
     if (profileCheck.length === 0) {
@@ -477,7 +523,7 @@ export async function updateStudentProfileAction(
 
     // Verify user has a student profile
     const profileCheck = await sql`
-      SELECT user_id FROM student_profiles WHERE user_id = ${validatedData.studentId}
+      SELECT user_id FROM user_roles WHERE user_id = ${validatedData.studentId} AND role = 'student'
     `;
 
     if (profileCheck.length === 0) {
@@ -559,7 +605,7 @@ export async function updateStudentPasswordAction(
 
     // Verify user has student profile
     const profileCheck = await sql`
-      SELECT user_id FROM student_profiles WHERE user_id = ${validatedData.studentId}
+      SELECT user_id FROM user_roles WHERE user_id = ${validatedData.studentId} AND role = 'student'
     `;
 
     if (profileCheck.length === 0) {

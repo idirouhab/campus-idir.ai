@@ -35,7 +35,9 @@ export async function PATCH(
       WHERE cm.id = ${materialId} AND ci.instructor_id = ${session.id}
     `;
 
-    if (!material && session.role !== 'admin') {
+    const isAdmin =
+      session.roles.includes('super_admin') || session.roles.includes('billing_admin');
+    if (!material && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -82,7 +84,9 @@ export async function DELETE(
       WHERE cm.id = ${materialId} AND ci.instructor_id = ${session.id}
     `;
 
-    if (!material && session.role !== 'admin') {
+    const isAdmin =
+      session.roles.includes('super_admin') || session.roles.includes('billing_admin');
+    if (!material && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

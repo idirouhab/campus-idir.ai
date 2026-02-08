@@ -59,7 +59,7 @@ export async function instructorSignUpAction(
       const user = existingUser[0];
 
       const existingProfile = await sql`
-        SELECT user_id FROM instructor_profiles WHERE user_id = ${user.id}
+        SELECT user_id FROM user_roles WHERE user_id = ${user.id} AND role = 'instructor'
       `;
 
       if (existingProfile.length > 0) {
@@ -88,10 +88,19 @@ export async function instructorSignUpAction(
         `;
       }
 
-      // Create instructor profile (without birthday and timezone as they're now in users table)
+      // Set instructor defaults on users
       await sql`
-        INSERT INTO instructor_profiles (user_id, role, preferred_language)
-        VALUES (${userId}, 'instructor', 'en')
+        UPDATE users
+        SET role = COALESCE(role, 'instructor'::instructor_role),
+            preferred_language = COALESCE(preferred_language, 'en')
+        WHERE id = ${userId}
+      `;
+
+      // Ensure RBAC role exists
+      await sql`
+        INSERT INTO user_roles (user_id, role)
+        VALUES (${userId}, 'instructor')
+        ON CONFLICT (user_id, role) DO NOTHING
       `;
     } else {
       // New user - create account
@@ -131,10 +140,19 @@ export async function instructorSignUpAction(
 
       userId = result[0].id;
 
-      // Create instructor profile (without birthday and timezone as they're now in users table)
+      // Set instructor defaults on users
       await sql`
-        INSERT INTO instructor_profiles (user_id, role, preferred_language)
-        VALUES (${userId}, 'instructor', 'en')
+        UPDATE users
+        SET role = COALESCE(role, 'instructor'::instructor_role),
+            preferred_language = COALESCE(preferred_language, 'en')
+        WHERE id = ${userId}
+      `;
+
+      // Ensure RBAC role exists
+      await sql`
+        INSERT INTO user_roles (user_id, role)
+        VALUES (${userId}, 'instructor')
+        ON CONFLICT (user_id, role) DO NOTHING
       `;
     }
 
@@ -197,12 +215,17 @@ export async function instructorSignInAction(
     const result = await sql`
       SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.timezone, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.password_hash, u.birthday,
-             ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
-             ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+             u.title, u.description, u.picture_url,
+             u.linkedin_url, u.x_url, u.youtube_url,
+             u.website_url, u.role, u.preferred_language,
+             COALESCE(
+               ARRAY_REMOVE(ARRAY_AGG(ur.role), NULL),
+               ARRAY[]::app_role[]
+             ) as roles
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
       WHERE u.email = ${normalizedEmail}
+      GROUP BY u.id
     `;
 
     if (result.length === 0) {
@@ -213,7 +236,8 @@ export async function instructorSignInAction(
     const user = result[0];
 
     // Check if user has an instructor profile
-    if (!user.profile_user_id) {
+    const hasInstructorRole = user.roles && user.roles.includes('instructor');
+    if (!hasInstructorRole) {
       // User exists but doesn't have an instructor profile
       return { success: false, error: 'Invalid credentials' };
     }
@@ -238,11 +262,18 @@ export async function instructorSignInAction(
     }
 
     // Generate JWT token with role
+    const roles =
+      user.roles && user.roles.length > 0
+        ? user.roles
+        : hasInstructorRole
+          ? ['instructor']
+          : [];
+
     const token = await generateAccessToken(
       user.id,
       'instructor',
       user.email,
-      user.role || 'instructor'
+      roles
     );
 
     // Set secure httpOnly cookie
@@ -269,19 +300,19 @@ export async function instructorSignInAction(
       created_at: user.created_at,
       updated_at: user.updated_at,
       last_login_at: user.last_login_at,
-      profile: user.profile_user_id ? {
-        user_id: user.profile_user_id,
-        title: user.title,
-        description: user.description,
-        picture_url: user.picture_url,
-        linkedin_url: user.linkedin_url,
-        x_url: user.x_url,
-        youtube_url: user.youtube_url,
-        website_url: user.website_url,
+      profile: hasInstructorRole ? {
+        user_id: user.id,
+        title: user.title || undefined,
+        description: user.description || undefined,
+        picture_url: user.picture_url || undefined,
+        linkedin_url: user.linkedin_url || undefined,
+        x_url: user.x_url || undefined,
+        youtube_url: user.youtube_url || undefined,
+        website_url: user.website_url || undefined,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
-        created_at: user.profile_created_at,
-        updated_at: user.profile_updated_at,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
       } : undefined,
     };
 
@@ -301,11 +332,10 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
     const result = await sql`
       SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.timezone, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.birthday,
-             ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
-             ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+             u.title, u.description, u.picture_url,
+             u.linkedin_url, u.x_url, u.youtube_url,
+             u.website_url, u.role, u.preferred_language
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
       WHERE u.id = ${instructorId}
     `;
 
@@ -332,8 +362,8 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
       created_at: user.created_at,
       updated_at: user.updated_at,
       last_login_at: user.last_login_at,
-      profile: user.profile_user_id ? {
-        user_id: user.profile_user_id,
+      profile: user.role ? {
+        user_id: user.id,
         title: user.title,
         description: user.description,
         picture_url: user.picture_url,
@@ -343,8 +373,8 @@ export async function verifyInstructorAction(instructorId: string): Promise<Inst
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
-        created_at: user.profile_created_at,
-        updated_at: user.profile_updated_at,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
       } : undefined,
     };
     return { success: true, data: instructorData };
@@ -408,9 +438,9 @@ export async function updateInstructorProfileAction(
       return { success: false, error: 'Failed to update profile' };
     }
 
-    // Update instructor profile table (profile-specific fields, without birthday and timezone)
+    // Update instructor-specific fields on users
     await sql`
-      UPDATE instructor_profiles
+      UPDATE users
       SET description = ${description || null},
           preferred_language = ${preferredLanguage || 'en'},
           linkedin_url = ${linkedinUrl || null},
@@ -418,18 +448,17 @@ export async function updateInstructorProfileAction(
           x_url = ${xUrl || null},
           youtube_url = ${youtubeUrl || null},
           updated_at = NOW()
-      WHERE user_id = ${instructorId}
+      WHERE id = ${instructorId}
     `;
 
     // Fetch updated instructor with profile
     const result = await sql`
       SELECT u.id, u.email, u.first_name, u.last_name, u.country, u.timezone, u.is_active, u.email_verified,
              u.created_at, u.updated_at, u.last_login_at, u.birthday,
-             ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-             ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url, ip.role, ip.preferred_language,
-             ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+             u.title, u.description, u.picture_url,
+             u.linkedin_url, u.x_url, u.youtube_url,
+             u.website_url, u.role, u.preferred_language
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
       WHERE u.id = ${instructorId}
     `;
 
@@ -448,8 +477,8 @@ export async function updateInstructorProfileAction(
       created_at: user.created_at,
       updated_at: user.updated_at,
       last_login_at: user.last_login_at,
-      profile: user.profile_user_id ? {
-        user_id: user.profile_user_id,
+      profile: user.role ? {
+        user_id: user.id,
         title: user.title,
         description: user.description,
         picture_url: user.picture_url,
@@ -459,8 +488,8 @@ export async function updateInstructorProfileAction(
         website_url: user.website_url,
         role: user.role || 'instructor',
         preferred_language: user.preferred_language || 'en',
-        created_at: user.profile_created_at,
-        updated_at: user.profile_updated_at,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
       } : undefined,
     };
 
@@ -496,7 +525,7 @@ export async function updateInstructorPasswordAction(
 
     // Verify user has instructor profile
     const profileCheck = await sql`
-      SELECT user_id FROM instructor_profiles WHERE user_id = ${instructorId}
+      SELECT user_id FROM user_roles WHERE user_id = ${instructorId} AND role = 'instructor'
     `;
 
     if (profileCheck.length === 0) {

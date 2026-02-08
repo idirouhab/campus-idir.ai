@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
       const sql = getDb();
 
       // Check if this is an admin or if they're assigned to this course
-      if (session.role !== 'admin') {
+      const isAdmin =
+        session.roles.includes('super_admin') || session.roles.includes('billing_admin');
+      if (!isAdmin) {
         const courseAccess = await sql`
           SELECT 1 FROM course_instructors
           WHERE course_id = ${courseId} AND instructor_id = ${session.id}

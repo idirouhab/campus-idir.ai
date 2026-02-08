@@ -105,6 +105,16 @@ export interface User {
   country?: string;
   birthday?: string;
   timezone?: string;
+  birth_year?: number;
+  preferred_language?: 'en' | 'es';
+  title?: string;
+  description?: string;
+  picture_url?: string;
+  linkedin_url?: string;
+  x_url?: string;
+  youtube_url?: string;
+  website_url?: string;
+  role?: InstructorRole;
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
@@ -112,10 +122,11 @@ export interface User {
   last_login_at?: string;
 }
 
-// Student profile (separate table)
+// Student profile (flattened into users)
 export interface StudentProfile {
   user_id: string;
   preferred_language: 'en' | 'es';
+  birth_year?: number;
   created_at: string;
   updated_at: string;
 }
@@ -123,7 +134,7 @@ export interface StudentProfile {
 // Instructor roles
 export type InstructorRole = 'instructor' | 'admin';
 
-// Instructor profile (separate table)
+// Instructor profile (flattened into users)
 export interface InstructorProfile {
   user_id: string;
   title?: string;

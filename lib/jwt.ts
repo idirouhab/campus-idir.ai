@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import type { AppRole } from './roles/app-role';
 
 // JWT Configuration - CRITICAL: Enforce secure secret
 const JWT_SECRET = (() => {
@@ -24,8 +25,8 @@ const JWT_EXPIRATION = '7d'; // 7 days
 export interface JWTPayload {
   userId: string;
   userType: 'student' | 'instructor';
-  role?: 'instructor' | 'admin'; // Only for instructors
   email: string;
+  roles?: AppRole[];
   hasStudentProfile?: boolean; // Can access student views
   hasInstructorProfile?: boolean; // Can access instructor views
   currentView?: 'student' | 'instructor'; // Current active view
@@ -41,7 +42,7 @@ export async function generateAccessToken(
   userId: string,
   userType: 'student' | 'instructor',
   email: string,
-  role?: 'instructor' | 'admin',
+  roles?: AppRole[],
   hasStudentProfile?: boolean,
   hasInstructorProfile?: boolean,
   currentView?: 'student' | 'instructor'
@@ -50,7 +51,7 @@ export async function generateAccessToken(
     userId,
     userType,
     email,
-    role: userType === 'instructor' ? role : undefined,
+    roles,
     hasStudentProfile,
     hasInstructorProfile,
     currentView: currentView || userType,

@@ -24,12 +24,11 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
     SELECT
       u.id, u.email, u.first_name, u.last_name, u.country, u.birthday, u.timezone,
       u.is_active, u.email_verified, u.created_at, u.updated_at, u.last_login_at,
-      ip.user_id as profile_user_id, ip.title, ip.description, ip.picture_url,
-      ip.linkedin_url, ip.x_url, ip.youtube_url, ip.website_url,
-      ip.role, ip.preferred_language,
-      ip.created_at as profile_created_at, ip.updated_at as profile_updated_at
+      u.title, u.description, u.picture_url,
+      u.linkedin_url, u.x_url, u.youtube_url, u.website_url,
+      u.role, u.preferred_language
     FROM users u
-    INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+    INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
     WHERE u.id = ${instructorId}
   `;
 
@@ -50,7 +49,7 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
     updated_at: row.updated_at,
     last_login_at: row.last_login_at || undefined,
     profile: {
-      user_id: row.profile_user_id,
+      user_id: row.id,
       title: row.title || undefined,
       description: row.description || undefined,
       picture_url: row.picture_url || undefined,
@@ -58,10 +57,10 @@ async function getInstructorById(instructorId: string): Promise<Instructor | nul
       x_url: row.x_url || undefined,
       youtube_url: row.youtube_url || undefined,
       website_url: row.website_url || undefined,
-      role: row.role,
-      preferred_language: row.preferred_language,
-      created_at: row.profile_created_at,
-      updated_at: row.profile_updated_at,
+      role: row.role || 'instructor',
+      preferred_language: row.preferred_language || 'en',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
     },
   };
 
@@ -200,18 +199,10 @@ export async function getInstructorCoursesAction(): Promise<{
     const sql = getDb();
 
     // Get the instructor to check their role
-    const instructors = await sql`
-      SELECT u.*, ip.role, ip.preferred_language
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${instructorId}
-    `;
-
-    if (instructors.length === 0) {
+    const instructor = await getInstructorById(instructorId);
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0] as Instructor;
 
     let courses: CourseWithInstructors[];
 
@@ -237,7 +228,7 @@ export async function getInstructorCoursesAction(): Promise<{
                 'first_name', u.first_name,
                 'last_name', u.last_name,
                 'email', u.email,
-                'picture_url', ip.picture_url,
+                'picture_url', u.picture_url,
                 'instructor_role', ci.instructor_role,
                 'display_order', ci.display_order
               )
@@ -245,8 +236,7 @@ export async function getInstructorCoursesAction(): Promise<{
             ) as instructors
           FROM course_instructors ci
           JOIN users u ON ci.instructor_id = u.id
-          INNER JOIN instructor_profiles ip_check ON ip_check.user_id = u.id
-          LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+          INNER JOIN user_roles ur_check ON ur_check.user_id = u.id AND ur_check.role = 'instructor'
           GROUP BY ci.course_id
         ) instructor_data ON c.id = instructor_data.course_id
         ORDER BY c.created_at DESC
@@ -274,7 +264,7 @@ export async function getInstructorCoursesAction(): Promise<{
                 'first_name', u.first_name,
                 'last_name', u.last_name,
                 'email', u.email,
-                'picture_url', ip.picture_url,
+                'picture_url', u.picture_url,
                 'instructor_role', ci.instructor_role,
                 'display_order', ci.display_order
               )
@@ -282,8 +272,7 @@ export async function getInstructorCoursesAction(): Promise<{
             ) as instructors
           FROM course_instructors ci
           JOIN users u ON ci.instructor_id = u.id
-          INNER JOIN instructor_profiles ip_check ON ip_check.user_id = u.id
-          LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+          INNER JOIN user_roles ur_check ON ur_check.user_id = u.id AND ur_check.role = 'instructor'
           GROUP BY ci.course_id
         ) instructor_data ON c.id = instructor_data.course_id
         ORDER BY c.created_at DESC
@@ -333,18 +322,10 @@ export async function getCourseByIdAction(
     const sql = getDb();
 
     // Get instructor to check role
-    const instructors = await sql`
-      SELECT u.*, ip.role, ip.preferred_language
-      FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-      WHERE u.id = ${instructorId}
-    `;
-
-    if (instructors.length === 0) {
+    const instructor = await getInstructorById(instructorId);
+    if (!instructor) {
       return { success: false, error: 'Instructor not found' };
     }
-
-    const instructor = instructors[0] as Instructor;
 
     // Get course with instructors
     const courses = await sql`
@@ -357,7 +338,7 @@ export async function getCourseByIdAction(
               'first_name', u.first_name,
               'last_name', u.last_name,
               'email', u.email,
-              'picture_url', ip.picture_url,
+              'picture_url', u.picture_url,
               'instructor_role', ci.instructor_role,
               'display_order', ci.display_order
             )
@@ -368,7 +349,7 @@ export async function getCourseByIdAction(
       FROM courses c
       LEFT JOIN course_instructors ci ON c.id = ci.course_id
       LEFT JOIN users u ON ci.instructor_id = u.id
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
       WHERE c.id = ${courseId}
       GROUP BY c.id
     `;
@@ -435,11 +416,11 @@ export async function getAllInstructorsAction(): Promise<{
         u.email,
         u.first_name,
         u.last_name,
-        ip.picture_url,
-        ip.role,
+        u.picture_url,
+        u.role as role,
         u.is_active
       FROM users u
-      INNER JOIN instructor_profiles ip ON ip.user_id = u.id
+      INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
       WHERE u.is_active = true
       ORDER BY u.first_name, u.last_name
     `;
@@ -491,16 +472,16 @@ export async function getAllInstructorsWithStatsAction(): Promise<{
         u.country,
         u.created_at,
         u.birthday,
-        ip.picture_url,
+        u.picture_url,
         COALESCE(course_data.course_count, 0) as course_count
       FROM users u
-      LEFT JOIN instructor_profiles ip ON ip.user_id = u.id
+      INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'instructor'
       LEFT JOIN (
         SELECT instructor_id, COUNT(DISTINCT course_id) as course_count
         FROM course_instructors
         GROUP BY instructor_id
       ) course_data ON u.id = course_data.instructor_id
-      WHERE ip.user_id IS NOT NULL AND u.is_active = true
+      WHERE u.is_active = true
       ORDER BY u.created_at DESC
     `;
 
@@ -845,18 +826,10 @@ export async function getCourseStudentsAction(
     const sql = getDb();
 
     // Get instructor to check their role
-    const instructors = await sql`
-        SELECT u.*, ip.role
-        FROM users u
-        INNER JOIN instructor_profiles ip ON ip.user_id = u.id
-        WHERE u.id = ${instructorId}
-    `;
-
-    if (instructors.length === 0) {
+    const instructor = await getInstructorById(instructorId);
+    if (!instructor) {
       return { success: false, error: 'Not authorized' };
     }
-
-    const instructor = instructors[0] as Instructor;
 
     // Check access: admin can see all, regular instructor needs to be assigned
     if (!canViewAllCourses(instructor)) {

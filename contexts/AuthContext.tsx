@@ -70,7 +70,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasStudentProfile(data.user.hasStudentProfile || false);
           setHasInstructorProfile(data.user.hasInstructorProfile || false);
           setCurrentView(data.user.currentView || null);
-          setInstructorRole(data.user.role || null);
+          const roles = data.user.roles || [];
+          const derivedRole =
+            roles.includes('super_admin') || roles.includes('billing_admin')
+              ? 'admin'
+              : roles.includes('instructor')
+                ? 'instructor'
+                : null;
+          setInstructorRole(derivedRole);
 
           // Convert SessionUser to Student format
           const studentUser: Student = {
@@ -132,7 +139,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasStudentProfile(data.user.hasStudentProfile || false);
           setHasInstructorProfile(data.user.hasInstructorProfile || false);
           setCurrentView(data.user.currentView || null);
-          setInstructorRole(data.user.role || null);
+          const roles = data.user.roles || [];
+          const derivedRole =
+            roles.includes('super_admin') || roles.includes('billing_admin')
+              ? 'admin'
+              : roles.includes('instructor')
+                ? 'instructor'
+                : null;
+          setInstructorRole(derivedRole);
 
           const studentUser: Student = {
             id: data.user.id,
@@ -208,7 +222,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasStudentProfile(data.user.hasStudentProfile || false);
           setHasInstructorProfile(data.user.hasInstructorProfile || false);
           setCurrentView(data.user.currentView || null);
-          setInstructorRole(data.user.role || null);
+          const roles = data.user.roles || [];
+          const derivedRole =
+            roles.includes('super_admin') || roles.includes('billing_admin')
+              ? 'admin'
+              : roles.includes('instructor')
+                ? 'instructor'
+                : null;
+          setInstructorRole(derivedRole);
 
           const studentUser: Student = {
             id: data.user.id,

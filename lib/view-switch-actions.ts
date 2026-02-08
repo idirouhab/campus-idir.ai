@@ -40,7 +40,7 @@ export async function switchViewAction(
       session.id,
       newUserType,
       session.email,
-      session.role,
+      session.roles,
       session.hasStudentProfile,
       session.hasInstructorProfile,
       view

@@ -46,7 +46,9 @@ export async function POST(request: NextRequest) {
     const sql = getDb();
 
     // 6. Verify instructor access to course
-    if (session.role !== 'admin') {
+    const isAdmin =
+      session.roles.includes('super_admin') || session.roles.includes('billing_admin');
+    if (!isAdmin) {
       const courseAccess = await sql`
         SELECT 1 FROM course_instructors
         WHERE course_id = ${courseId} AND instructor_id = ${session.id}
